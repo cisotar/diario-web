@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Diário de Aulas · 2026</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="header-logo">Diário<span> de Aulas</span></div>
+    <span class="header-tagline">E.E. · 2026 · Geografia · Sociologia · Atualidades</span>
+  </header>
+
+  <div class="app-layout">
+
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-titulo">Turmas</div>
+      <div id="sidebar-turmas"></div>
+      <button class="btn-gestao-sidebar" id="btn-gestao">⚙ Painel de Gestão</button>
+    </aside>
+
+    <main class="main-content">
+      <div id="conteudo-principal"></div>
+    </main>
+
+  </div>
+
+  <script type="module">
+    import { initializeApp }         from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey:            "AIzaSyAqdTVWYfROLnFfrBm4xLIVp5w1noUo2xk",
+      authDomain:        "diariodeclassev1.firebaseapp.com",
+      projectId:         "diariodeclassev1",
+      storageBucket:     "diariodeclassev1.firebasestorage.app",
+      messagingSenderId: "99507158812",
+      appId:             "1:99507158812:web:204120b1000b4891c4c4d9"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
+
+    window._db            = db;
+    window._firestoreLib  = { doc, getDoc, setDoc };
+    window._firebaseReady = true;
+
+    // Resolve a promessa que o app.js aguarda
+    if (window._firebaseResolve) window._firebaseResolve();
+  </script>
+  <script>
+    // Cria promessa antes de carregar app.js
+    window._firebasePromise = new Promise(resolve => { window._firebaseResolve = resolve; });
+    // Se o módulo já rodou antes do app.js, resolve imediatamente
+    if (window._firebaseReady) window._firebaseResolve();
+  </script>
+  <script src="aulas.js"></script>
+  <script src="app.js"></script>
+
+</body>
+</html>
