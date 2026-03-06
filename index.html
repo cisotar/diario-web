@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Diário de Aulas · 2026</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="calendario.css" />
 </head>
 <body>
 
@@ -18,6 +19,7 @@
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-titulo">Turmas</div>
       <div id="sidebar-turmas"></div>
+      <button class="btn-cal-sidebar" id="btn-calendario" onclick="abrirCalendario()">📅 Calendário</button>
       <button class="btn-gestao-sidebar" id="btn-gestao">⚙ Painel de Gestão</button>
     </aside>
 
@@ -27,37 +29,9 @@
 
   </div>
 
-  <script type="module">
-    import { initializeApp }         from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey:            "AIzaSyAqdTVWYfROLnFfrBm4xLIVp5w1noUo2xk",
-      authDomain:        "diariodeclassev1.firebaseapp.com",
-      projectId:         "diariodeclassev1",
-      storageBucket:     "diariodeclassev1.firebasestorage.app",
-      messagingSenderId: "99507158812",
-      appId:             "1:99507158812:web:204120b1000b4891c4c4d9"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
-
-    window._db            = db;
-    window._firestoreLib  = { doc, getDoc, setDoc };
-    window._firebaseReady = true;
-
-    // Resolve a promessa que o app.js aguarda
-    if (window._firebaseResolve) window._firebaseResolve();
-  </script>
-  <script>
-    // Cria promessa antes de carregar app.js
-    window._firebasePromise = new Promise(resolve => { window._firebaseResolve = resolve; });
-    // Se o módulo já rodou antes do app.js, resolve imediatamente
-    if (window._firebaseReady) window._firebaseResolve();
-  </script>
   <script src="aulas.js"></script>
   <script src="app.js"></script>
+  <script src="calendario.js"></script>
 
 </body>
 </html>

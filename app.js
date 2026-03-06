@@ -29,10 +29,9 @@ let ordemConteudos = {};
 let linhasEventuais = {};
 
 // ── Drag multi-seleção ─────────────────────────────────────
-let dragSrcSlots  = [];
+let dragSrcSlots  = [];   // array de slotIds selecionados
 let dragDestSlot  = null;
-let selConteudos  = new Set();
-let lastSelIdx    = -1;
+let selConteudos  = new Set(); // slotIds selecionados para drag
 
 // ── Runtime mutável (editável pelo painel) ─────────────────
 // Inicia como cópia dos dados do aulas.js; mudanças ficam no localStorage
@@ -42,37 +41,22 @@ let RT_CONTEUDOS  = null;
 let RT_PERIODOS   = null;   // tabela de períodos de aula
 
 // ── Init ───────────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", async () => {
-  // Aguarda Firebase estar pronto
-  await window._firebasePromise;
-  await carregarTudo();
+document.addEventListener("DOMContentLoaded", () => {
+  carregarTudo();
   renderizarSidebar();
   renderizarBemVindo();
   iniciarTooltips();
 });
 
-// ── Persistência (Firebase Firestore) ──────────────────────
-let _salvarTimer = null;
-
+// ── Persistência ───────────────────────────────────────────
 function salvarTudo() {
-  // Debounce: aguarda 800ms sem novas chamadas antes de salvar no Firestore
-  clearTimeout(_salvarTimer);
-  _salvarTimer = setTimeout(_salvarNoFirestore, 800);
-}
-
-async function _salvarNoFirestore() {
-  try {
-    const { doc, setDoc } = window._firestoreLib;
-    const db = window._db;
-    await setDoc(doc(db, "diario", "dados"), {
-      aulaEstado:    JSON.stringify(estadoAulas),
-      aulaOrdem:     JSON.stringify(ordemConteudos),
-      aulaEventuais: JSON.stringify(linhasEventuais),
-      RT_CONTEUDOS:  JSON.stringify(RT_CONTEUDOS),
-    });
-  } catch (err) {
-    console.error("Erro ao salvar no Firestore:", err);
-  }
+  // Progresso salvo normalmente
+  localStorage.setItem("aulaEstado",    JSON.stringify(estadoAulas));
+  localStorage.setItem("aulaOrdem",     JSON.stringify(ordemConteudos));
+  localStorage.setItem("aulaEventuais", JSON.stringify(linhasEventuais));
+  // RT_CONTEUDOS pode ser editado pelo painel de gestão → persiste
+  localStorage.setItem("RT_CONTEUDOS",  JSON.stringify(RT_CONTEUDOS));
+  // RT_TURMAS, RT_BIMESTRES, RT_PERIODOS: vêm sempre do aulas.js → não persiste
 }
 
 const PERIODOS_PADRAO = [
@@ -86,30 +70,33 @@ const PERIODOS_PADRAO = [
   { aula:"a8", label:"8ª aula", inicio:"20:40", fim:"21:30" },
 ];
 
-async function carregarTudo() {
-  // Turmas, bimestres e períodos: SEMPRE do aulas.js
+function carregarTudo() {
+  // ── Estrutura: SEMPRE do aulas.js (nunca do localStorage) ────────
   RT_BIMESTRES = JSON.parse(JSON.stringify(BIMESTRES));
   RT_TURMAS    = JSON.parse(JSON.stringify(TURMAS));
-  RT_PERIODOS  = (typeof PERIODOS !== "undefined")
-    ? JSON.parse(JSON.stringify(PERIODOS))
-    : JSON.parse(JSON.stringify(PERIODOS_PADRAO));
+  RT_CONTEUDOS = JSON.parse(JSON.stringify(CONTEUDOS));
+  RT_PERIODOS  = JSON.parse(JSON.stringify(
+    typeof PERIODOS !== "undefined" ? PERIODOS : PERIODOS_PADRAO
+  ));
 
-  try {
-    const { doc, getDoc } = window._firestoreLib;
-    const db = window._db;
-    const snap = await getDoc(doc(db, "diario", "dados"));
-    if (snap.exists()) {
-      const d = snap.data();
-      try { estadoAulas    = JSON.parse(d.aulaEstado)    || {}; } catch { estadoAulas = {}; }
-      try { ordemConteudos = JSON.parse(d.aulaOrdem)     || {}; } catch { ordemConteudos = {}; }
-      try { linhasEventuais= JSON.parse(d.aulaEventuais) || {}; } catch { linhasEventuais = {}; }
-      try { RT_CONTEUDOS   = JSON.parse(d.RT_CONTEUDOS)  || null; } catch { RT_CONTEUDOS = null; }
+  // ── Progresso: carrega do localStorage ───────────────────────────
+  try { estadoAulas    = JSON.parse(localStorage.getItem("aulaEstado"))    || {}; } catch { estadoAulas = {}; }
+  try { ordemConteudos = JSON.parse(localStorage.getItem("aulaOrdem"))     || {}; } catch { ordemConteudos = {}; }
+  try { linhasEventuais= JSON.parse(localStorage.getItem("aulaEventuais")) || {}; } catch { linhasEventuais = {}; }
+
+  // ── Semente: se aulas.js tiver ESTADO/ORDEM exportados,
+  //    aplica UMA VEZ quando o localStorage ainda está vazio ─────────
+  if (!localStorage.getItem("_aulasSeed")) {
+    if (typeof ESTADO !== "undefined" && Object.keys(ESTADO).length > 0) {
+      estadoAulas = Object.assign({}, ESTADO, estadoAulas);
     }
-  } catch (err) {
-    console.error("Erro ao carregar do Firestore:", err);
+    if (typeof ORDEM !== "undefined" && Object.keys(ORDEM).length > 0) {
+      ordemConteudos = Object.assign({}, ORDEM, ordemConteudos);
+    }
+    localStorage.setItem("_aulasSeed", "1");
+    localStorage.setItem("aulaEstado", JSON.stringify(estadoAulas));
+    localStorage.setItem("aulaOrdem",  JSON.stringify(ordemConteudos));
   }
-
-  if (!RT_CONTEUDOS) RT_CONTEUDOS = JSON.parse(JSON.stringify(CONTEUDOS));
 }
 
 // ── Chaves ─────────────────────────────────────────────────
@@ -208,26 +195,26 @@ function fmtData(iso) {
   return `${d}/${NOMES_MES[+m-1]}/${a}`;
 }
 
-// Formata a célula de data completa: "[02/fev/2026 - Seg] (6ª aula · 19:50–20:40)"
+// Formata a célula de data completa: "Seg, 02/fev/2026 · 6ª aula · 19:50–20:40"
 function fmtSlotData(slot) {
   if (!slot.data) return "—";
   const dt  = new Date(slot.data + "T00:00:00");
-  const dia = `[${fmtData(slot.data)} - ${DIAS_SEM[dt.getDay()]}]`;
-  if (slot.eventual) return `${dia} (${slot.inicio || "—"})`;
-  return `${dia} (${slot.label || slot.aula} · ${slot.inicio}–${slot.fim})`;
+  const dia = `${DIAS_SEM[dt.getDay()]}, ${fmtData(slot.data)}`;
+  if (slot.eventual) return `${dia} · ${slot.inicio}`;
+  return `${dia} · ${slot.label} · ${slot.inicio}–${slot.fim}`;
 }
 
 function hoje() { return new Date().toISOString().split("T")[0]; }
 
 // ── Tooltips ───────────────────────────────────────────────
 const TOOLTIPS_COLUNAS = {
-  "th-numero":   "Número sequencial da aula no bimestre.",
-  "th-data":     "Data e horário previstos para a aula, conforme calendário.",
-  "th-conteudo": "Conteúdo ou atividade prevista. Clique para editar.",
-  "th-dada":     "Marque quando a aula tiver sido efetivamente ministrada.",
-  "th-dada-em":  "Data em que a aula foi marcada como dada.",
-  "th-chamada":  "Marque quando a chamada for realizada nesta aula.",
-  "th-registro": "Marque quando o material/atividade tiver sido entregue.",
+  "th-numero":    "Número sequencial da aula no bimestre.",
+  "th-data":      "Data e horário previstos para a aula, conforme calendário.",
+  "th-conteudo":  "Conteúdo ou atividade prevista. Clique para editar. Arraste o ícone ⠿ para reorganizar. Selecione múltiplos com Ctrl+clique no ícone.",
+  "th-chamada":   "Marque quando a chamada for realizada nesta aula.",
+  "th-entregue":  "Marque quando o material ou atividade tiver sido entregue/distribuído aos alunos.",
+  "th-dada":      "Marque quando a aula tiver sido efetivamente ministrada.",
+  "th-registro":  "Data em que a aula foi marcada como dada.",
 };
 
 function iniciarTooltips() {
@@ -323,7 +310,7 @@ function renderizarSidebar() {
 function selecionarTurma(id) {
   turmaAtiva = RT_TURMAS.find(t => t.id === id);
   if (!turmaAtiva) return;
-  selConteudos.clear(); lastSelIdx = -1;
+  selConteudos.clear();
   document.querySelectorAll(".sidebar-btn").forEach(b => b.classList.toggle("ativo", b.dataset.id === id));
   const h = hoje();
   const v = RT_BIMESTRES.find(b => h >= b.inicio && h <= b.fim);
@@ -387,7 +374,7 @@ function renderizarConteudo() {
     <div class="bimestre-info">
       <span>📅 ${bimObj.label}: ${fmtData(bimObj.inicio)} → ${fmtData(bimObj.fim)}</span>
       <div class="bimestre-info-right">
-        <span class="hint-drag">✎ Clique no conteúdo para editar &nbsp;·&nbsp; ☰ Clique para selecionar · Shift+☰ intervalo · Arraste ☰ para mover</span>
+        <span class="hint-drag">✎ Clique no conteúdo para editar &nbsp;·&nbsp; ⠿ Arraste (Ctrl+⠿ seleciona múltiplos)</span>
         <span class="pct-badge">${pct}% concluído</span>
       </div>
     </div>
@@ -399,11 +386,10 @@ function renderizarConteudo() {
             <thead><tr>
               <th class="th-numero"   data-tip="${TOOLTIPS_COLUNAS['th-numero']}">#</th>
               <th class="th-data"     data-tip="${TOOLTIPS_COLUNAS['th-data']}">Data prevista</th>
-              <th class="th-sel"      title="Clique · Shift+clique · Arraste para mover">☰</th>
               <th class="th-conteudo" data-tip="${TOOLTIPS_COLUNAS['th-conteudo']}">Conteúdos / Atividades</th>
-              <th class="th-dada"     data-tip="${TOOLTIPS_COLUNAS['th-dada']}">Dada?</th>
-              <th class="th-dada-em"  data-tip="${TOOLTIPS_COLUNAS['th-dada-em']}">Dada em</th>
               <th class="th-chamada"  data-tip="${TOOLTIPS_COLUNAS['th-chamada']}">Chamada</th>
+              <th class="th-entregue" data-tip="${TOOLTIPS_COLUNAS['th-entregue']}">Entregue</th>
+              <th class="th-dada"     data-tip="${TOOLTIPS_COLUNAS['th-dada']}">Dada?</th>
               <th class="th-registro" data-tip="${TOOLTIPS_COLUNAS['th-registro']}">Registro</th>
             </tr></thead>
             <tbody id="tbody-aulas"></tbody>
@@ -449,9 +435,8 @@ function renderizarLinhas(slots) {
   if (!tbody) return;
   tbody.innerHTML = "";
 
-  const chaveC        = `${t.serie}_${t.disciplina}_b${bimestreAtivo}`;
-  const chaveFallback = `${t.serie}_${t.disciplina}`;
-  const conts         = RT_CONTEUDOS[chaveC] || RT_CONTEUDOS[chaveFallback] || [];
+  const chaveC = `${t.serie}_${t.disciplina}`;
+  const conts  = RT_CONTEUDOS[chaveC] || [];
 
   // Monta ordem só para slots regulares
   const slotsReg = slots.filter(s => !s.eventual);
@@ -503,12 +488,11 @@ function renderizarLinhas(slots) {
     tr.innerHTML = `
       <td class="td-numero">${slot.eventual ? `<span class="tag-eventual" title="Aula eventual">E</span>` : lineNum}</td>
       <td class="td-data">${fmtSlotData(slot)}</td>
-      <td class="td-sel">
-        <button class="sel-btn ${selecionado?"sel-btn-ativo":""}" draggable="true"
-          title="Clique para selecionar · Shift+clique para intervalo · Arraste para mover">☰</button>
-      </td>
       <td class="td-conteudo" data-slot="${slotId}">
         <div class="conteudo-cell">
+          <span class="drag-handle-cont ${selecionado?"handle-sel":""}"
+            data-slot="${slotId}" draggable="true"
+            title="Arrastar · Ctrl+clique para selecionar múltiplos">⠿</span>
           <span class="conteudo-texto ${editado?"editado":""}"
             data-slot="${slotId}"
             title="${editado?"Editado · clique para editar":"Clique para editar"}"
@@ -517,26 +501,27 @@ function renderizarLinhas(slots) {
           ${slot.eventual?`<button class="btn-del-eventual" onclick="removerEventual('${slotId}')" title="Remover esta aula eventual">×</button>`:""}
         </div>
       </td>
-      <td class="td-check">${mkChk("feita", feita, "Aula dada?")}</td>
-      <td class="td-registro" id="reg-${slotId}">${feita?fmtData(est.dataFeita):"—"}</td>
-      <td class="td-check">${mkChk("chamada", !!est.chamada, "Chamada realizada?")}</td>
-      <td class="td-check">${mkChk("conteudoEntregue", !!est.conteudoEntregue, "Registro/entregue")}</td>`;
+      <td class="td-check">${mkChk("chamada", !!est.chamada,   "Chamada realizada?")}</td>
+      <td class="td-check">${mkChk("conteudoEntregue", !!est.conteudoEntregue, "Material entregue?")}</td>
+      <td class="td-check">${mkChk("feita",   feita, "Aula dada?")}</td>
+      <td class="td-registro" id="reg-${slotId}">${feita?fmtData(est.dataFeita):"—"}</td>`;
 
     // Edição inline
     const spanTxt = tr.querySelector(".conteudo-texto");
     spanTxt.addEventListener("click", () => iniciarEdicao(spanTxt, slotId, conteudoBase));
 
-    // Botão ☰: clique = seleciona, drag = move
-    const selBtn = tr.querySelector(".sel-btn");
-    selBtn.addEventListener("click",     e => onSelClick(e, slotId));
-    selBtn.addEventListener("dragstart", e => onDragStart(e, slotId));
-    selBtn.addEventListener("dragend",   onDragEnd);
+    // Drag handles
+    const handle = tr.querySelector(".drag-handle-cont");
+    handle.addEventListener("click",      e => onHandleClick(e, slotId));
+    handle.addEventListener("dragstart",  e => onDragStart(e, slotId));
+    handle.addEventListener("dragend",    onDragEnd);
 
-    // Drop zone: linha inteira
-    tr.addEventListener("dragover",  e => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; });
-    tr.addEventListener("dragenter", e => onDragEnter(e, slotId, tr));
-    tr.addEventListener("dragleave", e => onDragLeave(e, tr));
-    tr.addEventListener("drop",      e => onDrop(e, slotId));
+    // Drop zone
+    const tdC = tr.querySelector(".td-conteudo");
+    tdC.addEventListener("dragover",  e => { e.preventDefault(); e.dataTransfer.dropEffect="move"; });
+    tdC.addEventListener("dragenter", e => onDragEnter(e, slotId));
+    tdC.addEventListener("dragleave", e => onDragLeave(e));
+    tdC.addEventListener("drop",      e => onDrop(e, slotId));
 
     tbody.appendChild(tr);
   }
@@ -615,144 +600,153 @@ function atualizarStats() {
   if (document.querySelector(".pct-badge")) document.querySelector(".pct-badge").textContent = `${pct}% concluído`;
 }
 
-// ── Seleção e Drag-and-drop ────────────────────────────────
-// Clique ☰        → toggle individual
-// Shift+clique ☰  → seleciona intervalo
-// Drag ☰          → move seleção: menor linha selecionada vai para destino,
-//                   restante da seleção vem abaixo; linhas deslocadas sobem
+// ── Drag-and-drop MULTI (só coluna conteúdo) ──────────────
+// Ctrl+clique no ⠿ = toggle individual
+// Alt+clique  no ⠿ = seleciona intervalo desde o último selecionado
+// Drag sem seleção = move só aquela célula
+// Drag com seleção = move o bloco todo
 
-function todosSlotIds() {
-  return [...document.querySelectorAll("tr[data-slot]")].map(r => r.dataset.slot);
-}
+let ultimoSelecionado = null; // slotId do último Ctrl+clique (para Alt-range)
 
-function onSelClick(e, slotId) {
-  e.preventDefault(); e.stopPropagation();
-  const todos = todosSlotIds();
-  const idx   = todos.indexOf(slotId);
-  if (e.shiftKey && lastSelIdx >= 0) {
-    const [de, ate] = lastSelIdx <= idx ? [lastSelIdx, idx] : [idx, lastSelIdx];
-    for (let i = de; i <= ate; i++) selConteudos.add(todos[i]);
-  } else {
-    if (selConteudos.has(slotId)) { selConteudos.delete(slotId); lastSelIdx = -1; }
-    else                          { selConteudos.add(slotId);    lastSelIdx = idx; }
+function onHandleClick(e, slotId) {
+  if (e.altKey) {
+    // Alt+clique: seleciona intervalo entre ultimoSelecionado e este
+    e.preventDefault();
+    const todos = [...document.querySelectorAll(".drag-handle-cont[data-slot]")]
+      .map(h => h.dataset.slot);
+    if (ultimoSelecionado && todos.includes(ultimoSelecionado)) {
+      const iA = todos.indexOf(ultimoSelecionado);
+      const iB = todos.indexOf(slotId);
+      const [de, ate] = iA < iB ? [iA, iB] : [iB, iA];
+      for (let i = de; i <= ate; i++) selConteudos.add(todos[i]);
+    } else {
+      selConteudos.add(slotId);
+    }
+    ultimoSelecionado = slotId;
+    atualizarVisualizacaoSel();
+  } else if (e.ctrlKey || e.metaKey) {
+    // Ctrl+clique: toggle individual
+    e.preventDefault();
+    if (selConteudos.has(slotId)) selConteudos.delete(slotId);
+    else selConteudos.add(slotId);
+    ultimoSelecionado = slotId;
+    atualizarVisualizacaoSel();
   }
-  atualizarVisualizacaoSel();
+  // Clique simples sem modificador: não faz nada (drag inicia pelo dragstart)
 }
 
 function atualizarVisualizacaoSel() {
+  document.querySelectorAll(".drag-handle-cont").forEach(h => {
+    const sid = h.dataset.slot;
+    h.classList.toggle("handle-sel", selConteudos.has(sid));
+  });
   document.querySelectorAll("tr[data-slot]").forEach(tr => {
-    const sel = selConteudos.has(tr.dataset.slot);
-    tr.classList.toggle("row-sel-cont", sel);
-    tr.querySelector(".sel-btn")?.classList.toggle("sel-btn-ativo", sel);
+    tr.classList.toggle("row-sel-cont", selConteudos.has(tr.dataset.slot));
   });
 }
 
 function onDragStart(e, slotId) {
+  // Se o slot arrastado não está na seleção, cria seleção só com ele
   if (!selConteudos.has(slotId)) {
     selConteudos.clear();
     selConteudos.add(slotId);
-    lastSelIdx = todosSlotIds().indexOf(slotId);
     atualizarVisualizacaoSel();
   }
   dragSrcSlots = [...selConteudos];
   e.dataTransfer.effectAllowed = "move";
   e.dataTransfer.setData("text/plain", slotId);
-  dragSrcSlots.forEach(sid =>
-    document.querySelector(`tr[data-slot="${sid}"]`)?.classList.add("row-dragging")
-  );
+  // Marca origem visualmente
+  dragSrcSlots.forEach(sid => {
+    document.querySelector(`td.td-conteudo[data-slot="${sid}"]`)?.classList.add("content-dragging");
+  });
 }
 
 function onDragEnd() {
-  document.querySelectorAll(".row-dragging,.row-drag-over").forEach(el =>
-    el.classList.remove("row-dragging", "row-drag-over")
+  document.querySelectorAll(".content-dragging,.content-drag-over").forEach(el =>
+    el.classList.remove("content-dragging","content-drag-over")
   );
-  dragSrcSlots = []; dragDestSlot = null;
+  dragSrcSlots  = [];
+  dragDestSlot  = null;
 }
 
-function onDragEnter(e, slotId, trEl) {
+function onDragEnter(e, slotId) {
   if (dragSrcSlots.includes(slotId)) return;
   dragDestSlot = slotId;
-  document.querySelectorAll(".row-drag-over").forEach(el => el.classList.remove("row-drag-over"));
-  (trEl || document.querySelector(`tr[data-slot="${slotId}"]`))?.classList.add("row-drag-over");
+  document.querySelector(`td.td-conteudo[data-slot="${slotId}"]`)?.classList.add("content-drag-over");
 }
 
-function onDragLeave(e, trEl) {
-  if (trEl && !trEl.contains(e.relatedTarget)) trEl.classList.remove("row-drag-over");
+function onDragLeave(e) {
+  const td = e.currentTarget;
+  if (!td.contains(e.relatedTarget)) td.classList.remove("content-drag-over");
 }
 
 function onDrop(e, destSlotId) {
   e.preventDefault(); e.stopPropagation();
-  document.querySelector(`tr[data-slot="${destSlotId}"]`)?.classList.remove("row-drag-over");
+  document.querySelector(`td.td-conteudo[data-slot="${destSlotId}"]`)?.classList.remove("content-drag-over");
   if (!dragSrcSlots.length || dragSrcSlots.includes(destSlotId)) return;
 
-  const t        = turmaAtiva;
-  const slots    = getSlotsCompletos(t.id, bimestreAtivo);
+  const t      = turmaAtiva;
+  const slots  = getSlotsCompletos(t.id, bimestreAtivo);
   const slotsReg = slots.filter(s => !s.eventual);
-  const ordem    = getOrdem(t.id, bimestreAtivo, slotsReg.length);
+  const ordem  = getOrdem(t.id, bimestreAtivo, slotsReg.length);
 
-  function idxReg(sid) { return slotsReg.findIndex(s => s.slotId === sid); }
+  // Converte slotIds para índices no array slotsReg
+  function slotIdxReg(slotId) { return slotsReg.findIndex(s => s.slotId === slotId); }
 
-  // Índices regulares das linhas selecionadas, ordenados por posição na tabela
-  const srcIdxs = dragSrcSlots.map(idxReg).filter(i => i >= 0).sort((a, b) => a - b);
-  const destIdx = idxReg(destSlotId);
-  if (destIdx < 0 || srcIdxs.length === 0) return;
+  const srcIdxs  = dragSrcSlots.map(slotIdxReg).filter(i => i >= 0);
+  const destIdx  = slotIdxReg(destSlotId);
 
-  // Captura conteúdos (índice no array de conteúdos + edições) na ordem correta
+  if (destIdx < 0 && !slots.find(s=>s.slotId===destSlotId)?.eventual) return;
+
+  // Se destino é eventual, não reorganiza ordem (sem índice regular), só troca edições
+  if (destIdx < 0) return; // drag para eventual não faz sentido na ordem
+
+  // Reorganiza: remove srcs e insere antes do dest
+  const novaOrdem = [...ordem];
   const srcContents = srcIdxs.map(i => ({
-    contIdx: ordem[i],
-    editado: estadoAulas[chaveSlot(t.id, bimestreAtivo, slotsReg[i].slotId)]?.conteudoEditado ?? null,
+    contIdx: novaOrdem[i],
+    editado: estadoAulas[chaveSlot(t.id, bimestreAtivo, slotsReg[i].slotId)]?.conteudoEditado
   }));
 
-  // Monta nova ordem: retira os src e insere a partir do destino
-  const novaOrdem = [...ordem];
-  const srcSet    = new Set(srcIdxs);
-
-  // Posição de inserção: onde fica destIdx depois de remover os srcs
-  // Se destIdx > min(srcIdxs): insere depois do destino (conteúdo desce)
-  // Se destIdx < min(srcIdxs): insere no lugar do destino (seleção sobe, dest desce)
-  const minSrc = srcIdxs[0];
-  const movingDown = destIdx > minSrc;
-
+  // Remove do array de destino
+  const srcSet = new Set(srcIdxs);
   const restantes = novaOrdem.filter((_, i) => !srcSet.has(i));
-  // Índice do destino no array sem os selecionados
-  let insPos;
-  if (movingDown) {
-    // Inserir DEPOIS do destino: seleção vai a partir da posição do dest
-    const destNoRestantes = restantes.indexOf(novaOrdem[destIdx]);
-    insPos = destNoRestantes + 1;
-  } else {
-    // Inserir NO LUGAR do destino: seleção vai a partir do destino, dest e abaixo sobem
-    const destNoRestantes = restantes.indexOf(novaOrdem[destIdx]);
-    insPos = destNoRestantes;
-  }
+  const destPosEmRestantes = restantes.indexOf(novaOrdem[destIdx]);
 
+  const insPos = destPosEmRestantes >= 0 ? destPosEmRestantes : restantes.length;
   restantes.splice(insPos, 0, ...srcContents.map(s => s.contIdx));
 
-  // Reconstrói conteudoEditado: zera slots src, repõe nos novos slots
+  // Rebuild conteudoEditado: zera os slots src, redistribui
   srcIdxs.forEach(i => {
     const ch = chaveSlot(t.id, bimestreAtivo, slotsReg[i].slotId);
     if (estadoAulas[ch]) delete estadoAulas[ch].conteudoEditado;
   });
 
-  // Onde cada srcContent vai parar no novo array: posição insPos+j → slot slotsReg[insPos+j]
-  for (let j = 0; j < srcContents.length; j++) {
-    const novoSlotIdx = insPos + j;
-    const sid = slotsReg[novoSlotIdx]?.slotId;
-    if (!sid || srcContents[j].editado == null) continue;
-    const ch = chaveSlot(t.id, bimestreAtivo, sid);
-    if (!estadoAulas[ch]) estadoAulas[ch] = {};
-    estadoAulas[ch].conteudoEditado = srcContents[j].editado;
+  // Encontra quais slots ficaram com os conteúdos movidos
+  let srcPtr = 0;
+  for (let i = 0; i < restantes.length; i++) {
+    const slotId = slotsReg[i]?.slotId;
+    if (!slotId) continue;
+    // Se o conteúdo em restantes[i] veio de srcContents, replica editado
+    const origSrcIdx = srcContents.findIndex((s,j) => s.contIdx === restantes[i] && j === srcPtr);
+    if (origSrcIdx >= 0 && srcContents[origSrcIdx].editado != null) {
+      const ch = chaveSlot(t.id, bimestreAtivo, slotId);
+      if (!estadoAulas[ch]) estadoAulas[ch] = {};
+      estadoAulas[ch].conteudoEditado = srcContents[origSrcIdx].editado;
+      srcPtr++;
+    }
   }
 
-  salvarOrdem(restantes); salvarTudo();
-  selConteudos.clear(); lastSelIdx = -1;
+  salvarOrdem(restantes);
+  salvarTudo();
+  selConteudos.clear();
   renderizarLinhas(slots);
 }
 
 // ── Mudar bimestre ─────────────────────────────────────────
 function mudarBimestre(num) {
   bimestreAtivo = num;
-  selConteudos.clear(); lastSelIdx = -1;
+  selConteudos.clear();
   renderizarConteudo();
 }
 
@@ -805,7 +799,8 @@ function confirmarLimpar() {
   getSlotsCompletos(turmaAtiva.id, bimestreAtivo).forEach(s => {
     delete estadoAulas[chaveSlot(turmaAtiva.id, bimestreAtivo, s.slotId)];
   });
-  salvarTudo(); selConteudos.clear(); lastSelIdx = -1;
+  salvarTudo();
+  selConteudos.clear();
   renderizarConteudo();
 }
 
@@ -813,13 +808,13 @@ function confirmarLimpar() {
 function exportarCSV() {
   const t      = turmaAtiva;
   const slots  = getSlotsCompletos(t.id, bimestreAtivo);
-  const chaveC = `${t.serie}_${t.disciplina}_b${bimestreAtivo}`;
-  const conts  = RT_CONTEUDOS[chaveC] || RT_CONTEUDOS[`${t.serie}_${t.disciplina}`] || [];
+  const chaveC = `${t.serie}_${t.disciplina}`;
+  const conts  = RT_CONTEUDOS[chaveC] || [];
   const slotsReg = slots.filter(s=>!s.eventual);
   const ordem  = getOrdem(t.id, bimestreAtivo, slotsReg.length);
   let rIdx = 0;
 
-  const linhas = [["#","Data","Horário","Conteúdos/Atividades","Dada?","Dada em","Chamada","Registro"]];
+  const linhas = [["#","Data","Horário","Conteúdos/Atividades","Chamada","Entregue","Dada?","Registro"]];
   slots.forEach((slot, i) => {
     const ch  = chaveSlot(t.id, bimestreAtivo, slot.slotId);
     const est = estadoAulas[ch] || {};
@@ -828,10 +823,10 @@ function exportarCSV() {
     const horarioFmt = slot.eventual ? slot.inicio : (slot.label ? `${slot.label} (${slot.inicio}–${slot.fim})` : slot.inicio);
     linhas.push([
       i+1, fmtData(slot.data), horarioFmt, cont,
-      est.feita?"Sim":"Não",
-      est.feita?fmtData(est.dataFeita):"",
       est.chamada?"Sim":"Não",
       est.conteudoEntregue?"Sim":"Não",
+      est.feita?"Sim":"Não",
+      est.feita?fmtData(est.dataFeita):"",
     ]);
   });
 
@@ -845,15 +840,11 @@ function exportarCSV() {
 function exportarJS() {
   const contUpd = {};
   for (const [k,lista] of Object.entries(RT_CONTEUDOS)) {
-    const bimMatch = k.match(/_b(\d+)$/);
-    const baseKey  = bimMatch ? k.slice(0, -bimMatch[0].length) : k;
-    const bimNum   = bimMatch ? parseInt(bimMatch[1]) : null;
     contUpd[k] = lista.map((txt,idx) => {
       let final = txt;
       for (const t of RT_TURMAS) {
-        if (`${t.serie}_${t.disciplina}` !== baseKey) continue;
-        const bimList = bimNum !== null ? RT_BIMESTRES.filter(b=>b.bimestre===bimNum) : RT_BIMESTRES;
-        for (const bim of bimList) {
+        if (`${t.serie}_${t.disciplina}` !== k) continue;
+        for (const bim of RT_BIMESTRES) {
           const ord = ordemConteudos[chaveOrdem(t.id,bim.bimestre)];
           if (!ord) continue;
           const slots = getSlotsCompletos(t.id,bim.bimestre).filter(s=>!s.eventual);

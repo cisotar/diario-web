@@ -159,8 +159,29 @@ body {
 }
 
 /* Botão Gestão */
-.btn-gestao-sidebar {
+.btn-cal-sidebar {
   margin-top: auto;
+  margin-bottom: 6px;
+  padding: 10px 14px;
+  background: #2d3748;
+  border: none;
+  border-radius: 8px;
+  color: #8896a5;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .82rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background .14s, color .14s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.btn-cal-sidebar:hover { background: var(--teal); color: #fff; }
+.btn-cal-sidebar.ativo { background: var(--teal); color: #fff; font-weight: 600; }
+
+.btn-gestao-sidebar {
   padding: 10px 14px;
   background: #2d3748;
   border: none;
