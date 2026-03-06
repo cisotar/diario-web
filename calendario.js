@@ -217,7 +217,7 @@ function _calCardSem(item) {
   const passada = slot.data < hoje();
   const cor = ad ? "chip-cor-ad" : (passada ? "chip-cor-pend" : "chip-cor-fut");
   return `<div class="cal-card-sem ${cor}">
-    <button class="ccs-topo cal-turma-link" onclick="calIrTurma('${turma.id}')" title="Abrir diário: ${turma.serie}ª ${turma.turma} ${turma.disciplina}">
+    <button class="ccs-topo cal-turma-link" onclick="calIrTurma('${turma.id}')" title="Abrir diário de classe: ${turma.serie}ª ${turma.turma} ${turma.disciplina}">
       <span class="ccs-sigla">${turma.sigla}</span>
       <span class="ccs-nome">${turma.serie}ª${turma.turma}${turma.subtitulo ? " "+turma.subtitulo : ""}</span>
       <span class="ccs-link-ico">↗</span>
@@ -241,7 +241,7 @@ function _calCardDia(item) {
 
   return `<div class="cal-card-dia ${cor}">
     <div class="ccd-topo">
-      <button class="ccd-info cal-turma-link" onclick="calIrTurma('${turma.id}')" title="Abrir diário: ${turma.serie}ª ${turma.turma} ${turma.disciplina}">
+      <button class="ccd-info cal-turma-link" onclick="calIrTurma('${turma.id}')" title="Abrir diário de classe: ${turma.serie}ª ${turma.turma} ${turma.disciplina}">
         <span class="ccd-sigla-badge">${turma.sigla}</span>
         <div class="ccd-nomes">
           <span class="ccd-nome-turma">${turma.serie}ª Série ${turma.turma}${turma.subtitulo?" — "+turma.subtitulo:""}</span>

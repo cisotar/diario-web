@@ -45,7 +45,11 @@ document.addEventListener("DOMContentLoaded", () => {
   carregarTudo();
   renderizarSidebar();
   iniciarTooltips();
-  abrirCalendario();   // tela inicial = calendário na semana
+  if (window.innerWidth <= 860) {
+    renderizarHomeMobile();  // mobile: lista de turmas
+  } else {
+    abrirCalendario();       // desktop: calendário na semana
+  }
 });
 
 // ── Persistência ───────────────────────────────────────────
@@ -195,13 +199,17 @@ function fmtData(iso) {
   return `${d}/${NOMES_MES[+m-1]}/${a}`;
 }
 
-// Formata a célula de data completa: "Seg, 02/fev/2026 · 6ª aula · 19:50–20:40"
+// Formata a célula de data em duas linhas:
+// "Seg · 02/fev/2026"  /  "5ª aula · 10:40–11:30"
 function fmtSlotData(slot) {
   if (!slot.data) return "—";
-  const dt  = new Date(slot.data + "T00:00:00");
-  const dia = `${DIAS_SEM[dt.getDay()]}, ${fmtData(slot.data)}`;
-  if (slot.eventual) return `${dia} · ${slot.inicio}`;
-  return `${dia} · ${slot.label} · ${slot.inicio}–${slot.fim}`;
+  const dt     = new Date(slot.data + "T00:00:00");
+  const linha1 = `${DIAS_SEM[dt.getDay()]} · ${fmtData(slot.data)}`;
+  if (slot.eventual) {
+    return `<span class="data-linha1">${linha1}</span><span class="data-linha2">${slot.inicio}</span>`;
+  }
+  const linha2 = `${slot.label} · ${slot.inicio}–${slot.fim}`;
+  return `<span class="data-linha1">${linha1}</span><span class="data-linha2">${linha2}</span>`;
 }
 
 function hoje() { return new Date().toISOString().split("T")[0]; }
@@ -389,7 +397,7 @@ function renderizarBemVindo() {
   document.getElementById("conteudo-principal").innerHTML = `
     <div class="bem-vindo">
       <div class="bem-vindo-icon">📋</div>
-      <h2>Controle de Aulas</h2>
+      <h2>Diário de Classe</h2>
       <p>Selecione uma turma na barra lateral para visualizar<br>o planejamento e registrar as aulas dadas.</p>
     </div>`;
 }
@@ -566,6 +574,12 @@ function renderizarLinhas(slots) {
           ${editado?'<span class="badge-editado">✎</span>':""}
           ${slot.eventual?`<button class="btn-del-eventual" onclick="removerEventual('${slotId}')" title="Remover esta aula eventual">×</button>`:""}
         </div>
+        <input type="text" class="anotacao-input"
+          placeholder="Anotação…"
+          value="${(est.anotacao||'').replace(/"/g,'&quot;')}"
+          onchange="salvarAnotacao('${slotId}', this.value)"
+          title="Anotação livre sobre esta aula"
+        />
       </td>
       <td class="td-check">${mkChk("feita",   feita, "Aula dada?")}</td>
       <td class="td-registro" id="reg-${slotId}">${feita?fmtData(est.dataFeita):"—"}</td>
@@ -632,6 +646,15 @@ function iniciarEdicao(spanEl, slotId, base) {
     if (e.key==="Enter" && !e.shiftKey) { e.preventDefault(); ta.blur(); }
     if (e.key==="Escape") { ta.value=cur; ta.blur(); }
   });
+}
+
+// ── Anotação livre por aula ────────────────────────────────
+function salvarAnotacao(slotId, valor) {
+  const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
+  if (!estadoAulas[ch]) estadoAulas[ch] = {};
+  if (valor.trim() === "") delete estadoAulas[ch].anotacao;
+  else estadoAulas[ch].anotacao = valor.trim();
+  salvarTudo();
 }
 
 // ── Toggle campos ──────────────────────────────────────────

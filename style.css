@@ -345,11 +345,10 @@ body {
 .tabela-aulas th:hover { color: var(--amber-light); }
 
 .th-numero   { width: 38px; text-align: center; }
-.th-data     { width: 200px; text-align: left; }
+.th-data     { width: 160px; text-align: left; }
 .th-sel      { width: 40px; text-align: center; cursor: default; }
 .th-conteudo { text-align: left; }
-.th-chamada, .th-dada, .th-registro { width: 68px; text-align: center; }
-.th-entregue { width: 68px; text-align: center; }
+.th-chamada, .th-dada, .th-registro, .th-entregue { width: 68px; text-align: center; }
 .th-dada-em  { width: 110px; }
 
 /* Tooltip das colunas */
@@ -406,7 +405,55 @@ body {
 
 .row-pendente .td-numero { color: var(--red); }
 
-.td-data { font-size: .79rem; color: var(--text-mid); white-space: nowrap; font-weight: 500; }
+.td-data { font-size: .79rem; color: var(--text-mid); white-space: nowrap; font-weight: 500; vertical-align: middle; }
+
+/* ── Célula de data — duas linhas ───────────────────────── */
+.data-linha1 {
+  display: block;
+  font-weight: 600;
+  color: var(--text);
+  font-size: .81rem;
+  line-height: 1.35;
+}
+
+.data-linha2 {
+  display: block;
+  font-size: .72rem;
+  color: var(--text-muted);
+  font-weight: 400;
+  line-height: 1.3;
+  margin-top: 1px;
+}
+
+/* ── Campo de anotação inline ───────────────────────────── */
+.anotacao-input {
+  display: block;
+  width: 100%;
+  margin-top: 5px;
+  padding: 3px 7px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .76rem;
+  color: var(--text-mid);
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed var(--border);
+  border-radius: 0;
+  outline: none;
+  transition: border-color .13s, background .13s, color .13s;
+}
+
+.anotacao-input::placeholder { color: #bbc4ce; font-style: italic; }
+
+.anotacao-input:focus {
+  background: rgba(37,99,235,.03);
+  border-bottom-color: var(--blue);
+  color: var(--text);
+}
+
+.anotacao-input:not(:placeholder-shown) {
+  color: var(--blue);
+  border-bottom-color: rgba(37,99,235,.3);
+}
 
 /* ── Coluna de seleção / drag ────────────────────────────── */
 .td-sel { text-align: center; padding: 0 4px !important; vertical-align: middle; }
@@ -905,47 +952,38 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 @media (max-width: 860px) {
   :root { --sidebar-w: 0px; }
 
-  /* sidebar lateral some completamente */
   .sidebar { display: none; }
 
-  /* ativa os elementos mobile */
   .btn-hamburger { display: flex; }
   .mob-nav        { display: block; }
   .mob-nav-overlay { display: block; }
 
-  /* layout base */
   .app-layout   { overflow-x: hidden; }
   .main-content { margin-left: 0; padding: 14px 12px 60px; width: 100%; overflow-x: hidden; }
   .app-header   { padding: 0 12px; gap: 10px; }
   .header-tagline { display: none; }
 
-  /* header turma */
   .header-turma { margin-bottom: 16px; }
   .header-turma-nome { font-size: 1.2rem; }
   .header-turma-badge { font-size: .68rem; padding: 4px 9px; }
 
-  /* stat menor no mobile */
   .stat-svg { width: 52px; height: 52px; }
   .stat-num { font-size: 1.1rem; }
 
-  /* tabs bimestre */
   .tabs-bimestre { gap: 4px; }
   .tab-bim { padding: 5px 11px; font-size: .75rem; }
 
-  /* tabela: scroll horizontal, não quebra o layout */
   .tabela-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .tabela-aulas { font-size: .76rem; min-width: 460px; }
   .tabela-aulas th, .tabela-aulas td { padding: 6px 6px; }
   .th-data, .td-data { display: none; }
-  .th-chamada, .th-dada, .th-registro { width: 52px; }
+  .th-chamada, .th-dada, .th-registro, .th-entregue { width: 52px; }
   .th-numero { width: 30px; }
 
-  /* rodapé da tabela */
   .rodape-tabela { gap: 8px; }
   .btn-eventual, .btn-exportar-csv, .btn-exportar-js,
   .btn-resetar-ordem, .btn-limpar { padding: 7px 12px; font-size: .76rem; }
 
-  /* modal responsivo */
   .modal-overlay { align-items: flex-end; padding: 0; }
   .modal-box {
     border-radius: 14px 14px 0 0;
@@ -953,10 +991,102 @@ tr:hover .drag-handle-cont { color: var(--amber); }
     min-width: 0; max-width: 100%; width: 100%;
   }
 
-  /* gestão */
   .gestao-titulo { font-size: 1.35rem; }
   .gtab { padding: 6px 13px; font-size: .78rem; }
+
+  .anotacao-input { display: none; }
 }
+
+/* ── Tela inicial mobile (lista de turmas) ──────────────── */
+.mob-home { padding: 8px 0 20px; }
+
+.mob-home-titulo {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.4rem;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.mob-home-sub {
+  font-size: .8rem;
+  color: var(--text-muted);
+  margin-bottom: 22px;
+  line-height: 1.5;
+}
+
+.mob-home-serie { margin-bottom: 20px; }
+
+.mob-home-serie-label {
+  font-size: .62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .13em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  padding-left: 2px;
+}
+
+.mob-home-lista { display: flex; flex-direction: column; gap: 7px; }
+
+.mob-home-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  border-left: 4px solid var(--amber);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  text-align: left;
+  width: 100%;
+  transition: background .13s, transform .1s;
+  box-shadow: var(--shadow);
+}
+
+.mob-home-card:active { transform: scale(.98); background: var(--amber-pale); }
+
+.mob-home-card-sigla {
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: var(--amber);
+  color: #fff;
+  padding: 3px 8px;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+
+.mob-home-card[data-disc="Sociologia"] { border-left-color: var(--teal); }
+.mob-home-card[data-disc="Sociologia"] .mob-home-card-sigla { background: var(--teal); }
+.mob-home-card[data-disc="Atualidades"] { border-left-color: var(--purple); }
+.mob-home-card[data-disc="Atualidades"] .mob-home-card-sigla { background: var(--purple); }
+
+.mob-home-card-info { flex: 1; }
+.mob-home-card-nome { font-weight: 600; font-size: .88rem; color: var(--text); line-height: 1.2; display: block; }
+.mob-home-card-disc { font-size: .74rem; color: var(--text-muted); margin-top: 1px; display: block; }
+.mob-home-card-arrow { color: var(--text-muted); font-size: .9rem; flex-shrink: 0; }
+
+.mob-home-cal-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 14px;
+  margin-bottom: 24px;
+  background: var(--teal);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-family: 'DM Sans', sans-serif;
+  font-size: .88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .13s;
+}
+
+.mob-home-cal-btn:active { background: #0a5c60; }
 
 /* ── Sidebar agrupada por turma ─────────────────────────── */
 .sidebar-turma-grupo { margin-bottom: 3px; }
@@ -969,8 +1099,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .sidebar-btn-sub { padding-left: 18px; }
 .sidebar-btn-sub .sidebar-btn-label { font-size: .8rem; }
 
-/* ── Tela inicial mobile (lista de turmas) ──────────────── */
-.mob-home {\n  padding: 8px 0 20px;\n}\n\n.mob-home-titulo {\n  font-family: 'DM Serif Display', serif;\n  font-size: 1.4rem;\n  color: var(--text);\n  margin-bottom: 6px;\n}\n\n.mob-home-sub {\n  font-size: .8rem;\n  color: var(--text-muted);\n  margin-bottom: 22px;\n  line-height: 1.5;\n}\n\n.mob-home-serie {\n  margin-bottom: 20px;\n}\n\n.mob-home-serie-label {\n  font-size: .62rem;\n  font-weight: 700;\n  text-transform: uppercase;\n  letter-spacing: .13em;\n  color: var(--text-muted);\n  margin-bottom: 8px;\n  padding-left: 2px;\n}\n\n.mob-home-lista {\n  display: flex;\n  flex-direction: column;\n  gap: 7px;\n}\n\n.mob-home-card {\n  display: flex;\n  align-items: center;\n  gap: 12px;\n  padding: 13px 14px;\n  background: var(--bg-paper);\n  border: 1px solid var(--border);\n  border-radius: var(--radius);\n  border-left: 4px solid var(--amber);\n  cursor: pointer;\n  font-family: 'DM Sans', sans-serif;\n  text-align: left;\n  width: 100%;\n  transition: background .13s, border-color .13s, transform .1s;\n  box-shadow: var(--shadow);\n}\n\n.mob-home-card:active {\n  transform: scale(.98);\n  background: var(--amber-pale);\n}\n\n.mob-home-card-sigla {\n  font-size: .68rem;\n  font-weight: 700;\n  text-transform: uppercase;\n  letter-spacing: .07em;\n  background: var(--amber);\n  color: #fff;\n  padding: 3px 8px;\n  border-radius: 5px;\n  flex-shrink: 0;\n}\n\n.mob-home-card[data-disc="Sociologia"] { border-left-color: var(--teal); }\n.mob-home-card[data-disc="Sociologia"] .mob-home-card-sigla { background: var(--teal); }\n.mob-home-card[data-disc="Atualidades"] { border-left-color: var(--purple); }\n.mob-home-card[data-disc="Atualidades"] .mob-home-card-sigla { background: var(--purple); }\n\n.mob-home-card-info { flex: 1; }\n\n.mob-home-card-nome {\n  font-weight: 600;\n  font-size: .88rem;\n  color: var(--text);\n  line-height: 1.2;\n}\n\n.mob-home-card-disc {\n  font-size: .74rem;\n  color: var(--text-muted);\n  margin-top: 1px;\n}\n\n.mob-home-card-arrow {\n  color: var(--text-muted);\n  font-size: .9rem;\n  flex-shrink: 0;\n}\n\n.mob-home-cal-btn {\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  width: 100%;\n  padding: 13px 14px;\n  margin-bottom: 24px;\n  background: var(--teal);\n  color: #fff;\n  border: none;\n  border-radius: var(--radius);\n  font-family: 'DM Sans', sans-serif;\n  font-size: .88rem;\n  font-weight: 600;\n  cursor: pointer;\n  transition: background .13s;\n}\n\n.mob-home-cal-btn:active { background: #0a5c60; }\n
+/* ── Bloco editor de conteúdos ──────────────────────────── */
 .bloco-editor { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
 
 .bloco-instrucao {
