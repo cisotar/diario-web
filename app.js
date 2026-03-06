@@ -453,10 +453,10 @@ function renderizarConteudo() {
               <th class="th-numero"   data-tip="${TOOLTIPS_COLUNAS['th-numero']}">#</th>
               <th class="th-data"     data-tip="${TOOLTIPS_COLUNAS['th-data']}">Data prevista</th>
               <th class="th-conteudo" data-tip="${TOOLTIPS_COLUNAS['th-conteudo']}">Conteúdos / Atividades</th>
+              <th class="th-dada"     data-tip="${TOOLTIPS_COLUNAS['th-dada']}">AD</th>
+              <th class="th-registro" data-tip="${TOOLTIPS_COLUNAS['th-registro']}">Data</th>
               <th class="th-chamada"  data-tip="${TOOLTIPS_COLUNAS['th-chamada']}">Chamada</th>
-              <th class="th-entregue" data-tip="${TOOLTIPS_COLUNAS['th-entregue']}">Entregue</th>
-              <th class="th-dada"     data-tip="${TOOLTIPS_COLUNAS['th-dada']}">Dada?</th>
-              <th class="th-registro" data-tip="${TOOLTIPS_COLUNAS['th-registro']}">Registro</th>
+              <th class="th-entregue" data-tip="${TOOLTIPS_COLUNAS['th-entregue']}">Registro</th>
             </tr></thead>
             <tbody id="tbody-aulas"></tbody>
           </table>`
@@ -567,10 +567,10 @@ function renderizarLinhas(slots) {
           ${slot.eventual?`<button class="btn-del-eventual" onclick="removerEventual('${slotId}')" title="Remover esta aula eventual">×</button>`:""}
         </div>
       </td>
-      <td class="td-check">${mkChk("chamada", !!est.chamada,   "Chamada realizada?")}</td>
-      <td class="td-check">${mkChk("conteudoEntregue", !!est.conteudoEntregue, "Material entregue?")}</td>
       <td class="td-check">${mkChk("feita",   feita, "Aula dada?")}</td>
-      <td class="td-registro" id="reg-${slotId}">${feita?fmtData(est.dataFeita):"—"}</td>`;
+      <td class="td-registro" id="reg-${slotId}">${feita?fmtData(est.dataFeita):"—"}</td>
+      <td class="td-check">${mkChk("chamada", !!est.chamada,   "Chamada realizada?")}</td>
+      <td class="td-check">${mkChk("conteudoEntregue", !!est.conteudoEntregue, "Material entregue?")}</td>`;
 
     // Edição inline
     const spanTxt = tr.querySelector(".conteudo-texto");

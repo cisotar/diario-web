@@ -205,6 +205,8 @@ body {
   flex: 1;
   padding: 28px 34px 60px;
   max-width: 1200px;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 /* ── Boas-vindas ─────────────────────────────────────────── */
@@ -331,7 +333,7 @@ body {
 
 .tabela-aulas th {
   padding: 12px 12px;
-  text-align: left;
+  text-align: center;
   font-size: .63rem; text-transform: uppercase;
   letter-spacing: .1em; font-weight: 600;
   white-space: nowrap;
@@ -343,10 +345,11 @@ body {
 .tabela-aulas th:hover { color: var(--amber-light); }
 
 .th-numero   { width: 38px; text-align: center; }
-.th-data     { width: 200px; }
+.th-data     { width: 200px; text-align: left; }
 .th-sel      { width: 40px; text-align: center; cursor: default; }
-.th-conteudo { }
+.th-conteudo { text-align: left; }
 .th-chamada, .th-dada, .th-registro { width: 68px; text-align: center; }
+.th-entregue { width: 68px; text-align: center; }
 .th-dada-em  { width: 110px; }
 
 /* Tooltip das colunas */
@@ -588,7 +591,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .modal-box {
   background: #fff; border-radius: 14px;
   padding: 28px 32px;
-  min-width: 360px; max-width: 480px; width: 100%;
+  min-width: min(360px, 92vw); max-width: 480px; width: 100%;
   box-shadow: 0 12px 40px rgba(0,0,0,.25);
   animation: fadeUp .2s ease;
 }
@@ -910,14 +913,49 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   .mob-nav        { display: block; }
   .mob-nav-overlay { display: block; }
 
-  .main-content { margin-left: 0; padding: 16px 12px 60px; }
+  /* layout base */
+  .app-layout   { overflow-x: hidden; }
+  .main-content { margin-left: 0; padding: 14px 12px 60px; width: 100%; overflow-x: hidden; }
   .app-header   { padding: 0 12px; gap: 10px; }
   .header-tagline { display: none; }
 
-  .header-turma-nome { font-size: 1.35rem; }
-  .tabela-aulas { font-size: .78rem; }
-  .tabela-aulas th, .tabela-aulas td { padding: 7px 7px; }
+  /* header turma */
+  .header-turma { margin-bottom: 16px; }
+  .header-turma-nome { font-size: 1.2rem; }
+  .header-turma-badge { font-size: .68rem; padding: 4px 9px; }
+
+  /* stat menor no mobile */
+  .stat-svg { width: 52px; height: 52px; }
+  .stat-num { font-size: 1.1rem; }
+
+  /* tabs bimestre */
+  .tabs-bimestre { gap: 4px; }
+  .tab-bim { padding: 5px 11px; font-size: .75rem; }
+
+  /* tabela: scroll horizontal, não quebra o layout */
+  .tabela-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tabela-aulas { font-size: .76rem; min-width: 460px; }
+  .tabela-aulas th, .tabela-aulas td { padding: 6px 6px; }
   .th-data, .td-data { display: none; }
+  .th-chamada, .th-dada, .th-registro { width: 52px; }
+  .th-numero { width: 30px; }
+
+  /* rodapé da tabela */
+  .rodape-tabela { gap: 8px; }
+  .btn-eventual, .btn-exportar-csv, .btn-exportar-js,
+  .btn-resetar-ordem, .btn-limpar { padding: 7px 12px; font-size: .76rem; }
+
+  /* modal responsivo */
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal-box {
+    border-radius: 14px 14px 0 0;
+    padding: 22px 18px 32px;
+    min-width: 0; max-width: 100%; width: 100%;
+  }
+
+  /* gestão */
+  .gestao-titulo { font-size: 1.35rem; }
+  .gtab { padding: 6px 13px; font-size: .78rem; }
 }
 
 /* ── Sidebar agrupada por turma ─────────────────────────── */
@@ -931,7 +969,8 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .sidebar-btn-sub { padding-left: 18px; }
 .sidebar-btn-sub .sidebar-btn-label { font-size: .8rem; }
 
-/* ── Bloco editor de conteúdos ──────────────────────────── */
+/* ── Tela inicial mobile (lista de turmas) ──────────────── */
+.mob-home {\n  padding: 8px 0 20px;\n}\n\n.mob-home-titulo {\n  font-family: 'DM Serif Display', serif;\n  font-size: 1.4rem;\n  color: var(--text);\n  margin-bottom: 6px;\n}\n\n.mob-home-sub {\n  font-size: .8rem;\n  color: var(--text-muted);\n  margin-bottom: 22px;\n  line-height: 1.5;\n}\n\n.mob-home-serie {\n  margin-bottom: 20px;\n}\n\n.mob-home-serie-label {\n  font-size: .62rem;\n  font-weight: 700;\n  text-transform: uppercase;\n  letter-spacing: .13em;\n  color: var(--text-muted);\n  margin-bottom: 8px;\n  padding-left: 2px;\n}\n\n.mob-home-lista {\n  display: flex;\n  flex-direction: column;\n  gap: 7px;\n}\n\n.mob-home-card {\n  display: flex;\n  align-items: center;\n  gap: 12px;\n  padding: 13px 14px;\n  background: var(--bg-paper);\n  border: 1px solid var(--border);\n  border-radius: var(--radius);\n  border-left: 4px solid var(--amber);\n  cursor: pointer;\n  font-family: 'DM Sans', sans-serif;\n  text-align: left;\n  width: 100%;\n  transition: background .13s, border-color .13s, transform .1s;\n  box-shadow: var(--shadow);\n}\n\n.mob-home-card:active {\n  transform: scale(.98);\n  background: var(--amber-pale);\n}\n\n.mob-home-card-sigla {\n  font-size: .68rem;\n  font-weight: 700;\n  text-transform: uppercase;\n  letter-spacing: .07em;\n  background: var(--amber);\n  color: #fff;\n  padding: 3px 8px;\n  border-radius: 5px;\n  flex-shrink: 0;\n}\n\n.mob-home-card[data-disc="Sociologia"] { border-left-color: var(--teal); }\n.mob-home-card[data-disc="Sociologia"] .mob-home-card-sigla { background: var(--teal); }\n.mob-home-card[data-disc="Atualidades"] { border-left-color: var(--purple); }\n.mob-home-card[data-disc="Atualidades"] .mob-home-card-sigla { background: var(--purple); }\n\n.mob-home-card-info { flex: 1; }\n\n.mob-home-card-nome {\n  font-weight: 600;\n  font-size: .88rem;\n  color: var(--text);\n  line-height: 1.2;\n}\n\n.mob-home-card-disc {\n  font-size: .74rem;\n  color: var(--text-muted);\n  margin-top: 1px;\n}\n\n.mob-home-card-arrow {\n  color: var(--text-muted);\n  font-size: .9rem;\n  flex-shrink: 0;\n}\n\n.mob-home-cal-btn {\n  display: flex;\n  align-items: center;\n  gap: 10px;\n  width: 100%;\n  padding: 13px 14px;\n  margin-bottom: 24px;\n  background: var(--teal);\n  color: #fff;\n  border: none;\n  border-radius: var(--radius);\n  font-family: 'DM Sans', sans-serif;\n  font-size: .88rem;\n  font-weight: 600;\n  cursor: pointer;\n  transition: background .13s;\n}\n\n.mob-home-cal-btn:active { background: #0a5c60; }\n
 .bloco-editor { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
 
 .bloco-instrucao {
