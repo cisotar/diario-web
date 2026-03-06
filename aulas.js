@@ -1,4 +1,4 @@
-// AULAS.JS — Exportado em 05/03/2026, 04:45:29
+// AULAS.JS — Exportado em 06/03/2026, 16:30:14
 
 const BIMESTRES = [
   {
@@ -264,7 +264,11 @@ const CONTEUDOS = {
     "Aula 11 - Prevenção e mitigação de impactos",
     "Aula 12 - Principais biomas do planeta Terra",
     "Aula 13 - Biomas do estado de São Paulo",
-    "Aula 14 - Sistema Nacional de Unidades de Conservação da natureza (SNUC)"
+    "Aula 14 - Sistema Nacional de Unidades de Conservação da natureza (SNUC)",
+    "Prova Paulista",
+    "Semana de estudos intensivos",
+    "Recuperação continua",
+    "Conselho de classe e série"
   ],
   "2_Geografia": [
     "Acolhimento",
@@ -283,7 +287,11 @@ const CONTEUDOS = {
     "Aula 11 - Formação dos Estados e das nações no mundo",
     "Aula 12 - Povos sem Estado",
     "Aula 13 - Conflitos territoriais e geopolítica contemporânea",
-    "Aula 14 - Identidade, pertencimento e território"
+    "Aula 14 - Identidade, pertencimento e território",
+    "Prova Paulista",
+    "Semana de estudos intensivos",
+    "Recuperação continua",
+    "Conselho de classe e série"
   ],
   "2_Sociologia": [
     "Acolhimento",
@@ -303,7 +311,11 @@ const CONTEUDOS = {
     "Aula 12 - Identidade cultural e as relações entre culturas",
     "Aula 13 - O fazer sociológico",
     "Aula 14 - Praticando o olhar sociológico",
-    "Aula 15 - Trilha de Exercícios"
+    "Aula 15 - Trilha de Exercícios",
+    "Prova Paulista",
+    "Semana de estudos intensivos",
+    "Recuperação continua",
+    "Conselho de classe e série"
   ],
   "3_Atualidades": [
     "Acolhimento",
@@ -322,7 +334,11 @@ const CONTEUDOS = {
     "Aula 11 - Estudo de caso e discussão: arte, autoria e criação algorítmica (Parte 2)",
     "Aula 12 - Oficina de escrita: o dossiê como forma de pensamento",
     "Aula 13 - Oficina de escrita: o dossiê reflexivo-analítico",
-    "Aula 14 - Síntese: curadoria analítica — a criação humana diante da máquina"
+    "Aula 14 - Síntese: curadoria analítica — a criação humana diante da máquina",
+    "Prova Paulista",
+    "Semana de estudos intensivos",
+    "Recuperação continua",
+    "Conselho de classe e série"
   ]
 };
 
