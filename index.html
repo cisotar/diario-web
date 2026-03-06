@@ -10,16 +10,33 @@
 <body>
 
   <header class="app-header">
+    <!-- hambúrguer: só aparece no mobile -->
+    <button class="btn-hamburger" id="btn-hamburger" onclick="toggleMobileNav()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
     <div class="header-logo">Diário<span> de Aulas</span></div>
     <span class="header-tagline">E.E. · 2026 · Geografia · Sociologia · Atualidades</span>
   </header>
 
+  <!-- barra de navegação mobile (dropdown do topo) -->
+  <nav class="mob-nav" id="mob-nav" aria-hidden="true">
+    <button class="mob-nav-acao mob-nav-cal" onclick="abrirCalendario(); fecharMobileNav()" id="mob-btn-cal">
+      📅 Calendário
+    </button>
+    <div id="mob-nav-turmas"></div>
+    <button class="mob-nav-acao mob-nav-gestao" onclick="abrirPainelGestao(); fecharMobileNav()">
+      ⚙ Gestão
+    </button>
+  </nav>
+  <div class="mob-nav-overlay" id="mob-nav-overlay" onclick="fecharMobileNav()"></div>
+
   <div class="app-layout">
 
     <aside class="sidebar" id="sidebar">
+      <!-- calendário no topo da sidebar -->
+      <button class="btn-cal-sidebar" id="btn-calendario" onclick="abrirCalendario()">📅 Calendário</button>
       <div class="sidebar-titulo">Turmas</div>
       <div id="sidebar-turmas"></div>
-      <button class="btn-cal-sidebar" id="btn-calendario" onclick="abrirCalendario()">📅 Calendário</button>
       <button class="btn-gestao-sidebar" id="btn-gestao">⚙ Painel de Gestão</button>
     </aside>
 

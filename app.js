@@ -44,8 +44,8 @@ let RT_PERIODOS   = null;   // tabela de períodos de aula
 document.addEventListener("DOMContentLoaded", () => {
   carregarTudo();
   renderizarSidebar();
-  renderizarBemVindo();
   iniciarTooltips();
+  abrirCalendario();   // tela inicial = calendário na semana
 });
 
 // ── Persistência ───────────────────────────────────────────
@@ -305,13 +305,79 @@ function renderizarSidebar() {
   // Botão Gestão
   const btnGestao = document.getElementById("btn-gestao");
   if (btnGestao) btnGestao.onclick = abrirPainelGestao;
+
+  _renderizarMobileNav();
+}
+
+// ── Menu mobile: monta grupos recolhíveis por série ──────────
+function _renderizarMobileNav() {
+  const wrap = document.getElementById("mob-nav-turmas");
+  if (!wrap) return;
+  wrap.innerHTML = "";
+
+  // Agrupa por série
+  const porSerie = {};
+  for (const t of RT_TURMAS) {
+    if (!porSerie[t.serie]) porSerie[t.serie] = [];
+    porSerie[t.serie].push(t);
+  }
+
+  for (const serie of Object.keys(porSerie).sort()) {
+    const grp = document.createElement("div");
+    grp.className = "mob-grp";
+
+    // Cabeçalho do grupo (clica para expandir)
+    const hdr = document.createElement("button");
+    hdr.className = "mob-grp-header";
+    hdr.innerHTML = `<span>${serie}ª Série</span><span class="mob-grp-arrow">▾</span>`;
+    hdr.onclick = () => {
+      const aberto = grp.classList.toggle("aberto");
+      hdr.querySelector(".mob-grp-arrow").textContent = aberto ? "▴" : "▾";
+    };
+
+    const lista = document.createElement("div");
+    lista.className = "mob-grp-lista";
+
+    for (const t of porSerie[serie]) {
+      const btn = document.createElement("button");
+      btn.className = "mob-turma-btn";
+      btn.dataset.id = t.id;
+      const nome = `${t.serie}ª ${t.turma}${t.subtitulo ? " " + t.subtitulo : ""}`;
+      btn.innerHTML = `<span>${nome}</span><span class="mob-turma-sigla">${t.sigla}</span>`;
+      btn.onclick = () => { fecharMobileNav(); selecionarTurma(t.id); };
+      lista.appendChild(btn);
+    }
+
+    grp.appendChild(hdr);
+    grp.appendChild(lista);
+    wrap.appendChild(grp);
+  }
+}
+
+// ── Abrir / fechar nav mobile ─────────────────────────────────
+function toggleMobileNav() {
+  const nav     = document.getElementById("mob-nav");
+  const overlay = document.getElementById("mob-nav-overlay");
+  const aberto  = nav.classList.toggle("aberta");
+  nav.setAttribute("aria-hidden", !aberto);
+  overlay.classList.toggle("visivel", aberto);
+  document.getElementById("btn-hamburger")?.classList.toggle("aberto", aberto);
+}
+
+function fecharMobileNav() {
+  const nav     = document.getElementById("mob-nav");
+  const overlay = document.getElementById("mob-nav-overlay");
+  nav?.classList.remove("aberta");
+  nav?.setAttribute("aria-hidden", "true");
+  overlay?.classList.remove("visivel");
+  document.getElementById("btn-hamburger")?.classList.remove("aberto");
 }
 
 function selecionarTurma(id) {
   turmaAtiva = RT_TURMAS.find(t => t.id === id);
   if (!turmaAtiva) return;
   selConteudos.clear();
-  document.querySelectorAll(".sidebar-btn").forEach(b => b.classList.toggle("ativo", b.dataset.id === id));
+  document.querySelectorAll(".sidebar-btn, .mob-turma-btn").forEach(b => b.classList.toggle("ativo", b.dataset.id === id));
   const h = hoje();
   const v = RT_BIMESTRES.find(b => h >= b.inicio && h <= b.fim);
   bimestreAtivo = v ? v.bimestre : 1;
