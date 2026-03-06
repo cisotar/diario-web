@@ -84,6 +84,12 @@ function fecharCalendario() {
   else            renderizarBemVindo();
 }
 
+// Navega para o diário de uma turma a partir do calendário
+function calIrTurma(turmaId) {
+  document.getElementById("btn-calendario")?.classList.remove("ativo");
+  selecionarTurma(turmaId);
+}
+
 // ── Estrutura HTML fixa ───────────────────────────────────────
 function _calRender() {
   document.getElementById("conteudo-principal").innerHTML = `
@@ -211,10 +217,11 @@ function _calCardSem(item) {
   const passada = slot.data < hoje();
   const cor = ad ? "chip-cor-ad" : (passada ? "chip-cor-pend" : "chip-cor-fut");
   return `<div class="cal-card-sem ${cor}">
-    <div class="ccs-topo">
+    <button class="ccs-topo cal-turma-link" onclick="calIrTurma('${turma.id}')" title="Abrir diário: ${turma.serie}ª ${turma.turma} ${turma.disciplina}">
       <span class="ccs-sigla">${turma.sigla}</span>
       <span class="ccs-nome">${turma.serie}ª${turma.turma}${turma.subtitulo ? " "+turma.subtitulo : ""}</span>
-    </div>
+      <span class="ccs-link-ico">↗</span>
+    </button>
     ${_calChecks(item, "sm")}
   </div>`;
 }
@@ -234,13 +241,14 @@ function _calCardDia(item) {
 
   return `<div class="cal-card-dia ${cor}">
     <div class="ccd-topo">
-      <div class="ccd-info">
+      <button class="ccd-info cal-turma-link" onclick="calIrTurma('${turma.id}')" title="Abrir diário: ${turma.serie}ª ${turma.turma} ${turma.disciplina}">
         <span class="ccd-sigla-badge">${turma.sigla}</span>
         <div class="ccd-nomes">
           <span class="ccd-nome-turma">${turma.serie}ª Série ${turma.turma}${turma.subtitulo?" — "+turma.subtitulo:""}</span>
           <span class="ccd-disciplina">${turma.disciplina}</span>
         </div>
-      </div>
+        <span class="ccd-link-ico">↗</span>
+      </button>
       <div class="ccd-status-pill ${ad?"pill-ad":(passada?"pill-pend":"pill-fut")}">${status}</div>
     </div>
     ${conteudo ? `<div class="ccd-conteudo">${conteudo}</div>` : ""}
