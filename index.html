@@ -10,8 +10,16 @@
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="calendario.css" />
   <style>
-    .app-header { display: flex; align-items: center; }
-    .header-tagline { flex: 1; }
+    .app-header { display: flex; align-items: center; gap: 0; }
+    .header-tagline {
+      flex: 1;
+      text-align: center;
+      /* evita sobrepor logo ou botão */
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     #auth-btn {
       flex-shrink: 0;
       background: transparent;
@@ -41,7 +49,7 @@
       <span></span><span></span><span></span>
     </button>
     <div class="header-logo">Diário<span> de Classe</span></div>
-    <span class="header-tagline">E.E. · 2026 · Geografia · Sociologia · Atualidades</span>
+    <span class="header-tagline" id="header-tagline"></span>
   </header>
 
   <!-- barra de navegação mobile (dropdown do topo) -->

@@ -46,6 +46,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   await carregarTudo();
   _mostrarCarregando(false);
   renderizarSidebar();
+  _atualizarTagline();
   iniciarTooltips();
   if (window.innerWidth <= 860) {
     renderizarHomeMobile();  // mobile: lista de turmas
@@ -191,7 +192,6 @@ function _atualizarBotaoAuth() {
 }
 
 // ── Guard de autenticação ──────────────────────────────────
-// Chama fn() se autenticado; senão abre modal de login
 function _exigirAuth(fn) {
   if (_autenticado) { fn(); } else { _abrirModalGoogle(); }
 }
@@ -576,6 +576,15 @@ function esconderTooltip() {
   tooltipEl = null;
 }
 
+// ── Tagline dinâmica no header ─────────────────────────────
+function _atualizarTagline() {
+  const el = document.getElementById("header-tagline");
+  if (!el || !RT_TURMAS) return;
+  const disciplinas = [...new Set(RT_TURMAS.map(t => t.disciplina))].join(" · ");
+  const ano = new Date().getFullYear();
+  el.textContent = `Escola Estadual Professora Mathilde Teixeira de Moraes · Professor Tarciso · ${ano} · ${disciplinas}`;
+}
+
 // ── Sidebar ────────────────────────────────────────────────
 function renderizarSidebar() {
   const container = document.getElementById("sidebar-turmas");
@@ -946,12 +955,22 @@ function iniciarEdicao(spanEl, slotId, base) {
     const novo = ta.value.trim();
     const ch   = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
     if (!estadoAulas[ch]) estadoAulas[ch] = {};
-    if (novo === base || novo === "") delete estadoAulas[ch].conteudoEditado;
-    else estadoAulas[ch].conteudoEditado = novo;
+
+    // Persiste direto em RT_CONTEUDOS — fonte de verdade única
+    const chaveC = `${turmaAtiva.serie}_${turmaAtiva.disciplina}`;
+    const slotsReg = getSlotsCompletos(turmaAtiva.id, bimestreAtivo).filter(s => !s.eventual);
+    const ordem    = getOrdem(turmaAtiva.id, bimestreAtivo, slotsReg.length);
+    const regIdx   = slotsReg.findIndex(s => s.slotId === slotId);
+    if (regIdx >= 0 && ordem[regIdx] != null) {
+      if (!RT_CONTEUDOS[chaveC]) RT_CONTEUDOS[chaveC] = [];
+      RT_CONTEUDOS[chaveC][ordem[regIdx]] = novo || base;
+    }
+    // Limpa override local (agora está na fonte)
+    delete estadoAulas[ch].conteudoEditado;
     salvarTudo();
 
-    const editado = estadoAulas[ch]?.conteudoEditado != null;
-    const exibido = editado ? estadoAulas[ch].conteudoEditado : (base || "");
+    const editado = false;
+    const exibido = novo || base || "";
     spanEl.classList.remove("editando");
     spanEl.classList.toggle("editado", editado);
     spanEl.innerHTML = exibido || '<span class="sem-conteudo">—</span>';
@@ -1099,7 +1118,6 @@ function onDrop(e, destSlotId) {
   e.preventDefault(); e.stopPropagation();
   document.querySelector(`td.td-conteudo[data-slot="${destSlotId}"]`)?.classList.remove("content-drag-over");
   if (!dragSrcSlots.length || dragSrcSlots.includes(destSlotId)) return;
-  if (!_autenticado) { _abrirModalGoogle(); return; }
 
   const t      = turmaAtiva;
   const slots  = getSlotsCompletos(t.id, bimestreAtivo);
@@ -1153,10 +1171,22 @@ function onDrop(e, destSlotId) {
     }
   }
 
-  salvarOrdem(restantes);
+  // Consolida nova ordem diretamente em RT_CONTEUDOS — fonte de verdade única
+  const chaveC2 = `${t.serie}_${t.disciplina}`;
+  const contsList = RT_CONTEUDOS[chaveC2] || [];
+  const novaLista = restantes.map(ci => contsList[ci] ?? "");
+  RT_CONTEUDOS[chaveC2] = novaLista;
+
+  // Limpa ordemConteudos (não é mais necessário) e conteudoEditado dos slots src
+  delete ordemConteudos[chaveOrdem(t.id, bimestreAtivo)];
+  slotsReg.forEach((s, i) => {
+    const ch = chaveSlot(t.id, bimestreAtivo, s.slotId);
+    if (estadoAulas[ch]) delete estadoAulas[ch].conteudoEditado;
+  });
+
   salvarTudo();
   selConteudos.clear();
-  renderizarLinhas(slots);
+  renderizarLinhas(getSlotsCompletos(t.id, bimestreAtivo));
 }
 
 // ── Mudar bimestre ─────────────────────────────────────────
@@ -1540,6 +1570,18 @@ function salvarBloco(chave) {
   const linhas = texto.split("\n").map(l => l.trim()).filter(l => l.length > 0);
   RT_CONTEUDOS[chave] = linhas;
   gContModo = "lista";
+  // Limpa ordemConteudos e conteudoEditado para turmas desta chave
+  for (const t of RT_TURMAS) {
+    if (`${t.serie}_${t.disciplina}` !== chave) continue;
+    for (const b of RT_BIMESTRES) {
+      delete ordemConteudos[chaveOrdem(t.id, b.bimestre)];
+      const slots = getSlotsCompletos(t.id, b.bimestre).filter(s => !s.eventual);
+      slots.forEach(s => {
+        const ch = chaveSlot(t.id, b.bimestre, s.slotId);
+        if (estadoAulas[ch]) delete estadoAulas[ch].conteudoEditado;
+      });
+    }
+  }
   salvarTudo();
   document.getElementById("g-conteudos").innerHTML = htmlGestaoConteudos();
 }
@@ -1552,6 +1594,20 @@ function selecionarChaveCont(k) {
 
 function editConteudo(chave, i, val) {
   RT_CONTEUDOS[chave][i] = val;
+  // Limpa conteudoEditado em estadoAulas para qualquer slot que usava índice i
+  for (const t of RT_TURMAS) {
+    if (`${t.serie}_${t.disciplina}` !== chave) continue;
+    for (const b of RT_BIMESTRES) {
+      const slots = getSlotsCompletos(t.id, b.bimestre).filter(s => !s.eventual);
+      const ordem = getOrdem(t.id, b.bimestre, slots.length);
+      slots.forEach((s, ri) => {
+        if (ordem[ri] === i) {
+          const ch = chaveSlot(t.id, b.bimestre, s.slotId);
+          if (estadoAulas[ch]) delete estadoAulas[ch].conteudoEditado;
+        }
+      });
+    }
+  }
   salvarTudo();
 }
 
@@ -1597,6 +1653,13 @@ function contDrop(e, destIdx) {
   const [item] = lista.splice(contDragIdx, 1);
   lista.splice(destIdx, 0, item);
   contDragIdx = null;
+  // Limpa ordemConteudos para todas as turmas desta chave (ordem agora está em RT_CONTEUDOS)
+  for (const t of RT_TURMAS) {
+    if (`${t.serie}_${t.disciplina}` !== chave) continue;
+    for (const b of RT_BIMESTRES) {
+      delete ordemConteudos[chaveOrdem(t.id, b.bimestre)];
+    }
+  }
   salvarTudo();
   document.getElementById("g-conteudos").innerHTML = htmlGestaoConteudos();
 }
