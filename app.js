@@ -188,25 +188,12 @@ function _atualizarBotaoAuth() {
     btn.classList.remove("logado");
     btn.onclick = _abrirModalGoogle;
   }
-  _atualizarBloqueio();
 }
 
-// ── Bloqueio total de interações quando não autenticado ────
-function _atualizarBloqueio() {
-  let bl = document.getElementById("page-block");
-  if (_autenticado) { bl?.remove(); return; }
-  if (!bl) {
-    bl = document.createElement("div");
-    bl.id = "page-block";
-    bl.style.cssText = [
-      "position:fixed","inset:0","z-index:9990",
-      "background:transparent","cursor:default"
-    ].join(";");
-    bl.addEventListener("click",       e => e.stopPropagation());
-    bl.addEventListener("mousedown",   e => e.stopPropagation());
-    bl.addEventListener("pointerdown", e => e.stopPropagation());
-    document.body.appendChild(bl);
-  }
+// ── Guard de autenticação ──────────────────────────────────
+// Chama fn() se autenticado; senão abre modal de login
+function _exigirAuth(fn) {
+  if (_autenticado) { fn(); } else { _abrirModalGoogle(); }
 }
 
 // ── Modal Google ───────────────────────────────────────────
@@ -222,11 +209,21 @@ function _abrirModalGoogle() {
   ].join(";");
 
   overlay.innerHTML = `
-    <div style="
+    <div id="google-modal-box" style="
       background:#1e293b; border-radius:16px; padding:40px 36px;
       display:flex; flex-direction:column; align-items:center; gap:24px;
       box-shadow:0 20px 60px rgba(0,0,0,0.6); min-width:280px; max-width:320px;
+      position:relative;
     ">
+      <!-- Botão fechar -->
+      <button onclick="document.getElementById('google-modal').remove()" style="
+        position:absolute; top:12px; right:14px;
+        background:transparent; border:none; color:#475569;
+        font-size:18px; cursor:pointer; line-height:1; padding:4px;
+        transition:color .15s;
+      " onmouseenter="this.style.color='#94a3b8'" onmouseleave="this.style.color='#475569'"
+      title="Fechar">✕</button>
+
       <div style="font-size:36px">📋</div>
       <div style="color:#e2e8f0; font-size:16px; font-weight:600; text-align:center; line-height:1.4;">
         Diário de Classe
@@ -235,7 +232,6 @@ function _abrirModalGoogle() {
         Faça login para acessar<br>e editar o diário
       </div>
 
-      <!-- Botão Google -->
       <button id="google-btn" onclick="_loginGoogle()" style="
         display:flex; align-items:center; gap:12px;
         background:#fff; color:#1e293b; border:none; border-radius:8px;
@@ -257,6 +253,11 @@ function _abrirModalGoogle() {
       </button>
     </div>
   `;
+
+  // Fecha ao clicar fora da caixa
+  overlay.addEventListener("click", e => {
+    if (e.target === overlay) overlay.remove();
+  });
 
   document.body.appendChild(overlay);
 }
@@ -931,6 +932,7 @@ function renderizarLinhas(slots) {
 
 // ── Edição inline ──────────────────────────────────────────
 function iniciarEdicao(spanEl, slotId, base) {
+  if (!_autenticado) { _abrirModalGoogle(); return; }
   if (spanEl.querySelector("textarea")) return;
   const cur = spanEl.innerText.replace("—","").trim();
   const ta  = document.createElement("textarea");
@@ -972,6 +974,7 @@ function iniciarEdicao(spanEl, slotId, base) {
 
 // ── Anotação livre por aula ────────────────────────────────
 function salvarAnotacao(slotId, valor) {
+  if (!_autenticado) { _abrirModalGoogle(); return; }
   const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
   if (!estadoAulas[ch]) estadoAulas[ch] = {};
   if (valor.trim() === "") delete estadoAulas[ch].anotacao;
@@ -981,6 +984,7 @@ function salvarAnotacao(slotId, valor) {
 
 // ── Toggle campos ──────────────────────────────────────────
 function toggleCampo(slotId, campo, val) {
+  if (!_autenticado) { _abrirModalGoogle(); return; }
   const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
   if (!estadoAulas[ch]) estadoAulas[ch] = {};
   estadoAulas[ch][campo] = val;
@@ -1095,6 +1099,7 @@ function onDrop(e, destSlotId) {
   e.preventDefault(); e.stopPropagation();
   document.querySelector(`td.td-conteudo[data-slot="${destSlotId}"]`)?.classList.remove("content-drag-over");
   if (!dragSrcSlots.length || dragSrcSlots.includes(destSlotId)) return;
+  if (!_autenticado) { _abrirModalGoogle(); return; }
 
   const t      = turmaAtiva;
   const slots  = getSlotsCompletos(t.id, bimestreAtivo);
@@ -1163,6 +1168,7 @@ function mudarBimestre(num) {
 
 // ── Resetar ordem ──────────────────────────────────────────
 function resetarOrdem() {
+  if (!_autenticado) { _abrirModalGoogle(); return; }
   if (!confirm("Restaurar ordem original dos conteúdos?")) return;
   delete ordemConteudos[chaveOrdem(turmaAtiva.id, bimestreAtivo)];
   salvarTudo();
@@ -1171,6 +1177,7 @@ function resetarOrdem() {
 
 // ── Aulas eventuais ────────────────────────────────────────
 function abrirModalEventual() {
+  if (!_autenticado) { _abrirModalGoogle(); return; }
   document.getElementById("ev-data").value = hoje();
   document.getElementById("modal-eventual").style.display = "flex";
 }
@@ -1194,6 +1201,7 @@ function confirmarEventual() {
 }
 
 function removerEventual(slotId) {
+  if (!_autenticado) { _abrirModalGoogle(); return; }
   const eId = parseInt(slotId.replace("e",""), 10);
   const lista = getEventuais(turmaAtiva.id, bimestreAtivo).filter(e => e.id !== eId);
   salvarEventuais(lista);
@@ -1205,6 +1213,7 @@ function removerEventual(slotId) {
 
 // ── Limpar ─────────────────────────────────────────────────
 function confirmarLimpar() {
+  if (!_autenticado) { _abrirModalGoogle(); return; }
   const lbl = RT_BIMESTRES.find(b=>b.bimestre===bimestreAtivo)?.label;
   if (!confirm(`Apagar todos os registros do ${lbl} desta turma?`)) return;
   getSlotsCompletos(turmaAtiva.id, bimestreAtivo).forEach(s => {
@@ -1292,6 +1301,7 @@ function baixarArquivo(blob, nome) {
 //  PAINEL DE GESTÃO
 // ════════════════════════════════════════════════════════════
 function abrirPainelGestao() {
+  if (!_autenticado) { _abrirModalGoogle(); return; }
   document.getElementById("conteudo-principal").innerHTML = `
     <div class="gestao-painel">
       <div class="gestao-header">

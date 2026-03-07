@@ -167,9 +167,15 @@
   border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
 }
 .cal-sem-cabec,
-.cal-sem-linha { display: grid; grid-template-columns: 88px repeat(7,1fr); }
+.cal-sem-linha { display: grid; grid-template-columns: 88px repeat(7,minmax(110px,1fr)); }
 .cal-sem-cabec { background: #1e2530; border-bottom: 1px solid #2d3748; }
-.cal-sem-corner { border-right: 1px solid #2d3748; }
+.cal-sem-corner { border-right: 1px solid #2d3748; display:flex; align-items:center; justify-content:center; }
+
+/* Número da semana no corner */
+.cal-sem-week-num {
+  font-size: .6rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .08em; color: #4a5568; text-align: center; line-height: 1.3;
+}
 
 .cal-sem-col-dia {
   padding: 10px 0 8px; text-align: center; border-right: 1px solid #2d3748;
@@ -315,6 +321,7 @@
   .cal-sem-linha { grid-template-columns: 64px repeat(7,1fr); }
   .cal-sem-col-periodo { padding: 6px 4px; }
   .cal-sem-per-nome { font-size: .6rem; }
+  .cal-sem-week-num { display: none; }
   .cal-dia-cards { grid-template-columns: 1fr; }
   .cal-nav-label { min-width: 140px; font-size: .92rem; }
   .cal-view-btn  { padding: 6px 12px; font-size: .78rem; }

@@ -42,6 +42,7 @@ function calAulasNoDia(isoDate) {
 
 // ── Toggle de campo — NÃO depende de turmaAtiva/bimestreAtivo ─
 function calToggle(turmaId, bimestre, slotId, campo, novoVal) {
+  if (!_autenticado) { _abrirModalGoogle(); return; }
   const ch = chaveSlot(turmaId, bimestre, slotId);
   if (!estadoAulas[ch]) estadoAulas[ch] = {};
   estadoAulas[ch][campo] = novoVal;
@@ -298,6 +299,15 @@ function _calRenderMes() {
   document.getElementById("cal-corpo").innerHTML = html;
 }
 
+// ── Número da semana ISO ──────────────────────────────────
+function _isoWeek(d) {
+  const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dia  = tmp.getUTCDay() || 7;
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - dia);
+  const ano1 = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+  return Math.ceil((((tmp - ano1) / 86400000) + 1) / 7);
+}
+
 // ════════════════════════════════════════════════════════════
 //  VISÃO SEMANA
 // ════════════════════════════════════════════════════════════
@@ -313,6 +323,7 @@ function _calRenderSemana() {
   });
 
   const m0 = dias[0].getMonth(), m6 = dias[6].getMonth(), y = dias[0].getFullYear();
+  const semNum = _isoWeek(dias[1]); // usa segunda-feira da semana
   document.getElementById("cal-label").textContent =
     m0===m6 ? `${_CAL_MESES[m0]} ${y}` : `${_CAL_MESES_AB[m0]} – ${_CAL_MESES_AB[m6]} ${y}`;
 
@@ -331,7 +342,9 @@ function _calRenderSemana() {
   // Cabeçalho dos dias
   let html = `<div class="cal-semana">
     <div class="cal-sem-cabec">
-      <div class="cal-sem-col-periodo cal-sem-corner"></div>
+      <div class="cal-sem-col-periodo cal-sem-corner">
+        <span class="cal-sem-week-num">sem.<br>${semNum}</span>
+      </div>
       ${dias.map(d => {
         const iso = calIso(d), eh = iso === hojeIso;
         return `<div class="cal-sem-col-dia${eh?" cal-col-hoje":""}">
