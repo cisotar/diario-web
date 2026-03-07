@@ -104,14 +104,13 @@ function _initFirebase() {
   }
 }
 
-// Verifica sessão ao iniciar — se não logado, mostra modal Google
+// Verifica sessão ao iniciar — sem bloquear a página
 async function _verificarSessao() {
   return new Promise(resolve => {
     try {
       firebase.auth().onAuthStateChanged(user => {
         _autenticado = !!user;
         _atualizarBotaoAuth();
-        if (!_autenticado) setTimeout(_abrirModalGoogle, 200);
         resolve();
       });
     } catch (e) {
@@ -198,23 +197,6 @@ function _atualizarBotaoAuth() {
   btn.title = _autenticado
     ? "Autenticado — clique para sair"
     : "Não autenticado — clique para entrar";
-  _atualizarBloqueio();
-}
-
-// ── Bloqueio total quando não autenticado ─────────────────
-function _atualizarBloqueio() {
-  let bl = document.getElementById("page-block");
-  if (_autenticado) { bl?.remove(); return; }
-  if (!bl) {
-    bl = document.createElement("div");
-    bl.id = "page-block";
-    bl.style.cssText = [
-      "position:fixed","inset:0","z-index:9990",
-      "cursor:pointer","background:transparent"
-    ].join(";");
-    bl.addEventListener("click", _abrirModalGoogle);
-    document.body.appendChild(bl);
-  }
 }
 
 // ── Modal Google ───────────────────────────────────────────
@@ -398,7 +380,11 @@ function _ativarListenerFirestore() {
   if (!doc) return;
   _listenerAtivo = true;
 
+  let _primeiroSnap = true;
+
   doc.onSnapshot(snap => {
+    // Ignora o primeiro disparo (estado inicial — não é atualização remota)
+    if (_primeiroSnap) { _primeiroSnap = false; return; }
     if (!snap.exists) return;
     const d = snap.data();
     // Ignora se foi a própria aba que salvou (dentro de 2s do último save)
