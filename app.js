@@ -77,7 +77,14 @@ function _mostrarCarregando(sim) {
   }
 }
 
-// ── Persistência ───────────────────────────────────────────
+// ── Persistência + Autenticação ────────────────────────────
+
+// Credenciais do professor (Firebase Email/Password nos bastidores)
+const _AUTH_EMAIL = "professor@diario.local";
+const _AUTH_PIN   = "0507";   // PIN de 4 dígitos
+
+// Estado de autenticação
+let _autenticado = false;
 
 // Referência ao documento Firestore (preenchida após init)
 let _dbDoc = null;
@@ -86,7 +93,7 @@ let _dbDoc = null;
 function _initFirebase() {
   if (_dbDoc) return _dbDoc;
   try {
-    const app = firebase.app();           // já inicializado no index.html
+    const app = firebase.app();
     const db  = firebase.firestore(app);
     _dbDoc = db.collection("diario").doc("dados");
     return _dbDoc;
@@ -95,6 +102,197 @@ function _initFirebase() {
     return null;
   }
 }
+
+// Verifica se já está logado ao iniciar (sessão persistida pelo Firebase)
+async function _verificarSessao() {
+  return new Promise(resolve => {
+    try {
+      firebase.auth().onAuthStateChanged(user => {
+        _autenticado = !!user;
+        _atualizarBotaoAuth();
+        resolve();
+      });
+    } catch (e) {
+      resolve();
+    }
+  });
+}
+
+// Login com PIN → Firebase signInWithEmailAndPassword
+async function _loginComPin(pin) {
+  if (pin !== _AUTH_PIN) return false;
+  try {
+    await firebase.auth().signInWithEmailAndPassword(_AUTH_EMAIL, _AUTH_PIN);
+    _autenticado = true;
+    _atualizarBotaoAuth();
+    return true;
+  } catch (e) {
+    console.error("Erro no login:", e);
+    return false;
+  }
+}
+
+async function _logout() {
+  try {
+    await firebase.auth().signOut();
+  } catch {}
+  _autenticado = false;
+  _atualizarBotaoAuth();
+  _mostrarIndicadorSync("🔒 Sessão encerrada");
+}
+
+// Botão de status de autenticação no canto superior direito
+function _atualizarBotaoAuth() {
+  let btn = document.getElementById("auth-btn");
+  if (!btn) {
+    btn = document.createElement("button");
+    btn.id = "auth-btn";
+    btn.style.cssText = [
+      "position:fixed","top:10px","right:14px","z-index:10000",
+      "background:transparent","border:none","cursor:pointer",
+      "font-size:18px","opacity:0.5","transition:opacity 0.2s",
+      "padding:4px","line-height:1"
+    ].join(";");
+    btn.title = "Status de autenticação";
+    btn.onmouseenter = () => btn.style.opacity = "1";
+    btn.onmouseleave = () => btn.style.opacity = "0.5";
+    btn.onclick = () => {
+      if (_autenticado) {
+        if (confirm("Encerrar sessão?")) _logout();
+      } else {
+        _abrirModalPin();
+      }
+    };
+    document.body.appendChild(btn);
+  }
+  btn.textContent = _autenticado ? "🔓" : "🔒";
+  btn.title = _autenticado ? "Autenticado — clique para sair" : "Não autenticado — clique para entrar";
+}
+
+// ── Modal de PIN ───────────────────────────────────────────
+
+function _abrirModalPin(callbackAposSucesso) {
+  // Evita duplicar
+  document.getElementById("pin-modal")?.remove();
+
+  const overlay = document.createElement("div");
+  overlay.id = "pin-modal";
+  overlay.style.cssText = [
+    "position:fixed","inset:0","z-index:99998",
+    "background:rgba(0,0,0,0.7)","display:flex",
+    "align-items:center","justify-content:center"
+  ].join(";");
+
+  overlay.innerHTML = `
+    <div id="pin-box" style="
+      background:#1e293b; border-radius:16px; padding:32px 28px;
+      display:flex; flex-direction:column; align-items:center; gap:20px;
+      box-shadow:0 20px 60px rgba(0,0,0,0.5); min-width:280px;
+    ">
+      <div style="font-size:32px">🔐</div>
+      <div style="color:#e2e8f0; font-size:15px; font-weight:600; letter-spacing:0.3px">
+        Digite o PIN
+      </div>
+
+      <!-- Dígitos visuais -->
+      <div id="pin-dots" style="display:flex; gap:14px; margin:4px 0;">
+        ${[0,1,2,3].map(i => `
+          <div id="pin-dot-${i}" style="
+            width:14px; height:14px; border-radius:50%;
+            border:2px solid #475569; background:transparent;
+            transition:background 0.15s, border-color 0.15s;
+          "></div>`).join("")}
+      </div>
+
+      <!-- Teclado numérico -->
+      <div id="pin-teclado" style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; width:100%;">
+        ${[1,2,3,4,5,6,7,8,9,"",0,"⌫"].map(k => k === "" ? `<div></div>` : `
+          <button onclick="_pinTecla('${k}')" style="
+            background:#0f172a; border:1px solid #334155; color:#e2e8f0;
+            border-radius:10px; padding:14px 0; font-size:18px; font-weight:500;
+            cursor:pointer; transition:background 0.1s, transform 0.1s;
+            font-family:inherit;
+          "
+          onmousedown="this.style.background='#1d4ed8';this.style.transform='scale(0.95)'"
+          onmouseup="this.style.background='#0f172a';this.style.transform='scale(1)'"
+          onmouseleave="this.style.background='#0f172a';this.style.transform='scale(1)'"
+          >${k}</button>`).join("")}
+      </div>
+
+      <button onclick="_pinFechar()" style="
+        background:transparent; border:none; color:#64748b;
+        font-size:13px; cursor:pointer; margin-top:-8px; font-family:inherit;
+      ">Cancelar</button>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  overlay._callback = callbackAposSucesso || null;
+
+  // Fecha ao clicar fora da caixa
+  overlay.addEventListener("click", e => {
+    if (e.target === overlay) _pinFechar();
+  });
+}
+
+let _pinBuffer = "";
+
+function _pinTecla(k) {
+  if (k === "⌫") {
+    _pinBuffer = _pinBuffer.slice(0, -1);
+    _pinAtualizarDots();
+    return;
+  }
+  if (_pinBuffer.length >= 4) return;
+  _pinBuffer += k;
+  _pinAtualizarDots();
+  if (_pinBuffer.length === 4) _pinConfirmar();
+}
+
+function _pinAtualizarDots() {
+  for (let i = 0; i < 4; i++) {
+    const dot = document.getElementById(`pin-dot-${i}`);
+    if (!dot) continue;
+    const preenchido = i < _pinBuffer.length;
+    dot.style.background     = preenchido ? "#0d9488" : "transparent";
+    dot.style.borderColor    = preenchido ? "#0d9488" : "#475569";
+  }
+}
+
+async function _pinConfirmar() {
+  const pin = _pinBuffer;
+  _pinBuffer = "";
+  _pinAtualizarDots();
+
+  const ok = await _loginComPin(pin);
+  if (ok) {
+    const modal = document.getElementById("pin-modal");
+    const cb = modal?._callback;
+    _pinFechar();
+    _mostrarIndicadorSync("🔓 Autenticado");
+    if (cb) cb();
+  } else {
+    // Shake de erro
+    const box = document.getElementById("pin-box");
+    if (box) {
+      box.style.animation = "pin-shake 0.4s ease";
+      box.addEventListener("animationend", () => box.style.animation = "", { once: true });
+    }
+    // Pisca os dots em vermelho
+    for (let i = 0; i < 4; i++) {
+      const dot = document.getElementById(`pin-dot-${i}`);
+      if (dot) { dot.style.background = "#ef4444"; dot.style.borderColor = "#ef4444"; }
+    }
+    setTimeout(_pinAtualizarDots, 600);
+  }
+}
+
+function _pinFechar() {
+  _pinBuffer = "";
+  document.getElementById("pin-modal")?.remove();
+}
+
+// ── Salvar com verificação de autenticação ─────────────────
 
 // Debounce: evita salvar muitas vezes em sequência rápida
 let _saveTimer = null;
@@ -113,6 +311,20 @@ function salvarTudo() {
 async function _salvarFirestore() {
   const doc = _initFirebase();
   if (!doc) return;
+
+  // Se não autenticado, abre modal PIN e reagenda o save após login
+  if (!_autenticado) {
+    _abrirModalPin(() => {
+      // Após autenticação bem-sucedida, salva imediatamente
+      _executarSaveFirestore(doc);
+    });
+    return;
+  }
+
+  _executarSaveFirestore(doc);
+}
+
+async function _executarSaveFirestore(doc) {
   try {
     await doc.set({
       aulaEstado:     JSON.stringify(estadoAulas),
@@ -124,7 +336,7 @@ async function _salvarFirestore() {
     _mostrarIndicadorSync("✓ Salvo");
   } catch (e) {
     console.error("Erro ao salvar no Firestore:", e);
-    _mostrarIndicadorSync("⚠ Offline");
+    _mostrarIndicadorSync("⚠ Sem permissão — faça login");
   }
 }
 
@@ -134,12 +346,12 @@ function _mostrarIndicadorSync(texto) {
   if (!_syncEl) {
     _syncEl = document.createElement("div");
     _syncEl.id = "sync-indicator";
-    _syncEl.style.cssText = `
-      position:fixed; bottom:16px; right:16px; z-index:9999;
-      background:#1e293b; color:#94a3b8; font-size:11px;
-      padding:4px 10px; border-radius:20px; pointer-events:none;
-      opacity:0; transition:opacity 0.3s;
-    `;
+    _syncEl.style.cssText = [
+      "position:fixed","bottom:16px","right:16px","z-index:9999",
+      "background:#1e293b","color:#94a3b8","font-size:11px",
+      "padding:4px 10px","border-radius:20px","pointer-events:none",
+      "opacity:0","transition:opacity 0.3s"
+    ].join(";");
     document.body.appendChild(_syncEl);
   }
   _syncEl.textContent = texto;
@@ -211,7 +423,8 @@ async function carregarTudo() {
     localStorage.setItem("aulaOrdem",  JSON.stringify(ordemConteudos));
   }
 
-  // ── Ativa listener em tempo real (atualiza sem recarregar) ───────
+  // ── Verifica sessão Firebase e ativa listener ────────────────────
+  await _verificarSessao();
   _ativarListenerFirestore();
 }
 

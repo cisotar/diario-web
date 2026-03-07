@@ -50,6 +50,7 @@
   <!-- Firebase SDK (compat — funciona sem bundler/npm) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script>
     firebase.initializeApp({
       apiKey:            "AIzaSyAqdTVWYfROLnFfrBm4xLIVp5w1noUo2xk",
@@ -60,6 +61,15 @@
       appId:             "1:99507158812:web:204120b1000b4891c4c4d9"
     });
   </script>
+  <style>
+    @keyframes pin-shake {
+      0%,100% { transform: translateX(0); }
+      20%     { transform: translateX(-10px); }
+      40%     { transform: translateX(10px); }
+      60%     { transform: translateX(-8px); }
+      80%     { transform: translateX(8px); }
+    }
+  </style>
 
   <script src="aulas.js"></script>
   <script src="app.js"></script>
