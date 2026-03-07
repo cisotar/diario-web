@@ -169,34 +169,44 @@ async function _logout() {
   _mostrarIndicadorSync("🔒 Sessão encerrada");
 }
 
-// ── Botão no header ────────────────────────────────────────
+// ── Botão Login no header ──────────────────────────────────
 function _atualizarBotaoAuth() {
   let btn = document.getElementById("auth-btn");
   if (!btn) {
     btn = document.createElement("button");
     btn.id = "auth-btn";
-    btn.style.cssText = [
-      "background:transparent","border:none","cursor:pointer",
-      "font-size:18px","opacity:0.6","transition:opacity 0.2s",
-      "padding:4px 6px","line-height:1","margin-left:auto","flex-shrink:0"
-    ].join(";");
-    btn.onmouseenter = () => btn.style.opacity = "1";
-    btn.onmouseleave = () => btn.style.opacity = "0.6";
-    btn.onclick = () => {
-      if (_autenticado) {
-        if (confirm("Encerrar sessão?")) _logout();
-      } else {
-        _abrirModalGoogle();
-      }
-    };
     const header = document.querySelector(".app-header");
     if (header) header.appendChild(btn);
     else document.body.appendChild(btn);
   }
-  btn.textContent = _autenticado ? "🔓" : "🔒";
-  btn.title = _autenticado
-    ? "Autenticado — clique para sair"
-    : "Não autenticado — clique para entrar";
+  if (_autenticado) {
+    btn.textContent = "Sair";
+    btn.classList.add("logado");
+    btn.onclick = () => { if (confirm("Encerrar sessão?")) _logout(); };
+  } else {
+    btn.textContent = "Login";
+    btn.classList.remove("logado");
+    btn.onclick = _abrirModalGoogle;
+  }
+  _atualizarBloqueio();
+}
+
+// ── Bloqueio total de interações quando não autenticado ────
+function _atualizarBloqueio() {
+  let bl = document.getElementById("page-block");
+  if (_autenticado) { bl?.remove(); return; }
+  if (!bl) {
+    bl = document.createElement("div");
+    bl.id = "page-block";
+    bl.style.cssText = [
+      "position:fixed","inset:0","z-index:9990",
+      "background:transparent","cursor:default"
+    ].join(";");
+    bl.addEventListener("click",       e => e.stopPropagation());
+    bl.addEventListener("mousedown",   e => e.stopPropagation());
+    bl.addEventListener("pointerdown", e => e.stopPropagation());
+    document.body.appendChild(bl);
+  }
 }
 
 // ── Modal Google ───────────────────────────────────────────
