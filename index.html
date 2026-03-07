@@ -47,6 +47,20 @@
 
   </div>
 
+  <!-- Firebase SDK (compat — funciona sem bundler/npm) -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script>
+    firebase.initializeApp({
+      apiKey:            "AIzaSyAqdTVWYfROLnFfrBm4xLIVp5w1noUo2xk",
+      authDomain:        "diariodeclassev1.firebaseapp.com",
+      projectId:         "diariodeclassev1",
+      storageBucket:     "diariodeclassev1.firebasestorage.app",
+      messagingSenderId: "99507158812",
+      appId:             "1:99507158812:web:204120b1000b4891c4c4d9"
+    });
+  </script>
+
   <script src="aulas.js"></script>
   <script src="app.js"></script>
   <script src="calendario.js"></script>

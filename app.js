@@ -41,8 +41,10 @@ let RT_CONTEUDOS  = null;
 let RT_PERIODOS   = null;   // tabela de períodos de aula
 
 // ── Init ───────────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", () => {
-  carregarTudo();
+document.addEventListener("DOMContentLoaded", async () => {
+  _mostrarCarregando(true);
+  await carregarTudo();
+  _mostrarCarregando(false);
   renderizarSidebar();
   iniciarTooltips();
   if (window.innerWidth <= 860) {
@@ -52,15 +54,98 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 });
 
+function _mostrarCarregando(sim) {
+  let el = document.getElementById("loading-overlay");
+  if (sim) {
+    if (el) return;
+    el = document.createElement("div");
+    el.id = "loading-overlay";
+    el.style.cssText = [
+      "position:fixed","inset:0","z-index:99999",
+      "background:#0f172a","display:flex","flex-direction:column",
+      "align-items:center","justify-content:center","gap:12px",
+      "color:#94a3b8","font-size:14px","font-family:inherit"
+    ].join(";");
+    el.innerHTML = `
+      <div style="width:32px;height:32px;border:3px solid #334155;border-top-color:#0d9488;border-radius:50%;animation:spin 0.7s linear infinite"></div>
+      <span>Carregando dados…</span>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+    `;
+    document.body.appendChild(el);
+  } else {
+    el?.remove();
+  }
+}
+
 // ── Persistência ───────────────────────────────────────────
+
+// Referência ao documento Firestore (preenchida após init)
+let _dbDoc = null;
+
+// Inicializa Firebase e retorna a referência ao documento de dados
+function _initFirebase() {
+  if (_dbDoc) return _dbDoc;
+  try {
+    const app = firebase.app();           // já inicializado no index.html
+    const db  = firebase.firestore(app);
+    _dbDoc = db.collection("diario").doc("dados");
+    return _dbDoc;
+  } catch (e) {
+    console.warn("Firebase não disponível, usando localStorage:", e);
+    return null;
+  }
+}
+
+// Debounce: evita salvar muitas vezes em sequência rápida
+let _saveTimer = null;
 function salvarTudo() {
-  // Progresso salvo normalmente
+  // Sempre salva no localStorage como cache offline
   localStorage.setItem("aulaEstado",    JSON.stringify(estadoAulas));
   localStorage.setItem("aulaOrdem",     JSON.stringify(ordemConteudos));
   localStorage.setItem("aulaEventuais", JSON.stringify(linhasEventuais));
-  // RT_CONTEUDOS pode ser editado pelo painel de gestão → persiste
   localStorage.setItem("RT_CONTEUDOS",  JSON.stringify(RT_CONTEUDOS));
-  // RT_TURMAS, RT_BIMESTRES, RT_PERIODOS: vêm sempre do aulas.js → não persiste
+
+  // Sincroniza com Firestore (debounce 800ms)
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => _salvarFirestore(), 800);
+}
+
+async function _salvarFirestore() {
+  const doc = _initFirebase();
+  if (!doc) return;
+  try {
+    await doc.set({
+      aulaEstado:     JSON.stringify(estadoAulas),
+      aulaOrdem:      JSON.stringify(ordemConteudos),
+      aulaEventuais:  JSON.stringify(linhasEventuais),
+      RT_CONTEUDOS:   JSON.stringify(RT_CONTEUDOS),
+      _atualizado:    new Date().toISOString(),
+    });
+    _mostrarIndicadorSync("✓ Salvo");
+  } catch (e) {
+    console.error("Erro ao salvar no Firestore:", e);
+    _mostrarIndicadorSync("⚠ Offline");
+  }
+}
+
+// Indicador visual de sincronização no canto da tela
+let _syncEl = null;
+function _mostrarIndicadorSync(texto) {
+  if (!_syncEl) {
+    _syncEl = document.createElement("div");
+    _syncEl.id = "sync-indicator";
+    _syncEl.style.cssText = `
+      position:fixed; bottom:16px; right:16px; z-index:9999;
+      background:#1e293b; color:#94a3b8; font-size:11px;
+      padding:4px 10px; border-radius:20px; pointer-events:none;
+      opacity:0; transition:opacity 0.3s;
+    `;
+    document.body.appendChild(_syncEl);
+  }
+  _syncEl.textContent = texto;
+  _syncEl.style.opacity = "1";
+  clearTimeout(_syncEl._timer);
+  _syncEl._timer = setTimeout(() => { _syncEl.style.opacity = "0"; }, 2500);
 }
 
 const PERIODOS_PADRAO = [
@@ -74,8 +159,9 @@ const PERIODOS_PADRAO = [
   { aula:"a8", label:"8ª aula", inicio:"20:40", fim:"21:30" },
 ];
 
-function carregarTudo() {
-  // ── Estrutura: SEMPRE do aulas.js (nunca do localStorage) ────────
+// carregarTudo: tenta Firebase primeiro, cai para localStorage se offline
+async function carregarTudo() {
+  // ── Estrutura: SEMPRE do aulas.js ────────────────────────────────
   RT_BIMESTRES = JSON.parse(JSON.stringify(BIMESTRES));
   RT_TURMAS    = JSON.parse(JSON.stringify(TURMAS));
   RT_CONTEUDOS = JSON.parse(JSON.stringify(CONTEUDOS));
@@ -83,13 +169,36 @@ function carregarTudo() {
     typeof PERIODOS !== "undefined" ? PERIODOS : PERIODOS_PADRAO
   ));
 
-  // ── Progresso: carrega do localStorage ───────────────────────────
-  try { estadoAulas    = JSON.parse(localStorage.getItem("aulaEstado"))    || {}; } catch { estadoAulas = {}; }
-  try { ordemConteudos = JSON.parse(localStorage.getItem("aulaOrdem"))     || {}; } catch { ordemConteudos = {}; }
-  try { linhasEventuais= JSON.parse(localStorage.getItem("aulaEventuais")) || {}; } catch { linhasEventuais = {}; }
+  // ── Tenta carregar do Firestore ───────────────────────────────────
+  const doc = _initFirebase();
+  let dadosFirestore = null;
+  if (doc) {
+    try {
+      const snap = await doc.get();
+      if (snap.exists) {
+        dadosFirestore = snap.data();
+        // Atualiza cache local com dados do servidor
+        if (dadosFirestore.aulaEstado)    localStorage.setItem("aulaEstado",    dadosFirestore.aulaEstado);
+        if (dadosFirestore.aulaOrdem)     localStorage.setItem("aulaOrdem",     dadosFirestore.aulaOrdem);
+        if (dadosFirestore.aulaEventuais) localStorage.setItem("aulaEventuais", dadosFirestore.aulaEventuais);
+        if (dadosFirestore.RT_CONTEUDOS)  localStorage.setItem("RT_CONTEUDOS",  dadosFirestore.RT_CONTEUDOS);
+        localStorage.setItem("_aulasSeed", "1");
+      }
+    } catch (e) {
+      console.warn("Firestore inacessível, usando cache local:", e);
+    }
+  }
 
-  // ── Semente: se aulas.js tiver ESTADO/ORDEM exportados,
-  //    aplica UMA VEZ quando o localStorage ainda está vazio ─────────
+  // ── Progresso: do localStorage (já atualizado se veio do Firestore) ─
+  try { estadoAulas     = JSON.parse(localStorage.getItem("aulaEstado"))    || {}; } catch { estadoAulas = {}; }
+  try { ordemConteudos  = JSON.parse(localStorage.getItem("aulaOrdem"))     || {}; } catch { ordemConteudos = {}; }
+  try { linhasEventuais = JSON.parse(localStorage.getItem("aulaEventuais")) || {}; } catch { linhasEventuais = {}; }
+  try {
+    const rc = JSON.parse(localStorage.getItem("RT_CONTEUDOS"));
+    if (rc && typeof rc === "object") RT_CONTEUDOS = rc;
+  } catch {}
+
+  // ── Semente: aplica ESTADO/ORDEM do aulas.js UMA VEZ ────────────
   if (!localStorage.getItem("_aulasSeed")) {
     if (typeof ESTADO !== "undefined" && Object.keys(ESTADO).length > 0) {
       estadoAulas = Object.assign({}, ESTADO, estadoAulas);
@@ -101,6 +210,48 @@ function carregarTudo() {
     localStorage.setItem("aulaEstado", JSON.stringify(estadoAulas));
     localStorage.setItem("aulaOrdem",  JSON.stringify(ordemConteudos));
   }
+
+  // ── Ativa listener em tempo real (atualiza sem recarregar) ───────
+  _ativarListenerFirestore();
+}
+
+// Listener em tempo real: quando outro dispositivo salva, atualiza a tela
+let _listenerAtivo = false;
+function _ativarListenerFirestore() {
+  if (_listenerAtivo) return;
+  const doc = _initFirebase();
+  if (!doc) return;
+  _listenerAtivo = true;
+
+  doc.onSnapshot(snap => {
+    if (!snap.exists) return;
+    const d = snap.data();
+    // Ignora se foi a própria aba que salvou (dentro de 2s do último save)
+    const atualizado = d._atualizado ? new Date(d._atualizado) : null;
+    const agora = new Date();
+    if (atualizado && (agora - atualizado) < 2000) return;
+
+    // Aplica dados do outro dispositivo
+    try { estadoAulas     = JSON.parse(d.aulaEstado)    || estadoAulas;    } catch {}
+    try { ordemConteudos  = JSON.parse(d.aulaOrdem)     || ordemConteudos; } catch {}
+    try { linhasEventuais = JSON.parse(d.aulaEventuais) || linhasEventuais;} catch {}
+    try {
+      const rc = JSON.parse(d.RT_CONTEUDOS);
+      if (rc) RT_CONTEUDOS = rc;
+    } catch {}
+
+    // Atualiza cache local
+    if (d.aulaEstado)    localStorage.setItem("aulaEstado",    d.aulaEstado);
+    if (d.aulaOrdem)     localStorage.setItem("aulaOrdem",     d.aulaOrdem);
+    if (d.aulaEventuais) localStorage.setItem("aulaEventuais", d.aulaEventuais);
+    if (d.RT_CONTEUDOS)  localStorage.setItem("RT_CONTEUDOS",  d.RT_CONTEUDOS);
+
+    // Re-renderiza a view atual se visível
+    if (turmaAtiva) renderizarConteudo();
+    _mostrarIndicadorSync("↓ Sincronizado");
+  }, err => {
+    console.warn("onSnapshot erro:", err);
+  });
 }
 
 // ── Chaves ─────────────────────────────────────────────────
