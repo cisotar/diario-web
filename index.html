@@ -4,9 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Diário de Classe · 2026</title>
-  <link rel="icon" href="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/assets/svg/1f4d3.svg" type="image/svg+xml" />
+  <link rel="icon" href="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/assets/svg/1f4cb.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="calendario.css" />
+  <style>
+    /* Garante que o cadeado fique alinhado no header sem sobrepor */
+    .app-header { display: flex; align-items: center; }
+    .header-tagline { flex: 1; }
+    #auth-btn { flex-shrink: 0; }
+  </style>
 </head>
 <body>
 
@@ -61,15 +67,6 @@
       appId:             "1:99507158812:web:204120b1000b4891c4c4d9"
     });
   </script>
-  <style>
-    @keyframes pin-shake {
-      0%,100% { transform: translateX(0); }
-      20%     { transform: translateX(-10px); }
-      40%     { transform: translateX(10px); }
-      60%     { transform: translateX(-8px); }
-      80%     { transform: translateX(8px); }
-    }
-  </style>
 
   <script src="aulas.js"></script>
   <script src="app.js"></script>

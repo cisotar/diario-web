@@ -77,11 +77,14 @@ function _mostrarCarregando(sim) {
   }
 }
 
-// ── Persistência + Autenticação ────────────────────────────
+// ── Persistência + Autenticação Google ─────────────────────
 
-// Credenciais do professor (Firebase Email/Password nos bastidores)
-const _AUTH_EMAIL = "professor@diario.local";
-const _AUTH_PIN   = "0507";   // PIN de 4 dígitos
+// Emails autorizados a editar
+const _EMAILS_PERMITIDOS = [
+  "protarciso@gmail.com",
+  "contato.tarciso@gmail.com",
+  "tarciso@prof.educacao.sp.gov.br",
+];
 
 // Estado de autenticação
 let _autenticado = false;
@@ -89,12 +92,10 @@ let _autenticado = false;
 // Referência ao documento Firestore (preenchida após init)
 let _dbDoc = null;
 
-// Inicializa Firebase e retorna a referência ao documento de dados
 function _initFirebase() {
   if (_dbDoc) return _dbDoc;
   try {
-    const app = firebase.app();
-    const db  = firebase.firestore(app);
+    const db = firebase.firestore();
     _dbDoc = db.collection("diario").doc("dados");
     return _dbDoc;
   } catch (e) {
@@ -103,13 +104,14 @@ function _initFirebase() {
   }
 }
 
-// Verifica se já está logado ao iniciar (sessão persistida pelo Firebase)
+// Verifica sessão ao iniciar — se não logado, mostra modal Google
 async function _verificarSessao() {
   return new Promise(resolve => {
     try {
       firebase.auth().onAuthStateChanged(user => {
         _autenticado = !!user;
         _atualizarBotaoAuth();
+        if (!_autenticado) setTimeout(_abrirModalGoogle, 200);
         resolve();
       });
     } catch (e) {
@@ -118,192 +120,162 @@ async function _verificarSessao() {
   });
 }
 
-// Login com PIN → Firebase signInWithEmailAndPassword
-async function _loginComPin(pin) {
-  if (pin !== _AUTH_PIN) return false;
+// Login com Google (popup)
+async function _loginGoogle() {
   try {
-    await firebase.auth().signInWithEmailAndPassword(_AUTH_EMAIL, _AUTH_PIN);
+    const provider = new firebase.auth.GoogleAuthProvider();
+    const result   = await firebase.auth().signInWithPopup(provider);
+    const email    = result.user.email;
+
+    // Verifica se o email está na lista de permitidos
+    if (!_EMAILS_PERMITIDOS.includes(email)) {
+      await firebase.auth().signOut();
+      const btn = document.getElementById("google-btn");
+      if (btn) {
+        btn.textContent = `❌ ${email} não autorizado`;
+        btn.style.background = "#fef2f2";
+        btn.style.color = "#991b1b";
+        setTimeout(() => {
+          btn.textContent = "Entrar com Google";
+          btn.style.background = "#fff";
+          btn.style.color = "#1e293b";
+        }, 3000);
+      }
+      return;
+    }
+
     _autenticado = true;
     _atualizarBotaoAuth();
-    return true;
+    document.getElementById("google-modal")?.remove();
+    _mostrarIndicadorSync("🔓 Autenticado");
+    _salvarFirestore();
   } catch (e) {
-    console.error("Erro no login:", e);
-    return false;
+    console.error("Erro no login Google:", e);
+    const btn = document.getElementById("google-btn");
+    if (btn) {
+      btn.textContent = "Tente novamente";
+      btn.style.background = "#7f1d1d";
+      setTimeout(() => {
+        btn.textContent = "Entrar com Google";
+        btn.style.background = "#fff";
+      }, 2000);
+    }
   }
 }
 
 async function _logout() {
-  try {
-    await firebase.auth().signOut();
-  } catch {}
+  try { await firebase.auth().signOut(); } catch {}
   _autenticado = false;
   _atualizarBotaoAuth();
   _mostrarIndicadorSync("🔒 Sessão encerrada");
 }
 
-// Botão de status de autenticação no canto superior direito
+// ── Botão no header ────────────────────────────────────────
 function _atualizarBotaoAuth() {
   let btn = document.getElementById("auth-btn");
   if (!btn) {
     btn = document.createElement("button");
     btn.id = "auth-btn";
     btn.style.cssText = [
-      "position:fixed","top:10px","right:14px","z-index:10000",
       "background:transparent","border:none","cursor:pointer",
-      "font-size:18px","opacity:0.5","transition:opacity 0.2s",
-      "padding:4px","line-height:1"
+      "font-size:18px","opacity:0.6","transition:opacity 0.2s",
+      "padding:4px 6px","line-height:1","margin-left:auto","flex-shrink:0"
     ].join(";");
-    btn.title = "Status de autenticação";
     btn.onmouseenter = () => btn.style.opacity = "1";
-    btn.onmouseleave = () => btn.style.opacity = "0.5";
+    btn.onmouseleave = () => btn.style.opacity = "0.6";
     btn.onclick = () => {
       if (_autenticado) {
         if (confirm("Encerrar sessão?")) _logout();
       } else {
-        _abrirModalPin();
+        _abrirModalGoogle();
       }
     };
-    document.body.appendChild(btn);
+    const header = document.querySelector(".app-header");
+    if (header) header.appendChild(btn);
+    else document.body.appendChild(btn);
   }
   btn.textContent = _autenticado ? "🔓" : "🔒";
-  btn.title = _autenticado ? "Autenticado — clique para sair" : "Não autenticado — clique para entrar";
+  btn.title = _autenticado
+    ? "Autenticado — clique para sair"
+    : "Não autenticado — clique para entrar";
+  _atualizarBloqueio();
 }
 
-// ── Modal de PIN ───────────────────────────────────────────
+// ── Bloqueio total quando não autenticado ─────────────────
+function _atualizarBloqueio() {
+  let bl = document.getElementById("page-block");
+  if (_autenticado) { bl?.remove(); return; }
+  if (!bl) {
+    bl = document.createElement("div");
+    bl.id = "page-block";
+    bl.style.cssText = [
+      "position:fixed","inset:0","z-index:9990",
+      "cursor:pointer","background:transparent"
+    ].join(";");
+    bl.addEventListener("click", _abrirModalGoogle);
+    document.body.appendChild(bl);
+  }
+}
 
-function _abrirModalPin(callbackAposSucesso) {
-  // Evita duplicar
-  document.getElementById("pin-modal")?.remove();
+// ── Modal Google ───────────────────────────────────────────
+function _abrirModalGoogle() {
+  if (document.getElementById("google-modal")) return;
 
   const overlay = document.createElement("div");
-  overlay.id = "pin-modal";
+  overlay.id = "google-modal";
   overlay.style.cssText = [
     "position:fixed","inset:0","z-index:99998",
-    "background:rgba(0,0,0,0.7)","display:flex",
+    "background:rgba(0,0,0,0.75)","display:flex",
     "align-items:center","justify-content:center"
   ].join(";");
 
   overlay.innerHTML = `
-    <div id="pin-box" style="
-      background:#1e293b; border-radius:16px; padding:32px 28px;
-      display:flex; flex-direction:column; align-items:center; gap:20px;
-      box-shadow:0 20px 60px rgba(0,0,0,0.5); min-width:280px;
+    <div style="
+      background:#1e293b; border-radius:16px; padding:40px 36px;
+      display:flex; flex-direction:column; align-items:center; gap:24px;
+      box-shadow:0 20px 60px rgba(0,0,0,0.6); min-width:280px; max-width:320px;
     ">
-      <div style="font-size:32px">🔐</div>
-      <div style="color:#e2e8f0; font-size:15px; font-weight:600; letter-spacing:0.3px">
-        Digite o PIN
+      <div style="font-size:36px">📋</div>
+      <div style="color:#e2e8f0; font-size:16px; font-weight:600; text-align:center; line-height:1.4;">
+        Diário de Classe
+      </div>
+      <div style="color:#64748b; font-size:13px; text-align:center; line-height:1.6;">
+        Faça login para acessar<br>e editar o diário
       </div>
 
-      <!-- Dígitos visuais -->
-      <div id="pin-dots" style="display:flex; gap:14px; margin:4px 0;">
-        ${[0,1,2,3].map(i => `
-          <div id="pin-dot-${i}" style="
-            width:14px; height:14px; border-radius:50%;
-            border:2px solid #475569; background:transparent;
-            transition:background 0.15s, border-color 0.15s;
-          "></div>`).join("")}
-      </div>
-
-      <!-- Teclado numérico -->
-      <div id="pin-teclado" style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px; width:100%;">
-        ${[1,2,3,4,5,6,7,8,9,"",0,"⌫"].map(k => k === "" ? `<div></div>` : `
-          <button onclick="_pinTecla('${k}')" style="
-            background:#0f172a; border:1px solid #334155; color:#e2e8f0;
-            border-radius:10px; padding:14px 0; font-size:18px; font-weight:500;
-            cursor:pointer; transition:background 0.1s, transform 0.1s;
-            font-family:inherit;
-          "
-          onmousedown="this.style.background='#1d4ed8';this.style.transform='scale(0.95)'"
-          onmouseup="this.style.background='#0f172a';this.style.transform='scale(1)'"
-          onmouseleave="this.style.background='#0f172a';this.style.transform='scale(1)'"
-          >${k}</button>`).join("")}
-      </div>
-
-      <button onclick="_pinFechar()" style="
-        background:transparent; border:none; color:#64748b;
-        font-size:13px; cursor:pointer; margin-top:-8px; font-family:inherit;
-      ">Cancelar</button>
+      <!-- Botão Google -->
+      <button id="google-btn" onclick="_loginGoogle()" style="
+        display:flex; align-items:center; gap:12px;
+        background:#fff; color:#1e293b; border:none; border-radius:8px;
+        padding:12px 20px; font-size:14px; font-weight:600;
+        cursor:pointer; width:100%; justify-content:center;
+        box-shadow:0 2px 8px rgba(0,0,0,0.3); transition:opacity 0.15s;
+        font-family:inherit;
+      "
+      onmouseenter="this.style.opacity='0.9'"
+      onmouseleave="this.style.opacity='1'"
+      >
+        <svg width="18" height="18" viewBox="0 0 48 48">
+          <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+          <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+          <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+          <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+        </svg>
+        Entrar com Google
+      </button>
     </div>
   `;
 
   document.body.appendChild(overlay);
-  overlay._callback = callbackAposSucesso || null;
-
-  // Fecha ao clicar fora da caixa
-  overlay.addEventListener("click", e => {
-    if (e.target === overlay) _pinFechar();
-  });
-}
-
-let _pinBuffer = "";
-
-function _pinTecla(k) {
-  if (k === "⌫") {
-    _pinBuffer = _pinBuffer.slice(0, -1);
-    _pinAtualizarDots();
-    return;
-  }
-  if (_pinBuffer.length >= 4) return;
-  _pinBuffer += k;
-  _pinAtualizarDots();
-  if (_pinBuffer.length === 4) _pinConfirmar();
-}
-
-function _pinAtualizarDots() {
-  for (let i = 0; i < 4; i++) {
-    const dot = document.getElementById(`pin-dot-${i}`);
-    if (!dot) continue;
-    const preenchido = i < _pinBuffer.length;
-    dot.style.background     = preenchido ? "#0d9488" : "transparent";
-    dot.style.borderColor    = preenchido ? "#0d9488" : "#475569";
-  }
-}
-
-async function _pinConfirmar() {
-  const pin = _pinBuffer;
-  _pinBuffer = "";
-  _pinAtualizarDots();
-
-  const ok = await _loginComPin(pin);
-  if (ok) {
-    const modal = document.getElementById("pin-modal");
-    const cb = modal?._callback;
-    _pinFechar();
-    _mostrarIndicadorSync("🔓 Autenticado");
-    if (cb) cb();
-  } else {
-    // Shake de erro
-    const box = document.getElementById("pin-box");
-    if (box) {
-      box.style.animation = "pin-shake 0.4s ease";
-      box.addEventListener("animationend", () => box.style.animation = "", { once: true });
-    }
-    // Pisca os dots em vermelho
-    for (let i = 0; i < 4; i++) {
-      const dot = document.getElementById(`pin-dot-${i}`);
-      if (dot) { dot.style.background = "#ef4444"; dot.style.borderColor = "#ef4444"; }
-    }
-    setTimeout(_pinAtualizarDots, 600);
-  }
-}
-
-function _pinFechar() {
-  _pinBuffer = "";
-  document.getElementById("pin-modal")?.remove();
 }
 
 // ── Salvar com verificação de autenticação ─────────────────
-
-// Debounce: evita salvar muitas vezes em sequência rápida
 let _saveTimer = null;
 function salvarTudo() {
-  // Sempre salva no localStorage como cache offline
   localStorage.setItem("aulaEstado",    JSON.stringify(estadoAulas));
   localStorage.setItem("aulaOrdem",     JSON.stringify(ordemConteudos));
   localStorage.setItem("aulaEventuais", JSON.stringify(linhasEventuais));
   localStorage.setItem("RT_CONTEUDOS",  JSON.stringify(RT_CONTEUDOS));
-
-  // Sincroniza com Firestore (debounce 800ms)
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(() => _salvarFirestore(), 800);
 }
@@ -311,32 +283,22 @@ function salvarTudo() {
 async function _salvarFirestore() {
   const doc = _initFirebase();
   if (!doc) return;
-
-  // Se não autenticado, abre modal PIN e reagenda o save após login
   if (!_autenticado) {
-    _abrirModalPin(() => {
-      // Após autenticação bem-sucedida, salva imediatamente
-      _executarSaveFirestore(doc);
-    });
+    _abrirModalGoogle();
     return;
   }
-
-  _executarSaveFirestore(doc);
-}
-
-async function _executarSaveFirestore(doc) {
   try {
     await doc.set({
-      aulaEstado:     JSON.stringify(estadoAulas),
-      aulaOrdem:      JSON.stringify(ordemConteudos),
-      aulaEventuais:  JSON.stringify(linhasEventuais),
-      RT_CONTEUDOS:   JSON.stringify(RT_CONTEUDOS),
-      _atualizado:    new Date().toISOString(),
+      aulaEstado:    JSON.stringify(estadoAulas),
+      aulaOrdem:     JSON.stringify(ordemConteudos),
+      aulaEventuais: JSON.stringify(linhasEventuais),
+      RT_CONTEUDOS:  JSON.stringify(RT_CONTEUDOS),
+      _atualizado:   new Date().toISOString(),
     });
     _mostrarIndicadorSync("✓ Salvo");
   } catch (e) {
     console.error("Erro ao salvar no Firestore:", e);
-    _mostrarIndicadorSync("⚠ Sem permissão — faça login");
+    _mostrarIndicadorSync("⚠ Sem permissão");
   }
 }
 
