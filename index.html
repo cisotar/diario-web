@@ -53,7 +53,9 @@
   </header>
 
   <!-- barra de navegação mobile (dropdown do topo) -->
-  <nav class="mob-nav" id="mob-nav" aria-hidden="true">
+  <!-- "inert" substitui aria-hidden: bloqueia foco E oculta de leitores de tela,
+       evitando o erro "Blocked aria-hidden on a focused element" -->
+  <nav class="mob-nav" id="mob-nav" inert>
     <button class="mob-nav-acao mob-nav-cal" onclick="abrirCalendario(); fecharMobileNav()" id="mob-btn-cal">
       📅 Calendário
     </button>

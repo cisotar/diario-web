@@ -48,8 +48,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderizarSidebar();
   _atualizarTagline();
   iniciarTooltips();
-  // Sempre abre no calendário semanal — PC e mobile
-  abrirCalendario();
+  if (window.innerWidth <= 860) {
+    renderizarHomeMobile();  // mobile: lista de turmas
+  } else {
+    abrirCalendario();       // desktop: calendário na semana
+  }
 });
 
 function _mostrarCarregando(sim) {
@@ -692,11 +695,18 @@ function _renderizarMobileNav() {
 }
 
 // ── Abrir / fechar nav mobile ─────────────────────────────────
+// Usa o atributo "inert" em vez de aria-hidden para evitar o erro:
+// "Blocked aria-hidden on an element because its descendant retained focus"
+// O atributo inert bloqueia foco E oculta de leitores de tela simultaneamente.
 function toggleMobileNav() {
   const nav     = document.getElementById("mob-nav");
   const overlay = document.getElementById("mob-nav-overlay");
   const aberto  = nav.classList.toggle("aberta");
-  nav.setAttribute("aria-hidden", !aberto);
+  if (aberto) {
+    nav.removeAttribute("inert");
+  } else {
+    nav.setAttribute("inert", "");
+  }
   overlay.classList.toggle("visivel", aberto);
   document.getElementById("btn-hamburger")?.classList.toggle("aberto", aberto);
 }
@@ -705,7 +715,7 @@ function fecharMobileNav() {
   const nav     = document.getElementById("mob-nav");
   const overlay = document.getElementById("mob-nav-overlay");
   nav?.classList.remove("aberta");
-  nav?.setAttribute("aria-hidden", "true");
+  nav?.setAttribute("inert", "");          // ← era aria-hidden="true"
   overlay?.classList.remove("visivel");
   document.getElementById("btn-hamburger")?.classList.remove("aberto");
 }
