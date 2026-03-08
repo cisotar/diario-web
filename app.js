@@ -1,46 +1,20 @@
 // ============================================================
 //  APP.JS — Controle de Aulas v4
-//  Novas features:
-//  · Drag multi-seleção de células de conteúdo
-//  · Colunas: Chamada (checkbox) e Conteúdo Entregue (checkbox)
-//  · Renomeada coluna para "Conteúdos/Atividades"
-//  · Tooltips explicativos nas colunas (mouseover)
-//  · Inserção de linhas eventuais (data avulsa)
-//  · Painel de Gestão (séries/turmas, horários, bimestres, conteúdos)
 // ============================================================
 
-// ── Estado global ──────────────────────────────────────────
 let turmaAtiva    = null;
 let bimestreAtivo = null;
-
-// estadoAulas["turmaId_bim_slotId"] = {
-//   feita, dataFeita,
-//   chamada,           // bool — chamada realizada?
-//   conteudoEntregue,  // bool — material entregue?
-//   conteudoEditado,   // string | null
-//   eventual           // bool — linha eventual (não gerada por horário)
-// }
 let estadoAulas = {};
-
-// ordemConteudos["turmaId_bim"] = [idxConteudo, ...]  (por slot)
 let ordemConteudos = {};
-
-// linhasEventuais["turmaId_bim"] = [ { id, data, hora, descricao } ]
 let linhasEventuais = {};
-
-// ── Drag multi-seleção ─────────────────────────────────────
-let dragSrcSlots  = [];   // array de slotIds selecionados
+let dragSrcSlots  = [];
 let dragDestSlot  = null;
-let selConteudos  = new Set(); // slotIds selecionados para drag
-
-// ── Runtime mutável (editável pelo painel) ─────────────────
-// Inicia como cópia dos dados do aulas.js; mudanças ficam no localStorage
+let selConteudos  = new Set();
 let RT_BIMESTRES  = null;
 let RT_TURMAS     = null;
 let RT_CONTEUDOS  = null;
-let RT_PERIODOS   = null;   // tabela de períodos de aula
+let RT_PERIODOS   = null;
 
-// ── Init ───────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", async () => {
   _mostrarCarregando(true);
   await carregarTudo();
@@ -49,9 +23,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   _atualizarTagline();
   iniciarTooltips();
   if (window.innerWidth <= 860) {
-    renderizarHomeMobile();  // mobile: lista de turmas
+    renderizarHomeMobile();
   } else {
-    abrirCalendario();       // desktop: calendário na semana
+    abrirCalendario();
   }
 });
 
@@ -78,19 +52,13 @@ function _mostrarCarregando(sim) {
   }
 }
 
-// ── Persistência + Autenticação Google ─────────────────────
-
-// Emails autorizados a editar
 const _EMAILS_PERMITIDOS = [
   "protarciso@gmail.com",
   "contato.tarciso@gmail.com",
   "tarciso@prof.educacao.sp.gov.br",
 ];
 
-// Estado de autenticação
 let _autenticado = false;
-
-// Referência ao documento Firestore (preenchida após init)
 let _dbDoc = null;
 
 function _initFirebase() {
@@ -105,7 +73,6 @@ function _initFirebase() {
   }
 }
 
-// Verifica sessão ao iniciar — sem bloquear a página
 async function _verificarSessao() {
   return new Promise(resolve => {
     try {
@@ -120,14 +87,11 @@ async function _verificarSessao() {
   });
 }
 
-// Login com Google (popup)
 async function _loginGoogle() {
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
     const result   = await firebase.auth().signInWithPopup(provider);
     const email    = result.user.email;
-
-    // Verifica se o email está na lista de permitidos
     if (!_EMAILS_PERMITIDOS.includes(email)) {
       await firebase.auth().signOut();
       const btn = document.getElementById("google-btn");
@@ -143,7 +107,6 @@ async function _loginGoogle() {
       }
       return;
     }
-
     _autenticado = true;
     _atualizarBotaoAuth();
     document.getElementById("google-modal")?.remove();
@@ -170,7 +133,6 @@ async function _logout() {
   _mostrarIndicadorSync("🔒 Sessão encerrada");
 }
 
-// ── Botão Login no header ──────────────────────────────────
 function _atualizarBotaoAuth() {
   let btn = document.getElementById("auth-btn");
   if (!btn) {
@@ -191,15 +153,12 @@ function _atualizarBotaoAuth() {
   }
 }
 
-// ── Guard de autenticação ──────────────────────────────────
 function _exigirAuth(fn) {
   if (_autenticado) { fn(); } else { _abrirModalGoogle(); }
 }
 
-// ── Modal Google ───────────────────────────────────────────
 function _abrirModalGoogle() {
   if (document.getElementById("google-modal")) return;
-
   const overlay = document.createElement("div");
   overlay.id = "google-modal";
   overlay.style.cssText = [
@@ -207,7 +166,6 @@ function _abrirModalGoogle() {
     "background:rgba(0,0,0,0.75)","display:flex",
     "align-items:center","justify-content:center"
   ].join(";");
-
   overlay.innerHTML = `
     <div id="google-modal-box" style="
       background:#1e293b; border-radius:16px; padding:40px 36px;
@@ -215,7 +173,6 @@ function _abrirModalGoogle() {
       box-shadow:0 20px 60px rgba(0,0,0,0.6); min-width:280px; max-width:320px;
       position:relative;
     ">
-      <!-- Botão fechar -->
       <button onclick="document.getElementById('google-modal').remove()" style="
         position:absolute; top:12px; right:14px;
         background:transparent; border:none; color:#475569;
@@ -223,7 +180,6 @@ function _abrirModalGoogle() {
         transition:color .15s;
       " onmouseenter="this.style.color='#94a3b8'" onmouseleave="this.style.color='#475569'"
       title="Fechar">✕</button>
-
       <div style="font-size:36px">📋</div>
       <div style="color:#e2e8f0; font-size:16px; font-weight:600; text-align:center; line-height:1.4;">
         Diário de Classe
@@ -231,7 +187,6 @@ function _abrirModalGoogle() {
       <div style="color:#64748b; font-size:13px; text-align:center; line-height:1.6;">
         Faça login para acessar<br>e editar o diário
       </div>
-
       <button id="google-btn" onclick="_loginGoogle()" style="
         display:flex; align-items:center; gap:12px;
         background:#fff; color:#1e293b; border:none; border-radius:8px;
@@ -253,16 +208,12 @@ function _abrirModalGoogle() {
       </button>
     </div>
   `;
-
-  // Fecha ao clicar fora da caixa
   overlay.addEventListener("click", e => {
     if (e.target === overlay) overlay.remove();
   });
-
   document.body.appendChild(overlay);
 }
 
-// ── Salvar com verificação de autenticação ─────────────────
 let _saveTimer = null;
 function salvarTudo() {
   localStorage.setItem("aulaEstado",    JSON.stringify(estadoAulas));
@@ -276,10 +227,7 @@ function salvarTudo() {
 async function _salvarFirestore() {
   const doc = _initFirebase();
   if (!doc) return;
-  if (!_autenticado) {
-    _abrirModalGoogle();
-    return;
-  }
+  if (!_autenticado) { _abrirModalGoogle(); return; }
   try {
     await doc.set({
       aulaEstado:    JSON.stringify(estadoAulas),
@@ -295,7 +243,6 @@ async function _salvarFirestore() {
   }
 }
 
-// Indicador visual de sincronização no canto da tela
 let _syncEl = null;
 function _mostrarIndicadorSync(texto) {
   if (!_syncEl) {
@@ -326,37 +273,29 @@ const PERIODOS_PADRAO = [
   { aula:"a8", label:"8ª aula", inicio:"20:40", fim:"21:30" },
 ];
 
-// carregarTudo: tenta Firebase primeiro, cai para localStorage se offline
 async function carregarTudo() {
-  // ── Estrutura: SEMPRE do aulas.js ────────────────────────────────
   RT_BIMESTRES = JSON.parse(JSON.stringify(BIMESTRES));
   RT_TURMAS    = JSON.parse(JSON.stringify(TURMAS));
   RT_CONTEUDOS = JSON.parse(JSON.stringify(CONTEUDOS));
   RT_PERIODOS  = JSON.parse(JSON.stringify(
     typeof PERIODOS !== "undefined" ? PERIODOS : PERIODOS_PADRAO
   ));
-
-  // ── Tenta carregar do Firestore ───────────────────────────────────
   const doc = _initFirebase();
-  let dadosFirestore = null;
   if (doc) {
     try {
       const snap = await doc.get();
       if (snap.exists) {
-        dadosFirestore = snap.data();
-        // Atualiza cache local com dados do servidor
-        if (dadosFirestore.aulaEstado)    localStorage.setItem("aulaEstado",    dadosFirestore.aulaEstado);
-        if (dadosFirestore.aulaOrdem)     localStorage.setItem("aulaOrdem",     dadosFirestore.aulaOrdem);
-        if (dadosFirestore.aulaEventuais) localStorage.setItem("aulaEventuais", dadosFirestore.aulaEventuais);
-        if (dadosFirestore.RT_CONTEUDOS)  localStorage.setItem("RT_CONTEUDOS",  dadosFirestore.RT_CONTEUDOS);
+        const d = snap.data();
+        if (d.aulaEstado)    localStorage.setItem("aulaEstado",    d.aulaEstado);
+        if (d.aulaOrdem)     localStorage.setItem("aulaOrdem",     d.aulaOrdem);
+        if (d.aulaEventuais) localStorage.setItem("aulaEventuais", d.aulaEventuais);
+        if (d.RT_CONTEUDOS)  localStorage.setItem("RT_CONTEUDOS",  d.RT_CONTEUDOS);
         localStorage.setItem("_aulasSeed", "1");
       }
     } catch (e) {
       console.warn("Firestore inacessível, usando cache local:", e);
     }
   }
-
-  // ── Progresso: do localStorage (já atualizado se veio do Firestore) ─
   try { estadoAulas     = JSON.parse(localStorage.getItem("aulaEstado"))    || {}; } catch { estadoAulas = {}; }
   try { ordemConteudos  = JSON.parse(localStorage.getItem("aulaOrdem"))     || {}; } catch { ordemConteudos = {}; }
   try { linhasEventuais = JSON.parse(localStorage.getItem("aulaEventuais")) || {}; } catch { linhasEventuais = {}; }
@@ -364,74 +303,49 @@ async function carregarTudo() {
     const rc = JSON.parse(localStorage.getItem("RT_CONTEUDOS"));
     if (rc && typeof rc === "object") RT_CONTEUDOS = rc;
   } catch {}
-
-  // ── Semente: aplica ESTADO/ORDEM do aulas.js UMA VEZ ────────────
   if (!localStorage.getItem("_aulasSeed")) {
-    if (typeof ESTADO !== "undefined" && Object.keys(ESTADO).length > 0) {
+    if (typeof ESTADO !== "undefined" && Object.keys(ESTADO).length > 0)
       estadoAulas = Object.assign({}, ESTADO, estadoAulas);
-    }
-    if (typeof ORDEM !== "undefined" && Object.keys(ORDEM).length > 0) {
+    if (typeof ORDEM !== "undefined" && Object.keys(ORDEM).length > 0)
       ordemConteudos = Object.assign({}, ORDEM, ordemConteudos);
-    }
     localStorage.setItem("_aulasSeed", "1");
     localStorage.setItem("aulaEstado", JSON.stringify(estadoAulas));
     localStorage.setItem("aulaOrdem",  JSON.stringify(ordemConteudos));
   }
-
-  // ── Verifica sessão Firebase e ativa listener ────────────────────
   await _verificarSessao();
   _ativarListenerFirestore();
 }
 
-// Listener em tempo real: quando outro dispositivo salva, atualiza a tela
 let _listenerAtivo = false;
 function _ativarListenerFirestore() {
   if (_listenerAtivo) return;
   const doc = _initFirebase();
   if (!doc) return;
   _listenerAtivo = true;
-
   let _primeiroSnap = true;
-
   doc.onSnapshot(snap => {
-    // Ignora o primeiro disparo (estado inicial — não é atualização remota)
     if (_primeiroSnap) { _primeiroSnap = false; return; }
     if (!snap.exists) return;
     const d = snap.data();
-    // Ignora se foi a própria aba que salvou (dentro de 2s do último save)
     const atualizado = d._atualizado ? new Date(d._atualizado) : null;
-    const agora = new Date();
-    if (atualizado && (agora - atualizado) < 2000) return;
-
-    // Aplica dados do outro dispositivo
+    if (atualizado && (new Date() - atualizado) < 2000) return;
     try { estadoAulas     = JSON.parse(d.aulaEstado)    || estadoAulas;    } catch {}
     try { ordemConteudos  = JSON.parse(d.aulaOrdem)     || ordemConteudos; } catch {}
     try { linhasEventuais = JSON.parse(d.aulaEventuais) || linhasEventuais;} catch {}
-    try {
-      const rc = JSON.parse(d.RT_CONTEUDOS);
-      if (rc) RT_CONTEUDOS = rc;
-    } catch {}
-
-    // Atualiza cache local
+    try { const rc = JSON.parse(d.RT_CONTEUDOS); if (rc) RT_CONTEUDOS = rc; } catch {}
     if (d.aulaEstado)    localStorage.setItem("aulaEstado",    d.aulaEstado);
     if (d.aulaOrdem)     localStorage.setItem("aulaOrdem",     d.aulaOrdem);
     if (d.aulaEventuais) localStorage.setItem("aulaEventuais", d.aulaEventuais);
     if (d.RT_CONTEUDOS)  localStorage.setItem("RT_CONTEUDOS",  d.RT_CONTEUDOS);
-
-    // Re-renderiza a view atual se visível
     if (turmaAtiva) renderizarConteudo();
     _mostrarIndicadorSync("↓ Sincronizado");
-  }, err => {
-    console.warn("onSnapshot erro:", err);
-  });
+  }, err => console.warn("onSnapshot erro:", err));
 }
 
-// ── Chaves ─────────────────────────────────────────────────
 function chaveSlot(turmaId, bim, slotId) { return `${turmaId}_b${bim}_s${slotId}`; }
 function chaveOrdem(turmaId, bim)         { return `${turmaId}_b${bim}`; }
 function chaveEventuais(turmaId, bim)     { return `${turmaId}_b${bim}`; }
 
-// ── Ordem de conteúdos ─────────────────────────────────────
 function getOrdem(turmaId, bim, total) {
   const k = chaveOrdem(turmaId, bim);
   if (ordemConteudos[k]?.length === total) return [...ordemConteudos[k]];
@@ -443,7 +357,6 @@ function salvarOrdem(ordem) {
   salvarTudo();
 }
 
-// ── Linhas eventuais ───────────────────────────────────────
 function getEventuais(turmaId, bim) {
   return linhasEventuais[chaveEventuais(turmaId, bim)] || [];
 }
@@ -453,21 +366,17 @@ function salvarEventuais(lista) {
   salvarTudo();
 }
 
-// ── Resolução de período ───────────────────────────────────
-// Dado uma chave de aula (ex: "a6"), retorna o objeto período completo
 function resolverPeriodo(aulaKey) {
   const p = RT_PERIODOS.find(p => p.aula === aulaKey);
   if (p && p.inicio) return p;
   return { aula: aulaKey, label: aulaKey, inicio: "00:00", fim: "00:00" };
 }
 
-// Texto completo para exibição: "6ª aula · 19:50–20:40"
 function fmtPeriodo(aulaKey) {
   const p = resolverPeriodo(aulaKey);
   return p.fim ? `${p.label} · ${p.inicio}–${p.fim}` : p.inicio;
 }
 
-// ── Geração de datas ───────────────────────────────────────
 function gerarSlots(horarios, bimObj) {
   const inicio = new Date(bimObj.inicio + "T00:00:00");
   const fim    = new Date(bimObj.fim    + "T00:00:00");
@@ -493,26 +402,19 @@ function gerarSlots(horarios, bimObj) {
   return slots;
 }
 
-// Combina slots regulares + eventuais, retorna lista com campo slotId único
 function getSlotsCompletos(turmaId, bim) {
   const t      = RT_TURMAS.find(x => x.id === turmaId);
   const bimObj = RT_BIMESTRES.find(b => b.bimestre === bim);
   if (!t || !bimObj) return [];
-
-  const regulares = gerarSlots(t.horarios, bimObj)
-    .map((s, i) => ({ ...s, slotId: `r${i}` }));
-
-  const eventuais = getEventuais(turmaId, bim)
-    .map(e => ({
-      data: e.data, aula: null, inicio: e.hora, fim: "", label: e.hora,
-      eventual: true, descricao: e.descricao, slotId: `e${e.id}`
-    }));
-
+  const regulares = gerarSlots(t.horarios, bimObj).map((s, i) => ({ ...s, slotId: `r${i}` }));
+  const eventuais = getEventuais(turmaId, bim).map(e => ({
+    data: e.data, aula: null, inicio: e.hora, fim: "", label: e.hora,
+    eventual: true, descricao: e.descricao, slotId: `e${e.id}`
+  }));
   return [...regulares, ...eventuais]
     .sort((a,b) => (a.data||"").localeCompare(b.data||"") || (a.inicio||"").localeCompare(b.inicio||""));
 }
 
-// ── Formato de data ────────────────────────────────────────
 const NOMES_MES = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
 const DIAS_SEM  = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 
@@ -522,8 +424,6 @@ function fmtData(iso) {
   return `${d}/${NOMES_MES[+m-1]}/${a}`;
 }
 
-// Formata a célula de data em duas linhas:
-// "Seg · 02/fev/2026"  /  "5ª aula · 10:40–11:30"
 function fmtSlotData(slot) {
   if (!slot.data) return "—";
   const dt     = new Date(slot.data + "T00:00:00");
@@ -537,7 +437,6 @@ function fmtSlotData(slot) {
 
 function hoje() { return new Date().toISOString().split("T")[0]; }
 
-// ── Tooltips ───────────────────────────────────────────────
 const TOOLTIPS_COLUNAS = {
   "th-numero":    "Número sequencial da aula no bimestre.",
   "th-data":      "Data e horário previstos para a aula, conforme calendário.",
@@ -576,7 +475,6 @@ function esconderTooltip() {
   tooltipEl = null;
 }
 
-// ── Tagline dinâmica no header ─────────────────────────────
 function _atualizarTagline() {
   const el = document.getElementById("header-tagline");
   if (!el || !RT_TURMAS) return;
@@ -585,12 +483,9 @@ function _atualizarTagline() {
   el.textContent = `Escola Estadual Professora Mathilde Teixeira de Moraes · Professor Tarciso · ${ano} · ${disciplinas}`;
 }
 
-// ── Sidebar ────────────────────────────────────────────────
 function renderizarSidebar() {
   const container = document.getElementById("sidebar-turmas");
   container.innerHTML = "";
-
-  // Agrupa: serie → turma → [turmas]
   const porSerie = {};
   for (const t of RT_TURMAS) {
     if (!porSerie[t.serie]) porSerie[t.serie] = {};
@@ -598,18 +493,14 @@ function renderizarSidebar() {
     if (!porSerie[t.serie][chTurma]) porSerie[t.serie][chTurma] = [];
     porSerie[t.serie][chTurma].push(t);
   }
-
   for (const serie of Object.keys(porSerie).sort()) {
     const grpSerie = document.createElement("div");
     grpSerie.className = "sidebar-grupo";
     grpSerie.innerHTML = `<div class="sidebar-grupo-titulo">${serie}ª Série</div>`;
-
     const turmasObj = porSerie[serie];
     for (const chTurma of Object.keys(turmasObj).sort()) {
       const disciplinas = turmasObj[chTurma];
-
       if (disciplinas.length === 1) {
-        // Só uma disciplina: botão simples
         const t = disciplinas[0];
         const label = t.subtitulo ? `${t.serie}ª ${t.turma} ${t.subtitulo}` : `${t.serie}ª ${t.turma}`;
         const btn = document.createElement("button");
@@ -619,15 +510,12 @@ function renderizarSidebar() {
         btn.onclick = () => selecionarTurma(t.id);
         grpSerie.appendChild(btn);
       } else {
-        // Várias disciplinas na mesma turma: agrupa com sub-itens
         const label = disciplinas[0].subtitulo
           ? `${disciplinas[0].serie}ª ${disciplinas[0].turma} ${disciplinas[0].subtitulo}`
           : `${disciplinas[0].serie}ª ${disciplinas[0].turma}`;
-
         const wrap = document.createElement("div");
         wrap.className = "sidebar-turma-grupo";
         wrap.innerHTML = `<div class="sidebar-turma-label">${label}</div>`;
-
         for (const t of disciplinas) {
           const btn = document.createElement("button");
           btn.className = "sidebar-btn sidebar-btn-sub";
@@ -641,32 +529,23 @@ function renderizarSidebar() {
     }
     container.appendChild(grpSerie);
   }
-
-  // Botão Gestão
   const btnGestao = document.getElementById("btn-gestao");
   if (btnGestao) btnGestao.onclick = abrirPainelGestao;
-
   _renderizarMobileNav();
 }
 
-// ── Menu mobile: monta grupos recolhíveis por série ──────────
 function _renderizarMobileNav() {
   const wrap = document.getElementById("mob-nav-turmas");
   if (!wrap) return;
   wrap.innerHTML = "";
-
-  // Agrupa por série
   const porSerie = {};
   for (const t of RT_TURMAS) {
     if (!porSerie[t.serie]) porSerie[t.serie] = [];
     porSerie[t.serie].push(t);
   }
-
   for (const serie of Object.keys(porSerie).sort()) {
     const grp = document.createElement("div");
     grp.className = "mob-grp";
-
-    // Cabeçalho do grupo (clica para expandir)
     const hdr = document.createElement("button");
     hdr.className = "mob-grp-header";
     hdr.innerHTML = `<span>${serie}ª Série</span><span class="mob-grp-arrow">▾</span>`;
@@ -674,10 +553,8 @@ function _renderizarMobileNav() {
       const aberto = grp.classList.toggle("aberto");
       hdr.querySelector(".mob-grp-arrow").textContent = aberto ? "▴" : "▾";
     };
-
     const lista = document.createElement("div");
     lista.className = "mob-grp-lista";
-
     for (const t of porSerie[serie]) {
       const btn = document.createElement("button");
       btn.className = "mob-turma-btn";
@@ -687,26 +564,19 @@ function _renderizarMobileNav() {
       btn.onclick = () => { fecharMobileNav(); selecionarTurma(t.id); };
       lista.appendChild(btn);
     }
-
     grp.appendChild(hdr);
     grp.appendChild(lista);
     wrap.appendChild(grp);
   }
 }
 
-// ── Abrir / fechar nav mobile ─────────────────────────────────
-// Usa o atributo "inert" em vez de aria-hidden para evitar o erro:
-// "Blocked aria-hidden on an element because its descendant retained focus"
-// O atributo inert bloqueia foco E oculta de leitores de tela simultaneamente.
+// Usa "inert" em vez de "aria-hidden" para evitar:
+// "Blocked aria-hidden on a focused element"
 function toggleMobileNav() {
   const nav     = document.getElementById("mob-nav");
   const overlay = document.getElementById("mob-nav-overlay");
   const aberto  = nav.classList.toggle("aberta");
-  if (aberto) {
-    nav.removeAttribute("inert");
-  } else {
-    nav.setAttribute("inert", "");
-  }
+  if (aberto) { nav.removeAttribute("inert"); } else { nav.setAttribute("inert", ""); }
   overlay.classList.toggle("visivel", aberto);
   document.getElementById("btn-hamburger")?.classList.toggle("aberto", aberto);
 }
@@ -715,7 +585,7 @@ function fecharMobileNav() {
   const nav     = document.getElementById("mob-nav");
   const overlay = document.getElementById("mob-nav-overlay");
   nav?.classList.remove("aberta");
-  nav?.setAttribute("inert", "");          // ← era aria-hidden="true"
+  nav?.setAttribute("inert", "");
   overlay?.classList.remove("visivel");
   document.getElementById("btn-hamburger")?.classList.remove("aberto");
 }
@@ -731,7 +601,6 @@ function selecionarTurma(id) {
   renderizarConteudo();
 }
 
-// ── Boas-vindas ────────────────────────────────────────────
 function renderizarBemVindo() {
   document.getElementById("conteudo-principal").innerHTML = `
     <div class="bem-vindo">
@@ -741,7 +610,6 @@ function renderizarBemVindo() {
     </div>`;
 }
 
-// ── View principal ─────────────────────────────────────────
 function renderizarConteudo() {
   const t = turmaAtiva;
   const main = document.getElementById("conteudo-principal");
@@ -749,17 +617,13 @@ function renderizarConteudo() {
   const slots  = getSlotsCompletos(t.id, bimestreAtivo);
   const total  = slots.length;
   const labelTurma = t.subtitulo ? `${t.serie}ª Série ${t.turma} — ${t.subtitulo}` : `${t.serie}ª Série ${t.turma}`;
-
-  // Estatísticas: conta só slots regulares com "feita"
   let feitas = 0, totalReg = 0;
   for (const s of slots) {
     if (!s.eventual) { totalReg++; if (estadoAulas[chaveSlot(t.id,bimestreAtivo,s.slotId)]?.feita) feitas++; }
   }
   const pct = totalReg > 0 ? Math.round(feitas/totalReg*100) : 0;
-
   const tabsBim = RT_BIMESTRES.map(b => `
     <button class="tab-bim ${b.bimestre===bimestreAtivo?"ativo":""}" onclick="mudarBimestre(${b.bimestre})">${b.label}</button>`).join("");
-
   main.innerHTML = `
     <div class="header-turma">
       <div class="header-turma-info">
@@ -781,9 +645,7 @@ function renderizarConteudo() {
         </div>
       </div>
     </div>
-
     <div class="tabs-bimestre">${tabsBim}</div>
-
     <div class="bimestre-info">
       <span>📅 ${bimObj.label}: ${fmtData(bimObj.inicio)} → ${fmtData(bimObj.fim)}</span>
       <div class="bimestre-info-right">
@@ -791,7 +653,6 @@ function renderizarConteudo() {
         <span class="pct-badge">${pct}% concluído</span>
       </div>
     </div>
-
     <div class="tabela-wrapper">
       ${total === 0
         ? `<div class="sem-aulas">Nenhuma aula prevista neste bimestre.</div>`
@@ -809,7 +670,6 @@ function renderizarConteudo() {
           </table>`
       }
     </div>
-
     <div class="rodape-tabela">
       <div class="rodape-grupo">
         <button class="btn-eventual" onclick="abrirModalEventual()">+ Aula eventual</button>
@@ -821,8 +681,6 @@ function renderizarConteudo() {
         <button class="btn-limpar"       onclick="confirmarLimpar()">🗑 Limpar</button>
       </div>
     </div>
-
-    <!-- Modal: aula eventual -->
     <div id="modal-eventual" class="modal-overlay" style="display:none">
       <div class="modal-box">
         <h3 class="modal-titulo">Inserir Aula Eventual</h3>
@@ -837,39 +695,28 @@ function renderizarConteudo() {
         </div>
       </div>
     </div>`;
-
   if (total > 0) renderizarLinhas(slots);
 }
 
-// ── Renderiza tbody ────────────────────────────────────────
 function renderizarLinhas(slots) {
   const t      = turmaAtiva;
   const tbody  = document.getElementById("tbody-aulas");
   if (!tbody) return;
   tbody.innerHTML = "";
-
-  const chaveC = `${t.serie}_${t.disciplina}`;
-  const conts  = RT_CONTEUDOS[chaveC] || [];
-
-  // Monta ordem só para slots regulares
+  // Chave específica por bimestre; fallback para chave sem bimestre (migração)
+  const chaveC = `${t.serie}_${t.disciplina}_b${bimestreAtivo}`;
+  const conts  = RT_CONTEUDOS[chaveC] || RT_CONTEUDOS[`${t.serie}_${t.disciplina}`] || [];
   const slotsReg = slots.filter(s => !s.eventual);
   const ordem    = getOrdem(t.id, bimestreAtivo, slotsReg.length);
-
-  // Índice para slots regulares
   let regIdx = 0;
   let lineNum = 0;
-
   for (const slot of slots) {
     lineNum++;
     const slotId = slot.slotId;
     const ch     = chaveSlot(t.id, bimestreAtivo, slotId);
     const est    = estadoAulas[ch] || {};
     const feita  = !!est.feita;
-
-    let conteudoBase = "";
-    let conteudoExibido = "";
-    let editado = false;
-
+    let conteudoBase = "", conteudoExibido = "", editado = false;
     if (!slot.eventual) {
       const contIdx   = ordem[regIdx];
       conteudoBase    = (contIdx != null && conts[contIdx] != null) ? conts[contIdx] : "";
@@ -881,20 +728,20 @@ function renderizarLinhas(slots) {
       conteudoExibido = est.conteudoEditado ?? conteudoBase;
       editado         = est.conteudoEditado != null && est.conteudoEditado !== conteudoBase;
     }
-
     const selecionado = selConteudos.has(slotId);
     const passada     = slot.data < hoje();
     const rowBase     = slot.eventual ? "row-eventual" : (feita ? "row-feita" : (passada ? "row-pendente" : "row-futura"));
     const rowClass    = `${rowBase}${selecionado ? " row-sel-cont" : ""}`;
-
     const tr = document.createElement("tr");
     tr.className    = rowClass;
     tr.dataset.slot = slotId;
 
-    // Checkboxes
+    // FIX: passa "this" para toggleCampo para permitir reversão imediata do
+    // checkbox caso o visitante não esteja autenticado.
     const mkChk = (campo, val, title) => `
       <label class="checkbox-wrapper" title="${title}">
-        <input type="checkbox" ${val?"checked":""} onchange="toggleCampo('${slotId}','${campo}',this.checked)">
+        <input type="checkbox" ${val?"checked":""}
+          onchange="toggleCampo('${slotId}','${campo}',this.checked,this)">
         <span class="checkmark ${campo==='feita'?'':'checkmark-alt'}"></span>
       </label>`;
 
@@ -924,29 +771,21 @@ function renderizarLinhas(slots) {
       <td class="td-registro" id="reg-${slotId}">${feita?fmtData(est.dataFeita):"—"}</td>
       <td class="td-check">${mkChk("chamada", !!est.chamada,   "Chamada realizada?")}</td>
       <td class="td-check">${mkChk("conteudoEntregue", !!est.conteudoEntregue, "Material entregue?")}</td>`;
-
-    // Edição inline
     const spanTxt = tr.querySelector(".conteudo-texto");
     spanTxt.addEventListener("click", () => iniciarEdicao(spanTxt, slotId, conteudoBase));
-
-    // Drag handles
     const handle = tr.querySelector(".drag-handle-cont");
     handle.addEventListener("click",      e => onHandleClick(e, slotId));
     handle.addEventListener("dragstart",  e => onDragStart(e, slotId));
     handle.addEventListener("dragend",    onDragEnd);
-
-    // Drop zone
     const tdC = tr.querySelector(".td-conteudo");
     tdC.addEventListener("dragover",  e => { e.preventDefault(); e.dataTransfer.dropEffect="move"; });
     tdC.addEventListener("dragenter", e => onDragEnter(e, slotId));
     tdC.addEventListener("dragleave", e => onDragLeave(e));
     tdC.addEventListener("drop",      e => onDrop(e, slotId));
-
     tbody.appendChild(tr);
   }
 }
 
-// ── Edição inline ──────────────────────────────────────────
 function iniciarEdicao(spanEl, slotId, base) {
   if (!_autenticado) { _abrirModalGoogle(); return; }
   if (spanEl.querySelector("textarea")) return;
@@ -957,14 +796,11 @@ function iniciarEdicao(spanEl, slotId, base) {
   spanEl.innerHTML = ""; spanEl.appendChild(ta);
   spanEl.classList.add("editando");
   ta.focus(); ta.select();
-
   function salvar() {
     const novo = ta.value.trim();
     const ch   = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
     if (!estadoAulas[ch]) estadoAulas[ch] = {};
-
-    // Persiste direto em RT_CONTEUDOS — fonte de verdade única
-    const chaveC = `${turmaAtiva.serie}_${turmaAtiva.disciplina}`;
+    const chaveC = `${turmaAtiva.serie}_${turmaAtiva.disciplina}_b${bimestreAtivo}`;
     const slotsReg = getSlotsCompletos(turmaAtiva.id, bimestreAtivo).filter(s => !s.eventual);
     const ordem    = getOrdem(turmaAtiva.id, bimestreAtivo, slotsReg.length);
     const regIdx   = slotsReg.findIndex(s => s.slotId === slotId);
@@ -972,25 +808,20 @@ function iniciarEdicao(spanEl, slotId, base) {
       if (!RT_CONTEUDOS[chaveC]) RT_CONTEUDOS[chaveC] = [];
       RT_CONTEUDOS[chaveC][ordem[regIdx]] = novo || base;
     }
-    // Limpa override local (agora está na fonte)
     delete estadoAulas[ch].conteudoEditado;
     salvarTudo();
-
     const editado = false;
     const exibido = novo || base || "";
     spanEl.classList.remove("editando");
     spanEl.classList.toggle("editado", editado);
     spanEl.innerHTML = exibido || '<span class="sem-conteudo">—</span>';
     spanEl.title = editado ? "Editado · clique para editar" : "Clique para editar";
-
     const td = spanEl.closest("td");
     let badge = td.querySelector(".badge-editado");
     if (editado && !badge) { badge = document.createElement("span"); badge.className="badge-editado"; badge.textContent="✎"; td.querySelector(".conteudo-cell").appendChild(badge); }
     else if (!editado && badge) badge.remove();
-
     spanEl.addEventListener("click", () => iniciarEdicao(spanEl, slotId, base));
   }
-
   ta.addEventListener("blur", salvar);
   ta.addEventListener("keydown", e => {
     if (e.key==="Enter" && !e.shiftKey) { e.preventDefault(); ta.blur(); }
@@ -998,7 +829,6 @@ function iniciarEdicao(spanEl, slotId, base) {
   });
 }
 
-// ── Anotação livre por aula ────────────────────────────────
 function salvarAnotacao(slotId, valor) {
   if (!_autenticado) { _abrirModalGoogle(); return; }
   const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
@@ -1008,9 +838,15 @@ function salvarAnotacao(slotId, valor) {
   salvarTudo();
 }
 
-// ── Toggle campos ──────────────────────────────────────────
-function toggleCampo(slotId, campo, val) {
-  if (!_autenticado) { _abrirModalGoogle(); return; }
+// FIX: recebe o elemento <input> (inputEl) para reverter o checkbox
+// imediatamente no DOM se o visitante não estiver autenticado.
+// Antes, o check ficava visualmente marcado até o modal fechar.
+function toggleCampo(slotId, campo, val, inputEl) {
+  if (!_autenticado) {
+    inputEl.checked = !val;  // reverte o checkbox antes de abrir o modal
+    _abrirModalGoogle();
+    return;
+  }
   const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
   if (!estadoAulas[ch]) estadoAulas[ch] = {};
   estadoAulas[ch][campo] = val;
@@ -1041,45 +877,31 @@ function atualizarStats() {
   if (document.querySelector(".pct-badge")) document.querySelector(".pct-badge").textContent = `${pct}% concluído`;
 }
 
-// ── Drag-and-drop MULTI (só coluna conteúdo) ──────────────
-// Ctrl+clique no ⠿ = toggle individual
-// Alt+clique  no ⠿ = seleciona intervalo desde o último selecionado
-// Drag sem seleção = move só aquela célula
-// Drag com seleção = move o bloco todo
-
-let ultimoSelecionado = null; // slotId do último Ctrl+clique (para Alt-range)
+let ultimoSelecionado = null;
 
 function onHandleClick(e, slotId) {
   if (e.altKey) {
-    // Alt+clique: seleciona intervalo entre ultimoSelecionado e este
     e.preventDefault();
-    const todos = [...document.querySelectorAll(".drag-handle-cont[data-slot]")]
-      .map(h => h.dataset.slot);
+    const todos = [...document.querySelectorAll(".drag-handle-cont[data-slot]")].map(h => h.dataset.slot);
     if (ultimoSelecionado && todos.includes(ultimoSelecionado)) {
       const iA = todos.indexOf(ultimoSelecionado);
       const iB = todos.indexOf(slotId);
       const [de, ate] = iA < iB ? [iA, iB] : [iB, iA];
       for (let i = de; i <= ate; i++) selConteudos.add(todos[i]);
-    } else {
-      selConteudos.add(slotId);
-    }
+    } else { selConteudos.add(slotId); }
     ultimoSelecionado = slotId;
     atualizarVisualizacaoSel();
   } else if (e.ctrlKey || e.metaKey) {
-    // Ctrl+clique: toggle individual
     e.preventDefault();
-    if (selConteudos.has(slotId)) selConteudos.delete(slotId);
-    else selConteudos.add(slotId);
+    if (selConteudos.has(slotId)) selConteudos.delete(slotId); else selConteudos.add(slotId);
     ultimoSelecionado = slotId;
     atualizarVisualizacaoSel();
   }
-  // Clique simples sem modificador: não faz nada (drag inicia pelo dragstart)
 }
 
 function atualizarVisualizacaoSel() {
   document.querySelectorAll(".drag-handle-cont").forEach(h => {
-    const sid = h.dataset.slot;
-    h.classList.toggle("handle-sel", selConteudos.has(sid));
+    h.classList.toggle("handle-sel", selConteudos.has(h.dataset.slot));
   });
   document.querySelectorAll("tr[data-slot]").forEach(tr => {
     tr.classList.toggle("row-sel-cont", selConteudos.has(tr.dataset.slot));
@@ -1087,16 +909,10 @@ function atualizarVisualizacaoSel() {
 }
 
 function onDragStart(e, slotId) {
-  // Se o slot arrastado não está na seleção, cria seleção só com ele
-  if (!selConteudos.has(slotId)) {
-    selConteudos.clear();
-    selConteudos.add(slotId);
-    atualizarVisualizacaoSel();
-  }
+  if (!selConteudos.has(slotId)) { selConteudos.clear(); selConteudos.add(slotId); atualizarVisualizacaoSel(); }
   dragSrcSlots = [...selConteudos];
   e.dataTransfer.effectAllowed = "move";
   e.dataTransfer.setData("text/plain", slotId);
-  // Marca origem visualmente
   dragSrcSlots.forEach(sid => {
     document.querySelector(`td.td-conteudo[data-slot="${sid}"]`)?.classList.add("content-dragging");
   });
@@ -1106,8 +922,7 @@ function onDragEnd() {
   document.querySelectorAll(".content-dragging,.content-drag-over").forEach(el =>
     el.classList.remove("content-dragging","content-drag-over")
   );
-  dragSrcSlots  = [];
-  dragDestSlot  = null;
+  dragSrcSlots = []; dragDestSlot = null;
 }
 
 function onDragEnter(e, slotId) {
@@ -1125,50 +940,33 @@ function onDrop(e, destSlotId) {
   e.preventDefault(); e.stopPropagation();
   document.querySelector(`td.td-conteudo[data-slot="${destSlotId}"]`)?.classList.remove("content-drag-over");
   if (!dragSrcSlots.length || dragSrcSlots.includes(destSlotId)) return;
-
-  const t      = turmaAtiva;
-  const slots  = getSlotsCompletos(t.id, bimestreAtivo);
+  const t = turmaAtiva;
+  const slots = getSlotsCompletos(t.id, bimestreAtivo);
   const slotsReg = slots.filter(s => !s.eventual);
-  const ordem  = getOrdem(t.id, bimestreAtivo, slotsReg.length);
-
-  // Converte slotIds para índices no array slotsReg
+  const ordem = getOrdem(t.id, bimestreAtivo, slotsReg.length);
   function slotIdxReg(slotId) { return slotsReg.findIndex(s => s.slotId === slotId); }
-
-  const srcIdxs  = dragSrcSlots.map(slotIdxReg).filter(i => i >= 0);
-  const destIdx  = slotIdxReg(destSlotId);
-
+  const srcIdxs = dragSrcSlots.map(slotIdxReg).filter(i => i >= 0);
+  const destIdx = slotIdxReg(destSlotId);
   if (destIdx < 0 && !slots.find(s=>s.slotId===destSlotId)?.eventual) return;
-
-  // Se destino é eventual, não reorganiza ordem (sem índice regular), só troca edições
-  if (destIdx < 0) return; // drag para eventual não faz sentido na ordem
-
-  // Reorganiza: remove srcs e insere antes do dest
+  if (destIdx < 0) return;
   const novaOrdem = [...ordem];
   const srcContents = srcIdxs.map(i => ({
     contIdx: novaOrdem[i],
     editado: estadoAulas[chaveSlot(t.id, bimestreAtivo, slotsReg[i].slotId)]?.conteudoEditado
   }));
-
-  // Remove do array de destino
   const srcSet = new Set(srcIdxs);
   const restantes = novaOrdem.filter((_, i) => !srcSet.has(i));
   const destPosEmRestantes = restantes.indexOf(novaOrdem[destIdx]);
-
   const insPos = destPosEmRestantes >= 0 ? destPosEmRestantes : restantes.length;
   restantes.splice(insPos, 0, ...srcContents.map(s => s.contIdx));
-
-  // Rebuild conteudoEditado: zera os slots src, redistribui
   srcIdxs.forEach(i => {
     const ch = chaveSlot(t.id, bimestreAtivo, slotsReg[i].slotId);
     if (estadoAulas[ch]) delete estadoAulas[ch].conteudoEditado;
   });
-
-  // Encontra quais slots ficaram com os conteúdos movidos
   let srcPtr = 0;
   for (let i = 0; i < restantes.length; i++) {
     const slotId = slotsReg[i]?.slotId;
     if (!slotId) continue;
-    // Se o conteúdo em restantes[i] veio de srcContents, replica editado
     const origSrcIdx = srcContents.findIndex((s,j) => s.contIdx === restantes[i] && j === srcPtr);
     if (origSrcIdx >= 0 && srcContents[origSrcIdx].editado != null) {
       const ch = chaveSlot(t.id, bimestreAtivo, slotId);
@@ -1177,64 +975,44 @@ function onDrop(e, destSlotId) {
       srcPtr++;
     }
   }
-
-  // Consolida nova ordem diretamente em RT_CONTEUDOS — fonte de verdade única
-  const chaveC2 = `${t.serie}_${t.disciplina}`;
-  const contsList = RT_CONTEUDOS[chaveC2] || [];
-  const novaLista = restantes.map(ci => contsList[ci] ?? "");
-  RT_CONTEUDOS[chaveC2] = novaLista;
-
-  // Limpa ordemConteudos (não é mais necessário) e conteudoEditado dos slots src
+  const chaveC2 = `${t.serie}_${t.disciplina}_b${bimestreAtivo}`;
+  const contsList = RT_CONTEUDOS[chaveC2] || RT_CONTEUDOS[`${t.serie}_${t.disciplina}`] || [];
+  RT_CONTEUDOS[chaveC2] = restantes.map(ci => contsList[ci] ?? "");
   delete ordemConteudos[chaveOrdem(t.id, bimestreAtivo)];
-  slotsReg.forEach((s, i) => {
+  slotsReg.forEach((s) => {
     const ch = chaveSlot(t.id, bimestreAtivo, s.slotId);
     if (estadoAulas[ch]) delete estadoAulas[ch].conteudoEditado;
   });
-
   salvarTudo();
   selConteudos.clear();
   renderizarLinhas(getSlotsCompletos(t.id, bimestreAtivo));
 }
 
-// ── Mudar bimestre ─────────────────────────────────────────
-function mudarBimestre(num) {
-  bimestreAtivo = num;
-  selConteudos.clear();
-  renderizarConteudo();
-}
+function mudarBimestre(num) { bimestreAtivo = num; selConteudos.clear(); renderizarConteudo(); }
 
-// ── Resetar ordem ──────────────────────────────────────────
 function resetarOrdem() {
   if (!_autenticado) { _abrirModalGoogle(); return; }
   if (!confirm("Restaurar ordem original dos conteúdos?")) return;
   delete ordemConteudos[chaveOrdem(turmaAtiva.id, bimestreAtivo)];
-  salvarTudo();
-  renderizarConteudo();
+  salvarTudo(); renderizarConteudo();
 }
 
-// ── Aulas eventuais ────────────────────────────────────────
 function abrirModalEventual() {
   if (!_autenticado) { _abrirModalGoogle(); return; }
   document.getElementById("ev-data").value = hoje();
   document.getElementById("modal-eventual").style.display = "flex";
 }
 
-function fecharModalEventual() {
-  document.getElementById("modal-eventual").style.display = "none";
-}
+function fecharModalEventual() { document.getElementById("modal-eventual").style.display = "none"; }
 
 function confirmarEventual() {
   const data = document.getElementById("ev-data").value;
   const hora = document.getElementById("ev-hora").value || "07:00";
   const desc = document.getElementById("ev-desc").value.trim();
   if (!data) { alert("Informe a data."); return; }
-
   const lista = getEventuais(turmaAtiva.id, bimestreAtivo);
-  const id    = Date.now();
-  lista.push({ id, data, hora, descricao: desc });
-  salvarEventuais(lista);
-  fecharModalEventual();
-  renderizarConteudo();
+  lista.push({ id: Date.now(), data, hora, descricao: desc });
+  salvarEventuais(lista); fecharModalEventual(); renderizarConteudo();
 }
 
 function removerEventual(slotId) {
@@ -1242,13 +1020,10 @@ function removerEventual(slotId) {
   const eId = parseInt(slotId.replace("e",""), 10);
   const lista = getEventuais(turmaAtiva.id, bimestreAtivo).filter(e => e.id !== eId);
   salvarEventuais(lista);
-  const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
-  delete estadoAulas[ch];
-  salvarTudo();
-  renderizarConteudo();
+  delete estadoAulas[chaveSlot(turmaAtiva.id, bimestreAtivo, slotId)];
+  salvarTudo(); renderizarConteudo();
 }
 
-// ── Limpar ─────────────────────────────────────────────────
 function confirmarLimpar() {
   if (!_autenticado) { _abrirModalGoogle(); return; }
   const lbl = RT_BIMESTRES.find(b=>b.bimestre===bimestreAtivo)?.label;
@@ -1256,21 +1031,17 @@ function confirmarLimpar() {
   getSlotsCompletos(turmaAtiva.id, bimestreAtivo).forEach(s => {
     delete estadoAulas[chaveSlot(turmaAtiva.id, bimestreAtivo, s.slotId)];
   });
-  salvarTudo();
-  selConteudos.clear();
-  renderizarConteudo();
+  salvarTudo(); selConteudos.clear(); renderizarConteudo();
 }
 
-// ── Exportar CSV ───────────────────────────────────────────
 function exportarCSV() {
-  const t      = turmaAtiva;
-  const slots  = getSlotsCompletos(t.id, bimestreAtivo);
-  const chaveC = `${t.serie}_${t.disciplina}`;
-  const conts  = RT_CONTEUDOS[chaveC] || [];
+  const t = turmaAtiva;
+  const slots = getSlotsCompletos(t.id, bimestreAtivo);
+  const chaveC = `${t.serie}_${t.disciplina}_b${bimestreAtivo}`;
+  const conts = RT_CONTEUDOS[chaveC] || RT_CONTEUDOS[`${t.serie}_${t.disciplina}`] || [];
   const slotsReg = slots.filter(s=>!s.eventual);
-  const ordem  = getOrdem(t.id, bimestreAtivo, slotsReg.length);
+  const ordem = getOrdem(t.id, bimestreAtivo, slotsReg.length);
   let rIdx = 0;
-
   const linhas = [["#","Data","Horário","Conteúdos/Atividades","Chamada","Entregue","Dada?","Registro"]];
   slots.forEach((slot, i) => {
     const ch  = chaveSlot(t.id, bimestreAtivo, slot.slotId);
@@ -1278,53 +1049,29 @@ function exportarCSV() {
     let cont  = slot.eventual ? (slot.descricao||"") : (est.conteudoEditado ?? (conts[ordem[rIdx]]||""));
     if (!slot.eventual) rIdx++;
     const horarioFmt = slot.eventual ? slot.inicio : (slot.label ? `${slot.label} (${slot.inicio}–${slot.fim})` : slot.inicio);
-    linhas.push([
-      i+1, fmtData(slot.data), horarioFmt, cont,
-      est.chamada?"Sim":"Não",
-      est.conteudoEntregue?"Sim":"Não",
-      est.feita?"Sim":"Não",
-      est.feita?fmtData(est.dataFeita):"",
+    linhas.push([i+1, fmtData(slot.data), horarioFmt, cont,
+      est.chamada?"Sim":"Não", est.conteudoEntregue?"Sim":"Não",
+      est.feita?"Sim":"Não", est.feita?fmtData(est.dataFeita):"",
     ]);
   });
-
   const csv  = linhas.map(l=>l.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob = new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
   const lbl  = t.subtitulo?`${t.serie}${t.turma}_${t.subtitulo}`:`${t.serie}${t.turma}`;
   baixarArquivo(blob,`aulas_${lbl}_${t.sigla}_bim${bimestreAtivo}.csv`);
 }
 
-// ── Exportar aulas.js ──────────────────────────────────────
 function exportarJS() {
-  const contUpd = {};
-  for (const [k,lista] of Object.entries(RT_CONTEUDOS)) {
-    contUpd[k] = lista.map((txt,idx) => {
-      let final = txt;
-      for (const t of RT_TURMAS) {
-        if (`${t.serie}_${t.disciplina}` !== k) continue;
-        for (const bim of RT_BIMESTRES) {
-          const ord = ordemConteudos[chaveOrdem(t.id,bim.bimestre)];
-          if (!ord) continue;
-          const slots = getSlotsCompletos(t.id,bim.bimestre).filter(s=>!s.eventual);
-          for (let i=0;i<ord.length;i++) {
-            if (ord[i]===idx) { const est=estadoAulas[chaveSlot(t.id,bim.bimestre,slots[i]?.slotId)]; if(est?.conteudoEditado) final=est.conteudoEditado; }
-          }
-        }
-      }
-      return final;
-    });
-  }
-
+  // Exporta RT_CONTEUDOS com chaves por bimestre (novo formato)
   const out = [
     `// AULAS.JS — Exportado em ${new Date().toLocaleString("pt-BR")}`,
     `const BIMESTRES = ${JSON.stringify(RT_BIMESTRES,null,2)};`,
     `const TURMAS    = ${JSON.stringify(RT_TURMAS,null,2)};`,
-    `const CONTEUDOS = ${JSON.stringify(contUpd,null,2)};`,
+    `const CONTEUDOS = ${JSON.stringify(RT_CONTEUDOS,null,2)};`,
     `// Restore: localStorage.setItem("aulaOrdem", JSON.stringify(ORDEM));`,
     `//          localStorage.setItem("aulaEstado", JSON.stringify(ESTADO));`,
     `const ORDEM  = ${JSON.stringify(ordemConteudos,null,2)};`,
     `const ESTADO = ${JSON.stringify(estadoAulas,null,2)};`,
   ].join("\n\n");
-
   baixarArquivo(new Blob([out],{type:"application/javascript;charset=utf-8;"}),"aulas.js");
 }
 
@@ -1345,13 +1092,11 @@ function abrirPainelGestao() {
         <h1 class="gestao-titulo">⚙ Painel de Gestão</h1>
         <button class="btn-voltar" onclick="voltarPrincipal()">← Voltar</button>
       </div>
-
       <div class="gestao-tabs">
         <button class="gtab ativo" onclick="abrirGTab(this,'g-turmas')">Séries / Turmas</button>
         <button class="gtab" onclick="abrirGTab(this,'g-bimestres')">Bimestres</button>
         <button class="gtab" onclick="abrirGTab(this,'g-conteudos')">Conteúdos</button>
       </div>
-
       <div id="g-turmas" class="gestao-secao ativa">${htmlGestaoTurmas()}</div>
       <div id="g-bimestres" class="gestao-secao">${htmlGestaoBimestres()}</div>
       <div id="g-conteudos" class="gestao-secao">${htmlGestaoConteudos()}</div>
@@ -1363,7 +1108,6 @@ function abrirGTab(btn, secId) {
   document.querySelectorAll(".gestao-secao").forEach(s=>s.classList.remove("ativa"));
   btn.classList.add("ativo");
   document.getElementById(secId).classList.add("ativa");
-  // Re-renderiza a seção
   if (secId==="g-turmas")    document.getElementById(secId).innerHTML = htmlGestaoTurmas();
   if (secId==="g-bimestres") document.getElementById(secId).innerHTML = htmlGestaoBimestres();
   if (secId==="g-conteudos") document.getElementById(secId).innerHTML = htmlGestaoConteudos();
@@ -1374,7 +1118,6 @@ function voltarPrincipal() {
   if (turmaAtiva) renderizarConteudo(); else renderizarBemVindo();
 }
 
-// ── Gestão: Turmas ─────────────────────────────────────────
 function htmlGestaoTurmas() {
   const diasNomes = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
   const rows = RT_TURMAS.map((t,i) => `
@@ -1401,7 +1144,6 @@ function htmlGestaoTurmas() {
       </td>
       <td><button class="btn-icon-del" onclick="delTurma(${i})" title="Excluir turma">🗑</button></td>
     </tr>`).join("");
-
   return `
     <div class="gestao-bloco">
       <div class="gestao-bloco-header">
@@ -1420,35 +1162,23 @@ function htmlGestaoTurmas() {
     </div>`;
 }
 
-function editTurmaField(i, campo, val) {
-  RT_TURMAS[i][campo] = val;
-  salvarTudo();
-}
-
+function editTurmaField(i, campo, val) { RT_TURMAS[i][campo] = val; salvarTudo(); }
 function editHorario(ti, hi, campo, val) {
-  RT_TURMAS[ti].horarios[hi][campo] = campo==="diaSemana" ? +val : val;
-  salvarTudo();
+  RT_TURMAS[ti].horarios[hi][campo] = campo==="diaSemana" ? +val : val; salvarTudo();
 }
-
 function addHorario(ti) {
-  RT_TURMAS[ti].horarios.push({ diaSemana: 1, aula: "a1" });
-  salvarTudo();
+  RT_TURMAS[ti].horarios.push({ diaSemana: 1, aula: "a1" }); salvarTudo();
   document.getElementById("g-turmas").innerHTML = htmlGestaoTurmas();
 }
-
 function delHorario(ti, hi) {
-  RT_TURMAS[ti].horarios.splice(hi, 1);
-  salvarTudo();
+  RT_TURMAS[ti].horarios.splice(hi, 1); salvarTudo();
   document.getElementById("g-turmas").innerHTML = htmlGestaoTurmas();
 }
-
 function delTurma(i) {
   if (!confirm(`Excluir a turma ${RT_TURMAS[i].id}?`)) return;
-  RT_TURMAS.splice(i, 1);
-  salvarTudo();
+  RT_TURMAS.splice(i, 1); salvarTudo();
   document.getElementById("g-turmas").innerHTML = htmlGestaoTurmas();
 }
-
 function addTurma() {
   const serie = prompt("Série (1, 2 ou 3):", "1"); if (!serie) return;
   const turma = prompt("Turma (A–E):", "A");        if (!turma) return;
@@ -1457,12 +1187,10 @@ function addTurma() {
   const id    = `${serie}${turma}_${sigla.toUpperCase()}`;
   if (RT_TURMAS.find(t=>t.id===id)) { alert("Turma com este ID já existe."); return; }
   RT_TURMAS.push({ id, serie, turma, subtitulo:"", disciplina:disc, sigla:sigla.toUpperCase(), horarios:[] });
-  salvarTudo();
-  renderizarSidebar();
+  salvarTudo(); renderizarSidebar();
   document.getElementById("g-turmas").innerHTML = htmlGestaoTurmas();
 }
 
-// ── Gestão: Bimestres ──────────────────────────────────────
 function htmlGestaoBimestres() {
   const rows = RT_BIMESTRES.map((b,i) => `
     <tr>
@@ -1471,7 +1199,6 @@ function htmlGestaoBimestres() {
       <td><input class="gi" type="date" value="${b.fim}"    onchange="editBimField(${i},'fim',this.value)" /></td>
       <td><button class="btn-icon-del" onclick="delBim(${i})">🗑</button></td>
     </tr>`).join("");
-
   return `
     <div class="gestao-bloco">
       <div class="gestao-bloco-header">
@@ -1488,17 +1215,13 @@ function htmlGestaoBimestres() {
 }
 
 function editBimField(i, campo, val) {
-  RT_BIMESTRES[i][campo] = campo==="bimestre" ? +val : val;
-  salvarTudo();
+  RT_BIMESTRES[i][campo] = campo==="bimestre" ? +val : val; salvarTudo();
 }
-
 function delBim(i) {
   if (!confirm("Excluir este período?")) return;
-  RT_BIMESTRES.splice(i,1);
-  salvarTudo();
+  RT_BIMESTRES.splice(i,1); salvarTudo();
   document.getElementById("g-bimestres").innerHTML = htmlGestaoBimestres();
 }
-
 function addBim() {
   const num = RT_BIMESTRES.length + 1;
   RT_BIMESTRES.push({ bimestre: num, label: `${num}º Bimestre`, inicio: "", fim: "" });
@@ -1506,18 +1229,64 @@ function addBim() {
   document.getElementById("g-bimestres").innerHTML = htmlGestaoBimestres();
 }
 
-// ── Gestão: Conteúdos ──────────────────────────────────────
-let gContChave = null;
-let gContModo  = "lista"; // "lista" | "bloco"
+let gContChave = null;   // chave ativa no painel (formato "serie_Disciplina_bN")
+let gContModo  = "lista";
+let gContBim   = 1;      // bimestre selecionado no painel de conteúdos
+
+// Retorna as chaves base (sem bimestre) únicas presentes em RT_CONTEUDOS,
+// incluindo chaves definidas em RT_TURMAS que ainda não têm entrada.
+function _gContChavesBase() {
+  const set = new Set();
+  // Chaves já criadas (com ou sem bimestre)
+  for (const k of Object.keys(RT_CONTEUDOS)) {
+    const m = k.match(/^(.+)_b\d+$/);
+    set.add(m ? m[1] : k);
+  }
+  // Chaves derivadas das turmas (garante que toda disciplina apareça)
+  for (const t of RT_TURMAS) set.add(`${t.serie}_${t.disciplina}`);
+  return [...set].sort();
+}
+
+// Chave completa para o bimestre ativo
+function _gContChaveCompleta(base, bim) {
+  return `${base}_b${bim}`;
+}
+
+// Garante que a chave por bimestre existe, copiando da chave genérica se necessário
+function _gContEnsureChave(base, bim) {
+  const chaveBim = _gContChaveCompleta(base, bim);
+  if (!RT_CONTEUDOS[chaveBim]) {
+    // migra da chave sem bimestre se existir, senão array vazio
+    RT_CONTEUDOS[chaveBim] = RT_CONTEUDOS[base]
+      ? [...RT_CONTEUDOS[base]]
+      : [];
+  }
+  return chaveBim;
+}
 
 function htmlGestaoConteudos() {
-  const chaves = Object.keys(RT_CONTEUDOS);
-  const chave  = gContChave || chaves[0] || null;
-  if (chave && !RT_CONTEUDOS[chave]) gContChave = chaves[0];
-  const chaveAtiva = gContChave || chave;
+  const bases    = _gContChavesBase();
+  const baseAtiva = (() => {
+    if (gContChave) {
+      const m = gContChave.match(/^(.+)_b\d+$/);
+      const b = m ? m[1] : gContChave;
+      if (bases.includes(b)) return b;
+    }
+    return bases[0] || null;
+  })();
+  const bim        = gContBim;
+  const chaveAtiva = baseAtiva ? _gContEnsureChave(baseAtiva, bim) : null;
+  gContChave       = chaveAtiva;
 
-  const selectorBtns = chaves.map(k => `
-    <button class="gtab-cont ${k===chaveAtiva?"ativo":""}" onclick="selecionarChaveCont('${k}')">${k}</button>`).join("");
+  // Botões de disciplina
+  const discBtns = bases.map(b => `
+    <button class="gtab-cont ${b===baseAtiva?"ativo":""}" onclick="selecionarBaseGCont('${b}')">${b}</button>`
+  ).join("");
+
+  // Abas de bimestre
+  const bimBtns = (RT_BIMESTRES || []).map(b => `
+    <button class="gtab-cont gtab-bim ${b.bimestre===bim?"ativo":""}" onclick="selecionarBimGCont(${b.bimestre})">${b.label}</button>`
+  ).join("");
 
   const lista = chaveAtiva ? RT_CONTEUDOS[chaveAtiva] : [];
 
@@ -1561,30 +1330,51 @@ function htmlGestaoConteudos() {
   return `
     <div class="gestao-bloco">
       <div class="gestao-bloco-header">
-        <h3>Conteúdos por disciplina / série</h3>
+        <h3>Conteúdos por disciplina / série / bimestre</h3>
         <div style="display:flex;gap:6px;">
           <button class="btn-add btn-outline" onclick="gContModo='bloco'; document.getElementById('g-conteudos').innerHTML=htmlGestaoConteudos()">✎ Editar em bloco</button>
-          <button class="btn-add" onclick="addChaveCont()">+ Nova chave</button>
+          <button class="btn-add" onclick="addChaveCont()">+ Nova disciplina</button>
         </div>
       </div>
-      <div class="gtab-cont-bar">${selectorBtns}</div>
+      <div class="gtab-cont-bar" style="margin-bottom:4px">${discBtns}</div>
+      <div class="gtab-cont-bar" style="margin-bottom:12px;opacity:.85">${bimBtns}</div>
       ${chaveAtiva ? conteudoEditor : `<p style="padding:20px;color:#aaa">Nenhuma disciplina cadastrada.</p>`}
     </div>`;
 }
 
+function selecionarBaseGCont(base) {
+  gContChave = _gContChaveCompleta(base, gContBim);
+  gContModo  = "lista";
+  document.getElementById("g-conteudos").innerHTML = htmlGestaoConteudos();
+}
+
+function selecionarBimGCont(bim) {
+  gContBim   = bim;
+  gContModo  = "lista";
+  document.getElementById("g-conteudos").innerHTML = htmlGestaoConteudos();
+}
+
+// Mantida para compatibilidade com código legado
+function selecionarChaveCont(k) {
+  gContChave = k; gContModo = "lista";
+  document.getElementById("g-conteudos").innerHTML = htmlGestaoConteudos();
+}
+
 function salvarBloco(chave) {
-  const texto = document.getElementById("bloco-textarea").value;
+  const texto  = document.getElementById("bloco-textarea").value;
   const linhas = texto.split("\n").map(l => l.trim()).filter(l => l.length > 0);
   RT_CONTEUDOS[chave] = linhas;
   gContModo = "lista";
-  // Limpa ordemConteudos e conteudoEditado para turmas desta chave
-  for (const t of RT_TURMAS) {
-    if (`${t.serie}_${t.disciplina}` !== chave) continue;
-    for (const b of RT_BIMESTRES) {
-      delete ordemConteudos[chaveOrdem(t.id, b.bimestre)];
-      const slots = getSlotsCompletos(t.id, b.bimestre).filter(s => !s.eventual);
+  // Limpa ordem e conteúdos editados do bimestre correspondente
+  const m = chave.match(/^(.+)_b(\d+)$/);
+  if (m) {
+    const base = m[1], bimN = +m[2];
+    for (const t of RT_TURMAS) {
+      if (`${t.serie}_${t.disciplina}` !== base) continue;
+      delete ordemConteudos[chaveOrdem(t.id, bimN)];
+      const slots = getSlotsCompletos(t.id, bimN).filter(s => !s.eventual);
       slots.forEach(s => {
-        const ch = chaveSlot(t.id, b.bimestre, s.slotId);
+        const ch = chaveSlot(t.id, bimN, s.slotId);
         if (estadoAulas[ch]) delete estadoAulas[ch].conteudoEditado;
       });
     }
@@ -1593,23 +1383,18 @@ function salvarBloco(chave) {
   document.getElementById("g-conteudos").innerHTML = htmlGestaoConteudos();
 }
 
-function selecionarChaveCont(k) {
-  gContChave = k;
-  gContModo  = "lista";
-  document.getElementById("g-conteudos").innerHTML = htmlGestaoConteudos();
-}
-
 function editConteudo(chave, i, val) {
   RT_CONTEUDOS[chave][i] = val;
-  // Limpa conteudoEditado em estadoAulas para qualquer slot que usava índice i
-  for (const t of RT_TURMAS) {
-    if (`${t.serie}_${t.disciplina}` !== chave) continue;
-    for (const b of RT_BIMESTRES) {
-      const slots = getSlotsCompletos(t.id, b.bimestre).filter(s => !s.eventual);
-      const ordem = getOrdem(t.id, b.bimestre, slots.length);
+  const m = chave.match(/^(.+)_b(\d+)$/);
+  if (m) {
+    const base = m[1], bimN = +m[2];
+    for (const t of RT_TURMAS) {
+      if (`${t.serie}_${t.disciplina}` !== base) continue;
+      const slots = getSlotsCompletos(t.id, bimN).filter(s => !s.eventual);
+      const ordem = getOrdem(t.id, bimN, slots.length);
       slots.forEach((s, ri) => {
         if (ordem[ri] === i) {
-          const ch = chaveSlot(t.id, b.bimestre, s.slotId);
+          const ch = chaveSlot(t.id, bimN, s.slotId);
           if (estadoAulas[ch]) delete estadoAulas[ch].conteudoEditado;
         }
       });
@@ -1620,16 +1405,13 @@ function editConteudo(chave, i, val) {
 
 function delConteudo(chave, i) {
   if (!confirm("Remover esta aula da lista?")) return;
-  RT_CONTEUDOS[chave].splice(i,1);
-  salvarTudo();
+  RT_CONTEUDOS[chave].splice(i,1); salvarTudo();
   document.getElementById("g-conteudos").innerHTML = htmlGestaoConteudos();
 }
 
 function addConteudo(chave) {
-  RT_CONTEUDOS[chave].push("");
-  salvarTudo();
+  RT_CONTEUDOS[chave].push(""); salvarTudo();
   document.getElementById("g-conteudos").innerHTML = htmlGestaoConteudos();
-  // Foca no último input
   setTimeout(() => {
     const inputs = document.querySelectorAll("#tabela-conteudos .gi-full");
     inputs[inputs.length-1]?.focus();
@@ -1637,17 +1419,16 @@ function addConteudo(chave) {
 }
 
 function addChaveCont() {
-  const k = prompt("Chave no formato 'serie_Disciplina' (ex: 1_Historia):");
-  if (!k) return;
-  if (RT_CONTEUDOS[k]) { alert("Já existe."); return; }
-  RT_CONTEUDOS[k] = [];
-  gContChave = k;
-  gContModo  = "bloco";
-  salvarTudo();
+  const serie = prompt("Série (ex: 1, 2, 3):", "1"); if (!serie) return;
+  const disc  = prompt("Disciplina (ex: Geografia):", ""); if (!disc) return;
+  const base  = `${serie}_${disc}`;
+  const chaveBim = _gContChaveCompleta(base, gContBim);
+  if (RT_CONTEUDOS[chaveBim]) { alert("Já existe."); return; }
+  RT_CONTEUDOS[chaveBim] = [];
+  gContChave = chaveBim; gContModo = "bloco"; salvarTudo();
   document.getElementById("g-conteudos").innerHTML = htmlGestaoConteudos();
 }
 
-// Drag dentro da lista de conteúdos
 let contDragIdx = null;
 function contDragStart(e, i)  { contDragIdx = i; e.dataTransfer.effectAllowed="move"; e.dataTransfer.setData("text/plain",i); }
 function contDragEnter(e, i)  { e.target.closest("tr")?.classList.add("cont-drag-over"); }
@@ -1660,11 +1441,12 @@ function contDrop(e, destIdx) {
   const [item] = lista.splice(contDragIdx, 1);
   lista.splice(destIdx, 0, item);
   contDragIdx = null;
-  // Limpa ordemConteudos para todas as turmas desta chave (ordem agora está em RT_CONTEUDOS)
-  for (const t of RT_TURMAS) {
-    if (`${t.serie}_${t.disciplina}` !== chave) continue;
-    for (const b of RT_BIMESTRES) {
-      delete ordemConteudos[chaveOrdem(t.id, b.bimestre)];
+  const m = chave.match(/^(.+)_b(\d+)$/);
+  if (m) {
+    const base = m[1], bimN = +m[2];
+    for (const t of RT_TURMAS) {
+      if (`${t.serie}_${t.disciplina}` !== base) continue;
+      delete ordemConteudos[chaveOrdem(t.id, bimN)];
     }
   }
   salvarTudo();

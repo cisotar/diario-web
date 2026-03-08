@@ -1,12 +1,12 @@
 // ============================================================
 //  CALENDARIO.JS — Visão Calendário do Diário de Aulas v3
-//  Depende de app.js (localStorage version):
+//  Depende de app.js:
 //  RT_TURMAS, RT_BIMESTRES, RT_PERIODOS, RT_CONTEUDOS,
 //  estadoAulas, getSlotsCompletos, getOrdem,
 //  chaveSlot, fmtData, hoje, salvarTudo
 // ============================================================
 
-let calView    = "semana";   // ← padrão: semana
+let calView    = "semana";
 let calDataRef = null;
 
 const _CAL_MESES    = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
@@ -15,13 +15,10 @@ const _CAL_MESES_AB = ["Jan","Fev","Mar","Abr","Mai","Jun",
                        "Jul","Ago","Set","Out","Nov","Dez"];
 const _CAL_DIAS     = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 
-// ── ISO de um Date ────────────────────────────────────────────
 function calIso(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
-// ── Coleta todas as aulas de todas as turmas num dia ─────────
-// Retorna array de { turma, bim, slot, ch, est }
 function calAulasNoDia(isoDate) {
   const lista = [];
   for (const t of (RT_TURMAS || [])) {
@@ -40,21 +37,24 @@ function calAulasNoDia(isoDate) {
   return lista;
 }
 
-// ── Toggle de campo — NÃO depende de turmaAtiva/bimestreAtivo ─
-function calToggle(turmaId, bimestre, slotId, campo, novoVal) {
-  if (!_autenticado) { _abrirModalGoogle(); return; }
+// ── Toggle — NÃO depende de turmaAtiva/bimestreAtivo ──────────
+function calToggle(turmaId, bimestre, slotId, campo, novoVal, inputEl) {
+  if (!_autenticado) {
+    // Reverte o elemento clicado se for um checkbox
+    if (inputEl) inputEl.checked = !novoVal;
+    _abrirModalGoogle();
+    return;
+  }
   const ch = chaveSlot(turmaId, bimestre, slotId);
   if (!estadoAulas[ch]) estadoAulas[ch] = {};
   estadoAulas[ch][campo] = novoVal;
-  if (campo === "feita") {
-    estadoAulas[ch].dataFeita = novoVal ? hoje() : null;
-  }
+  if (campo === "feita") estadoAulas[ch].dataFeita = novoVal ? hoje() : null;
   salvarTudo();
-  // Re-renderiza só o corpo para não perder a posição
   _calRenderCorpo();
 }
 
 // ── Conteúdo textual de uma aula ──────────────────────────────
+// Tenta primeiro chave específica por bimestre, depois chave genérica
 function _calConteudo(turma, slot, bim) {
   const est = estadoAulas[chaveSlot(turma.id, bim, slot.slotId)] || {};
   if (est.conteudoEditado) return est.conteudoEditado;
@@ -70,10 +70,11 @@ function _calConteudo(turma, slot, bim) {
   } catch { return ""; }
 }
 
-// ── Abrir / fechar ────────────────────────────────────────────
+// ── Abre o calendário
+// No mobile usa visão "dia"; no desktop usa "semana"
 function abrirCalendario() {
   calDataRef = new Date();
-  calView    = "semana";
+  calView    = window.innerWidth <= 860 ? "dia" : "semana";
   document.querySelectorAll(".sidebar-btn").forEach(b => b.classList.remove("ativo"));
   document.getElementById("btn-calendario")?.classList.add("ativo");
   _calRender();
@@ -85,7 +86,6 @@ function fecharCalendario() {
   else            renderizarBemVindo();
 }
 
-// Navega para o diário de uma turma a partir do calendário
 function calIrTurma(turmaId) {
   document.getElementById("btn-calendario")?.classList.remove("ativo");
   selecionarTurma(turmaId);
@@ -150,9 +150,9 @@ function calProximo() {
   if (calView === "dia")    calDataRef.setDate(calDataRef.getDate() + 1);
   _calRenderCorpo();
 }
-function calHoje()          { calDataRef = new Date(); _calRenderCorpo(); }
-function calMudarView(v)    { calView = v; _calAtivarViewBtn(); _calRenderCorpo(); }
-function calIrDia(isoDate)  {
+function calHoje()       { calDataRef = new Date(); _calRenderCorpo(); }
+function calMudarView(v) { calView = v; _calAtivarViewBtn(); _calRenderCorpo(); }
+function calIrDia(isoDate) {
   const [y,m,d] = isoDate.split("-").map(Number);
   calDataRef = new Date(y, m-1, d);
   calView = "dia";
@@ -161,8 +161,7 @@ function calIrDia(isoDate)  {
 }
 
 // ════════════════════════════════════════════════════════════
-//  COMPONENTE: 3 botões AD / CH / RE clicáveis
-//  modo: "sm" (semana) | "lg" (dia)
+//  Botões AD / CH / RE
 // ════════════════════════════════════════════════════════════
 function _calChecks(item, modo) {
   const { turma, bim, slot, est } = item;
@@ -171,10 +170,9 @@ function _calChecks(item, modo) {
   const reg = !!est.conteudoEntregue;
   const tid = turma.id, b = bim, sid = slot.slotId;
 
-  // Gera um botão toggle. onclick chama calToggle com o valor invertido.
   const btn = (campo, val, label, tipo) => {
-    const cls = val ? `cal-chk-on cal-chk-on-${tipo}` : "cal-chk-off";
-    const ico = val ? "✓" : "○";
+    const cls   = val ? `cal-chk-on cal-chk-on-${tipo}` : "cal-chk-off";
+    const ico   = val ? "✓" : "○";
     const title = `${label}: ${val ? "feito — clique para desmarcar" : "não feito — clique para marcar"}`;
     return `<button class="cal-chk cal-chk-${modo} ${cls}"
       title="${title}"
@@ -190,7 +188,7 @@ function _calChecks(item, modo) {
 }
 
 // ════════════════════════════════════════════════════════════
-//  CHIP COMPACTO — visão mês (só indicadores, sem botões)
+//  CHIP COMPACTO — visão mês
 // ════════════════════════════════════════════════════════════
 function _calChipMes(item) {
   const { turma, slot, est } = item;
@@ -210,7 +208,7 @@ function _calChipMes(item) {
 }
 
 // ════════════════════════════════════════════════════════════
-//  CARD SEMANA — sigla + turma + 3 botões clicáveis
+//  CARD SEMANA
 // ════════════════════════════════════════════════════════════
 function _calCardSem(item) {
   const { turma, slot, est } = item;
@@ -228,7 +226,7 @@ function _calCardSem(item) {
 }
 
 // ════════════════════════════════════════════════════════════
-//  CARD DIA — expandido com conteúdo + 3 botões grandes
+//  CARD DIA
 // ════════════════════════════════════════════════════════════
 function _calCardDia(item) {
   const { turma, slot, est, bim } = item;
@@ -266,7 +264,7 @@ function _calRenderMes() {
 
   const dia1 = new Date(ano, mes, 1);
   const cur  = new Date(dia1);
-  cur.setDate(1 - dia1.getDay());   // recua até o domingo anterior
+  cur.setDate(1 - dia1.getDay());
   const hojeIso = hoje();
 
   let html = `<div class="cal-mes">
@@ -299,7 +297,7 @@ function _calRenderMes() {
   document.getElementById("cal-corpo").innerHTML = html;
 }
 
-// ── Número da semana ISO ──────────────────────────────────
+// ── Número da semana ISO ──────────────────────────────────────
 function _isoWeek(d) {
   const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   const dia  = tmp.getUTCDay() || 7;
@@ -312,7 +310,6 @@ function _isoWeek(d) {
 //  VISÃO SEMANA
 // ════════════════════════════════════════════════════════════
 function _calRenderSemana() {
-  // Início da semana = domingo
   const inicio = new Date(calDataRef);
   inicio.setDate(calDataRef.getDate() - calDataRef.getDay());
 
@@ -323,13 +320,12 @@ function _calRenderSemana() {
   });
 
   const m0 = dias[0].getMonth(), m6 = dias[6].getMonth(), y = dias[0].getFullYear();
-  const semNum = _isoWeek(dias[1]); // usa segunda-feira da semana
+  const semNum = _isoWeek(dias[1]);
   document.getElementById("cal-label").textContent =
     m0===m6 ? `${_CAL_MESES[m0]} ${y}` : `${_CAL_MESES_AB[m0]} – ${_CAL_MESES_AB[m6]} ${y}`;
 
   const hojeIso = hoje();
 
-  // Quais períodos têm aulas nessa semana?
   const periodosSet = new Set();
   dias.forEach(d => calAulasNoDia(calIso(d)).forEach(a => periodosSet.add(a.slot.aula || "eventual")));
 
@@ -339,7 +335,6 @@ function _calRenderSemana() {
   if (periodosSet.has("eventual"))
     periodosOrdenados.push({ aula:"eventual", label:"Eventual", inicio:"", fim:"" });
 
-  // Cabeçalho dos dias
   let html = `<div class="cal-semana">
     <div class="cal-sem-cabec">
       <div class="cal-sem-col-periodo cal-sem-corner">
@@ -368,7 +363,6 @@ function _calRenderSemana() {
       for (const d of dias) {
         const iso   = calIso(d), eh = iso === hojeIso;
         const aulas = calAulasNoDia(iso).filter(a => (a.slot.aula||"eventual") === per.aula);
-        // Adiciona atributos data-dow e data-dn para o CSS mobile usar no ::before
         const dow = _CAL_DIAS[d.getDay()];
         const dn  = d.getDate();
         html += `<div class="cal-sem-cel${eh?" cal-col-hoje":""}" data-dow="${dow}" data-dn="${dn}">
@@ -406,7 +400,6 @@ function _calRenderDia() {
     return;
   }
 
-  // Agrupa por período
   const grupos = new Map();
   for (const item of aulas) {
     const key = item.slot.aula || "eventual";
@@ -448,4 +441,9 @@ function _calRenderDia() {
   }
   html += `</div>`;
   document.getElementById("cal-corpo").innerHTML = html;
+}
+
+// ── Home mobile: exibe visão dia (tela inicial no celular) ─────
+function renderizarHomeMobile() {
+  abrirCalendario();
 }
