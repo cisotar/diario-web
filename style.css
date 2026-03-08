@@ -958,10 +958,23 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   .mob-nav        { display: block; }
   .mob-nav-overlay { display: block; }
 
+  /* ── Header mobile: hambúrguer | logo centralizado | login ── */
+  .app-header {
+    padding: 0 10px;
+    justify-content: space-between;
+    gap: 0;
+  }
+  .header-logo {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.1rem;
+    pointer-events: none; /* não bloqueia cliques nos botões laterais */
+  }
+  .header-tagline { display: none; }
+
   .app-layout   { overflow-x: hidden; }
   .main-content { margin-left: 0; padding: 14px 12px 60px; width: 100%; overflow-x: hidden; }
-  .app-header   { padding: 0 12px; gap: 10px; }
-  .header-tagline { display: none; }
 
   .header-turma { margin-bottom: 16px; }
   .header-turma-nome { font-size: 1.2rem; }

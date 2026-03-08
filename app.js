@@ -48,11 +48,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderizarSidebar();
   _atualizarTagline();
   iniciarTooltips();
-  if (window.innerWidth <= 860) {
-    renderizarHomeMobile();  // mobile: lista de turmas
-  } else {
-    abrirCalendario();       // desktop: calendário na semana
-  }
+  // Sempre abre no calendário semanal — PC e mobile
+  abrirCalendario();
 });
 
 function _mostrarCarregando(sim) {

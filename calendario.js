@@ -368,7 +368,10 @@ function _calRenderSemana() {
       for (const d of dias) {
         const iso   = calIso(d), eh = iso === hojeIso;
         const aulas = calAulasNoDia(iso).filter(a => (a.slot.aula||"eventual") === per.aula);
-        html += `<div class="cal-sem-cel${eh?" cal-col-hoje":""}">
+        // Adiciona atributos data-dow e data-dn para o CSS mobile usar no ::before
+        const dow = _CAL_DIAS[d.getDay()];
+        const dn  = d.getDate();
+        html += `<div class="cal-sem-cel${eh?" cal-col-hoje":""}" data-dow="${dow}" data-dn="${dn}">
           ${aulas.map(a => _calCardSem(a)).join("")}
         </div>`;
       }

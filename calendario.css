@@ -160,7 +160,7 @@
 .cal-mais-link:hover { text-decoration: underline; }
 
 /* ════════════════════════════════════════════════════════════
-   VISÃO SEMANA
+   VISÃO SEMANA — desktop
    ════════════════════════════════════════════════════════════ */
 .cal-semana {
   background: var(--bg-paper); border: 1px solid var(--border);
@@ -313,20 +313,6 @@
 .btn-cal-sidebar:hover { background: #2d3748; color: #e2e8f0; }
 .btn-cal-sidebar.ativo { background: var(--teal); color: #fff; font-weight: 600; }
 
-/* ── Responsivo ─────────────────────────────────────────── */
-@media (max-width: 900px) {
-  .cal-dia-cel  { min-height: 76px; }
-  .cal-chip-mes { font-size: .6rem; }
-  .cal-sem-cabec,
-  .cal-sem-linha { grid-template-columns: 64px repeat(7,1fr); }
-  .cal-sem-col-periodo { padding: 6px 4px; }
-  .cal-sem-per-nome { font-size: .6rem; }
-  .cal-sem-week-num { display: none; }
-  .cal-dia-cards { grid-template-columns: 1fr; }
-  .cal-nav-label { min-width: 140px; font-size: .92rem; }
-  .cal-view-btn  { padding: 6px 12px; font-size: .78rem; }
-}
-
 /* ── Links de turma (clicável para abrir o diário) ────────── */
 .cal-turma-link {
   background: none; border: none; padding: 0; margin: 0;
@@ -348,3 +334,148 @@
 }
 .cal-turma-link:hover .ccs-link-ico,
 .cal-turma-link:hover .ccd-link-ico { opacity: 1; }
+
+/* ════════════════════════════════════════════════════════════
+   RESPONSIVO — até 900px (tablet) — ajustes menores
+   ════════════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .cal-dia-cel  { min-height: 76px; }
+  .cal-chip-mes { font-size: .6rem; }
+  .cal-nav-label { min-width: 140px; font-size: .92rem; }
+  .cal-view-btn  { padding: 6px 12px; font-size: .78rem; }
+  .cal-dia-cards { grid-template-columns: 1fr; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   RESPONSIVO — até 860px (mobile) — visão semana vertical
+   ════════════════════════════════════════════════════════════ */
+@media (max-width: 860px) {
+
+  /* ── Toolbar compacta ───────────────────────────────────── */
+  .cal-toolbar {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+  .cal-nav { gap: 4px; }
+  .cal-nav-label { min-width: 0; font-size: .85rem; flex: 1; text-align: center; }
+  .cal-btn-nav   { width: 28px; height: 28px; font-size: 1rem; }
+  .cal-btn-hoje  { padding: 5px 10px; font-size: .72rem; }
+  .cal-view-btn  { padding: 6px 10px; font-size: .72rem; }
+
+  /* ── Header do calendário ───────────────────────────────── */
+  .cal-titulo { font-size: 1.25rem; }
+  .cal-legenda { gap: 8px; }
+  .cal-leg-item { font-size: .68rem; }
+
+  /* ══════════════════════════════════════════════════════════
+     VISÃO SEMANA — mobile: empilha os dias verticalmente
+     Um card por dia com todas as aulas do dia dentro
+     ══════════════════════════════════════════════════════════ */
+
+  /* Oculta a grade normal e usa layout de lista */
+  .cal-semana {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  /* Cabeçalho da semana (linha com os dias) — oculto no mobile;
+     substituído pelos títulos dentro de cada bloco de dia */
+  .cal-sem-cabec { display: none; }
+
+  /* Linha de período: vira uma lista vertical de cards por dia */
+  .cal-sem-corpo {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* Cada linha de período vira um bloco de dia completo */
+  .cal-sem-linha {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    min-height: 0;
+  }
+
+  /* Coluna de período: vira cabeçalho horizontal do bloco */
+  .cal-sem-col-periodo {
+    text-align: left;
+    padding: 8px 14px;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    background: #1e2530;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+  }
+  .cal-sem-per-nome { color: #e2e8f0; font-size: .7rem; }
+  .cal-sem-per-hora { color: #8896a5; font-size: .68rem; }
+
+  /* Células dos dias: dispostas horizontalmente em wrap */
+  .cal-sem-cel {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+    padding: 6px 10px;
+    background: var(--bg-paper);
+  }
+  .cal-sem-cel:last-child { border-bottom: none; }
+  .cal-sem-cel.cal-col-hoje { background: #fffdf7; }
+
+  /* Cada célula ganha um micro-cabeçalho com o dia */
+  .cal-sem-cel::before {
+    content: attr(data-dow) " " attr(data-dn);
+    display: block;
+    font-size: .62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+  /* Destaque para hoje */
+  .cal-sem-cel.cal-col-hoje::before {
+    color: var(--amber);
+  }
+
+  /* Células vazias (sem aulas): mais compactas */
+  .cal-sem-cel:empty,
+  .cal-sem-cel:not(:has(.cal-card-sem)) {
+    display: none; /* oculta células completamente vazias no mobile */
+  }
+
+  /* Cards mais compactos no mobile */
+  .cal-card-sem {
+    padding: 5px 7px;
+    margin-bottom: 3px;
+  }
+  .ccs-topo { gap: 4px; }
+  .ccs-sigla { font-size: .58rem; padding: 1px 4px; }
+  .ccs-nome  { font-size: .7rem; }
+
+  /* Botões AD/CH/RE menores */
+  .cal-chk-sm { padding: 2px 5px; font-size: .6rem; }
+
+  /* Mensagem de semana vazia */
+  .cal-sem-vazio { padding: 30px 16px; font-size: .85rem; }
+
+  /* ── Visão mês no mobile ────────────────────────────────── */
+  .cal-dia-cel  { min-height: 56px; padding: 4px 3px; }
+  .cal-chip-mes { font-size: .55rem; padding: 1px 3px; }
+  .cpm-hora     { display: none; }
+
+  /* ── Visão dia no mobile ────────────────────────────────── */
+  .cal-dia-resumo { padding: 8px 12px; gap: 6px; font-size: .75rem; }
+  .cdr-num        { font-size: 1rem; }
+  .cal-dia-bloco-header { padding: 10px 14px; }
+  .cdb-nome       { font-size: .9rem; }
+  .cal-card-dia   { padding: 12px 14px; }
+  .ccd-nome-turma { font-size: .82rem; }
+  .ccd-disciplina { font-size: .7rem; }
+  .cal-chk-lg     { padding: 5px 9px; font-size: .72rem; }
+}
