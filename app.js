@@ -22,6 +22,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderizarSidebar();
   _atualizarTagline();
   iniciarTooltips();
+  _initClickFora();
   if (window.innerWidth <= 860) {
     renderizarHomeMobile();
   } else {
@@ -629,7 +630,7 @@ function renderizarConteudo() {
       <div class="header-turma-info">
         <div class="header-turma-badge">${t.sigla}</div>
         <div>
-          <h1 class="header-turma-nome">${labelTurma}</h1>
+          <h1 class="header-turma-nome">Cronograma — ${labelTurma}</h1>
           <p class="header-turma-disc">${t.disciplina}</p>
         </div>
       </div>
@@ -649,7 +650,7 @@ function renderizarConteudo() {
     <div class="bimestre-info">
       <span>📅 ${bimObj.label}: ${fmtData(bimObj.inicio)} → ${fmtData(bimObj.fim)}</span>
       <div class="bimestre-info-right">
-        <span class="hint-drag">✎ Clique no conteúdo para editar &nbsp;·&nbsp; ⠿ Arraste (Ctrl+⠿ seleciona múltiplos)</span>
+        <span class="hint-drag">✎ Clique no conteúdo para editar &nbsp;·&nbsp; ⠿ Clique para selecionar · Shift+⠿ seleciona intervalo · Arraste para reorganizar</span>
         <span class="pct-badge">${pct}% concluído</span>
       </div>
     </div>
@@ -659,8 +660,8 @@ function renderizarConteudo() {
         : `<table class="tabela-aulas" id="tabela-aulas">
             <thead><tr>
               <th class="th-numero"   data-tip="${TOOLTIPS_COLUNAS['th-numero']}">#</th>
-              <th class="th-data"     data-tip="${TOOLTIPS_COLUNAS['th-data']}">Data prevista</th>
               <th class="th-conteudo" data-tip="${TOOLTIPS_COLUNAS['th-conteudo']}">Conteúdos / Atividades</th>
+              <th class="th-data"     data-tip="${TOOLTIPS_COLUNAS['th-data']}">Data prevista</th>
               <th class="th-dada"     data-tip="${TOOLTIPS_COLUNAS['th-dada']}">AD</th>
               <th class="th-registro" data-tip="${TOOLTIPS_COLUNAS['th-registro']}">Data</th>
               <th class="th-chamada"  data-tip="${TOOLTIPS_COLUNAS['th-chamada']}">Chamada</th>
@@ -747,12 +748,11 @@ function renderizarLinhas(slots) {
 
     tr.innerHTML = `
       <td class="td-numero">${slot.eventual ? `<span class="tag-eventual" title="Aula eventual">E</span>` : lineNum}</td>
-      <td class="td-data">${fmtSlotData(slot)}</td>
       <td class="td-conteudo" data-slot="${slotId}">
         <div class="conteudo-cell">
           <span class="drag-handle-cont ${selecionado?"handle-sel":""}"
             data-slot="${slotId}" draggable="true"
-            title="Arrastar · Ctrl+clique para selecionar múltiplos">⠿</span>
+            title="Clique para selecionar · Shift+clique para intervalo · Arrastar para reorganizar">⠿</span>
           <span class="conteudo-texto ${editado?"editado":""}"
             data-slot="${slotId}"
             title="${editado?"Editado · clique para editar":"Clique para editar"}"
@@ -767,6 +767,7 @@ function renderizarLinhas(slots) {
           title="Anotação livre sobre esta aula"
         />
       </td>
+      <td class="td-data">${fmtSlotData(slot)}</td>
       <td class="td-check">${mkChk("feita",   feita, "Aula dada?")}</td>
       <td class="td-registro" id="reg-${slotId}">${feita?fmtData(est.dataFeita):"—"}</td>
       <td class="td-check">${mkChk("chamada", !!est.chamada,   "Chamada realizada?")}</td>
@@ -880,23 +881,43 @@ function atualizarStats() {
 let ultimoSelecionado = null;
 
 function onHandleClick(e, slotId) {
-  if (e.altKey) {
-    e.preventDefault();
-    const todos = [...document.querySelectorAll(".drag-handle-cont[data-slot]")].map(h => h.dataset.slot);
-    if (ultimoSelecionado && todos.includes(ultimoSelecionado)) {
-      const iA = todos.indexOf(ultimoSelecionado);
-      const iB = todos.indexOf(slotId);
-      const [de, ate] = iA < iB ? [iA, iB] : [iB, iA];
-      for (let i = de; i <= ate; i++) selConteudos.add(todos[i]);
-    } else { selConteudos.add(slotId); }
-    ultimoSelecionado = slotId;
-    atualizarVisualizacaoSel();
-  } else if (e.ctrlKey || e.metaKey) {
-    e.preventDefault();
-    if (selConteudos.has(slotId)) selConteudos.delete(slotId); else selConteudos.add(slotId);
-    ultimoSelecionado = slotId;
-    atualizarVisualizacaoSel();
+  e.preventDefault();
+  e.stopPropagation();
+  const todos = [...document.querySelectorAll(".drag-handle-cont[data-slot]")].map(h => h.dataset.slot);
+  if (e.shiftKey && ultimoSelecionado && todos.includes(ultimoSelecionado)) {
+    // Shift+clique: seleciona intervalo
+    const iA = todos.indexOf(ultimoSelecionado);
+    const iB = todos.indexOf(slotId);
+    const [de, ate] = iA < iB ? [iA, iB] : [iB, iA];
+    for (let i = de; i <= ate; i++) selConteudos.add(todos[i]);
+  } else {
+    // Clique simples: toggle da linha
+    if (selConteudos.has(slotId)) {
+      selConteudos.delete(slotId);
+    } else {
+      selConteudos.add(slotId);
+    }
   }
+  ultimoSelecionado = slotId;
+  atualizarVisualizacaoSel();
+}
+
+// Clique fora da tabela ou em linha (não no handle) limpa a seleção
+function _initClickFora() {
+  document.addEventListener("click", e => {
+    if (!selConteudos.size) return;
+    const dentroTabela = e.target.closest(".tabela-aulas");
+    const noHandle     = e.target.closest(".drag-handle-cont");
+    if (dentroTabela && !noHandle) {
+      selConteudos.clear();
+      ultimoSelecionado = null;
+      atualizarVisualizacaoSel();
+    } else if (!dentroTabela) {
+      selConteudos.clear();
+      ultimoSelecionado = null;
+      atualizarVisualizacaoSel();
+    }
+  }, true);
 }
 
 function atualizarVisualizacaoSel() {
