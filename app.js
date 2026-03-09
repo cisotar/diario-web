@@ -1,5 +1,5 @@
 // ============================================================
-//  APP.JS — Controle de Aulas v4
+//  APP.JS — Controle de Aulas v5 · Multi-professor
 // ============================================================
 
 let turmaAtiva    = null;
@@ -15,8 +15,14 @@ let RT_TURMAS     = null;
 let RT_CONTEUDOS  = null;
 let RT_PERIODOS   = null;
 
+// Perfil do professor logado (carregado do Firestore)
+let _perfilProf = null;  // { nome, email, escola, status, uid }
+
 document.addEventListener("DOMContentLoaded", async () => {
   _mostrarCarregando(true);
+  await _verificarSessao();   // 1º: saber quem está logado
+  const ok = await _verificarAcessoProfessor(); // 2º: checar status
+  if (!ok) { _mostrarCarregando(false); return; } // tela de aguardo já renderizada
   await carregarTudo();
   _mostrarCarregando(false);
   renderizarSidebar();
@@ -53,20 +59,28 @@ function _mostrarCarregando(sim) {
   }
 }
 
-const _EMAILS_PERMITIDOS = [
+// E-mails com privilégio de administrador
+const _ADMINS = [
   "protarciso@gmail.com",
   "contato.tarciso@gmail.com",
   "tarciso@prof.educacao.sp.gov.br",
 ];
 
 let _autenticado = false;
+let _userAtual   = null;   // objeto firebase.User
 let _dbDoc = null;
 
+function _isAdmin(email) {
+  return _ADMINS.includes(email || "");
+}
+
+// Retorna o doc do diário do professor logado
 function _initFirebase() {
+  if (!_userAtual) return null;
   if (_dbDoc) return _dbDoc;
   try {
     const db = firebase.firestore();
-    _dbDoc = db.collection("diario").doc("dados");
+    _dbDoc = db.collection("diario").doc(_userAtual.uid);
     return _dbDoc;
   } catch (e) {
     console.warn("Firebase não disponível, usando localStorage:", e);
@@ -74,11 +88,19 @@ function _initFirebase() {
   }
 }
 
+// Retorna referência à coleção de professores
+function _dbProfessores() {
+  try { return firebase.firestore().collection("professores"); }
+  catch { return null; }
+}
+
 async function _verificarSessao() {
   return new Promise(resolve => {
     try {
       firebase.auth().onAuthStateChanged(user => {
+        _userAtual   = user;
         _autenticado = !!user;
+        _dbDoc       = null; // resetar cache do doc ao trocar usuário
         _atualizarBotaoAuth();
         resolve();
       });
@@ -88,31 +110,186 @@ async function _verificarSessao() {
   });
 }
 
+// Verifica se o professor tem acesso aprovado (ou é admin).
+// Retorna true se pode entrar, false se deve esperar/solicitar acesso.
+async function _verificarAcessoProfessor() {
+  // Não logado: mostra tela de login e retorna false
+  if (!_userAtual) {
+    _renderizarTelaLogin();
+    return false;
+  }
+  const email = _userAtual.email;
+  // Admin: acesso imediato, cria/atualiza perfil como admin
+  if (_isAdmin(email)) {
+    _perfilProf = {
+      uid: _userAtual.uid, email,
+      nome: _userAtual.displayName || email.split("@")[0],
+      escola: "Escola Estadual Profª Mathilde Teixeira de Moraes",
+      status: "aprovado", admin: true,
+    };
+    await _salvarPerfilFirestore(_perfilProf);
+    return true;
+  }
+  // Professor comum: checar status no Firestore
+  try {
+    const snap = await firebase.firestore()
+      .collection("professores").doc(_userAtual.uid).get();
+    if (snap.exists) {
+      const d = snap.data();
+      _perfilProf = { uid: _userAtual.uid, ...d };
+      if (d.status === "aprovado") return true;
+      if (d.status === "rejeitado") {
+        _renderizarTelaRejeitado(d);
+        return false;
+      }
+      // pendente
+      _renderizarTelaAguardando(d);
+      return false;
+    } else {
+      // Primeiro acesso: salva pedido pendente e mostra formulário
+      _renderizarFormularioCadastro();
+      return false;
+    }
+  } catch (e) {
+    console.warn("Erro ao verificar acesso:", e);
+    // Fallback: permite acesso se é e-mail permitido
+    if (_ADMINS.includes(email)) return true;
+    _renderizarTelaErroAcesso();
+    return false;
+  }
+}
+
+async function _salvarPerfilFirestore(perfil) {
+  try {
+    await firebase.firestore()
+      .collection("professores").doc(perfil.uid)
+      .set(perfil, { merge: true });
+  } catch (e) { console.warn("Erro ao salvar perfil:", e); }
+}
+
+// ── Telas de acesso ─────────────────────────────────────────
+
+function _renderizarTelaLogin() {
+  document.getElementById("conteudo-principal").innerHTML = "";
+  // Reutiliza o modal de login existente
+  setTimeout(_abrirModalGoogle, 300);
+}
+
+function _renderizarFormularioCadastro() {
+  const main = document.getElementById("conteudo-principal");
+  main.innerHTML = `
+    <div class="acesso-tela">
+      <div class="acesso-box">
+        <div class="acesso-ico">👋</div>
+        <h2 class="acesso-titulo">Bem-vindo ao Diário de Classe</h2>
+        <p class="acesso-sub">Preencha seus dados para solicitar acesso. Um administrador aprovará seu cadastro em breve.</p>
+        <div class="acesso-form">
+          <label>Seu nome completo
+            <input type="text" id="cad-nome" placeholder="Prof. João Silva"
+              value="${_userAtual.displayName || ''}" />
+          </label>
+          <label>Escola
+            <input type="text" id="cad-escola" placeholder="Escola Estadual…" />
+          </label>
+          <label>Disciplina(s)
+            <input type="text" id="cad-disc" placeholder="Geografia, Sociologia…" />
+          </label>
+        </div>
+        <div class="acesso-email">📧 ${_userAtual.email}</div>
+        <button class="acesso-btn-ok" onclick="_enviarPedidoAcesso()">Solicitar acesso</button>
+        <button class="acesso-btn-sair" onclick="_logout()">Sair</button>
+      </div>
+    </div>`;
+}
+
+async function _enviarPedidoAcesso() {
+  const nome   = document.getElementById("cad-nome")?.value.trim();
+  const escola = document.getElementById("cad-escola")?.value.trim();
+  const disc   = document.getElementById("cad-disc")?.value.trim();
+  if (!nome) { alert("Informe seu nome."); return; }
+  const perfil = {
+    uid: _userAtual.uid,
+    email: _userAtual.email,
+    nome, escola, disciplinas: disc,
+    status: "pendente",
+    solicitadoEm: new Date().toISOString(),
+    admin: false,
+  };
+  try {
+    await firebase.firestore()
+      .collection("professores").doc(_userAtual.uid).set(perfil);
+    _perfilProf = perfil;
+    _renderizarTelaAguardando(perfil);
+  } catch (e) {
+    alert("Erro ao enviar pedido. Tente novamente.");
+    console.error(e);
+  }
+}
+
+function _renderizarTelaAguardando(perfil) {
+  document.getElementById("conteudo-principal").innerHTML = `
+    <div class="acesso-tela">
+      <div class="acesso-box">
+        <div class="acesso-ico">⏳</div>
+        <h2 class="acesso-titulo">Aguardando aprovação</h2>
+        <p class="acesso-sub">Olá, <strong>${perfil.nome || perfil.email}</strong>! Seu pedido de acesso foi recebido e está aguardando aprovação de um administrador.</p>
+        <div class="acesso-email">📧 ${perfil.email}</div>
+        <button class="acesso-btn-sair" onclick="_logout()">Sair</button>
+      </div>
+    </div>`;
+}
+
+function _renderizarTelaRejeitado(perfil) {
+  document.getElementById("conteudo-principal").innerHTML = `
+    <div class="acesso-tela">
+      <div class="acesso-box">
+        <div class="acesso-ico">❌</div>
+        <h2 class="acesso-titulo">Acesso não autorizado</h2>
+        <p class="acesso-sub">Seu pedido de acesso foi recusado. Entre em contato com o administrador do sistema.</p>
+        <div class="acesso-email">📧 ${perfil.email}</div>
+        <button class="acesso-btn-sair" onclick="_logout()">Sair</button>
+      </div>
+    </div>`;
+}
+
+function _renderizarTelaErroAcesso() {
+  document.getElementById("conteudo-principal").innerHTML = `
+    <div class="acesso-tela">
+      <div class="acesso-box">
+        <div class="acesso-ico">⚠️</div>
+        <h2 class="acesso-titulo">Erro de conexão</h2>
+        <p class="acesso-sub">Não foi possível verificar seu acesso. Verifique sua conexão e tente novamente.</p>
+        <button class="acesso-btn-ok" onclick="location.reload()">Tentar novamente</button>
+        <button class="acesso-btn-sair" onclick="_logout()">Sair</button>
+      </div>
+    </div>`;
+}
+
 async function _loginGoogle() {
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
     const result   = await firebase.auth().signInWithPopup(provider);
-    const email    = result.user.email;
-    if (!_EMAILS_PERMITIDOS.includes(email)) {
-      await firebase.auth().signOut();
-      const btn = document.getElementById("google-btn");
-      if (btn) {
-        btn.textContent = `❌ ${email} não autorizado`;
-        btn.style.background = "#fef2f2";
-        btn.style.color = "#991b1b";
-        setTimeout(() => {
-          btn.textContent = "Entrar com Google";
-          btn.style.background = "#fff";
-          btn.style.color = "#1e293b";
-        }, 3000);
-      }
-      return;
-    }
+    _userAtual   = result.user;
     _autenticado = true;
+    _dbDoc       = null;
     _atualizarBotaoAuth();
     document.getElementById("google-modal")?.remove();
     _mostrarIndicadorSync("🔓 Autenticado");
-    _salvarFirestore();
+    // Verifica acesso e carrega o sistema
+    _mostrarCarregando(true);
+    const ok = await _verificarAcessoProfessor();
+    if (ok) {
+      await carregarTudo();
+      _mostrarCarregando(false);
+      renderizarSidebar();
+      _atualizarTagline();
+      iniciarTooltips();
+      _initClickFora();
+      if (window.innerWidth <= 860) renderizarHomeMobile();
+      else abrirCalendario();
+    } else {
+      _mostrarCarregando(false);
+    }
   } catch (e) {
     console.error("Erro no login Google:", e);
     const btn = document.getElementById("google-btn");
@@ -130,8 +307,12 @@ async function _loginGoogle() {
 async function _logout() {
   try { await firebase.auth().signOut(); } catch {}
   _autenticado = false;
+  _userAtual   = null;
+  _dbDoc       = null;
+  _perfilProf  = null;
   _atualizarBotaoAuth();
   _mostrarIndicadorSync("🔒 Sessão encerrada");
+  setTimeout(() => location.reload(), 800);
 }
 
 function _atualizarBotaoAuth() {
@@ -143,8 +324,9 @@ function _atualizarBotaoAuth() {
     if (header) header.appendChild(btn);
     else document.body.appendChild(btn);
   }
-  if (_autenticado) {
-    btn.textContent = "Sair";
+  if (_autenticado && _userAtual) {
+    const nome = _perfilProf?.nome || _userAtual.displayName || _userAtual.email.split("@")[0];
+    btn.textContent = nome + " · Sair";
     btn.classList.add("logado");
     btn.onclick = () => { if (confirm("Encerrar sessão?")) _logout(); };
   } else {
@@ -217,10 +399,11 @@ function _abrirModalGoogle() {
 
 let _saveTimer = null;
 function salvarTudo() {
-  localStorage.setItem("aulaEstado",    JSON.stringify(estadoAulas));
-  localStorage.setItem("aulaOrdem",     JSON.stringify(ordemConteudos));
-  localStorage.setItem("aulaEventuais", JSON.stringify(linhasEventuais));
-  localStorage.setItem("RT_CONTEUDOS",  JSON.stringify(RT_CONTEUDOS));
+  const uid = _userAtual ? _userAtual.uid : "anonimo";
+  localStorage.setItem(`aulaEstado_${uid}`,    JSON.stringify(estadoAulas));
+  localStorage.setItem(`aulaOrdem_${uid}`,     JSON.stringify(ordemConteudos));
+  localStorage.setItem(`aulaEventuais_${uid}`, JSON.stringify(linhasEventuais));
+  localStorage.setItem(`RT_CONTEUDOS_${uid}`,  JSON.stringify(RT_CONTEUDOS));
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(() => _salvarFirestore(), 800);
 }
@@ -281,39 +464,41 @@ async function carregarTudo() {
   RT_PERIODOS  = JSON.parse(JSON.stringify(
     typeof PERIODOS !== "undefined" ? PERIODOS : PERIODOS_PADRAO
   ));
+  // Chave de cache isolada por UID para evitar colisão entre professores
+  const uidKey = _userAtual ? _userAtual.uid : "anonimo";
+  const seedKey = `_aulasSeed_${uidKey}`;
   const doc = _initFirebase();
   if (doc) {
     try {
       const snap = await doc.get();
       if (snap.exists) {
         const d = snap.data();
-        if (d.aulaEstado)    localStorage.setItem("aulaEstado",    d.aulaEstado);
-        if (d.aulaOrdem)     localStorage.setItem("aulaOrdem",     d.aulaOrdem);
-        if (d.aulaEventuais) localStorage.setItem("aulaEventuais", d.aulaEventuais);
-        if (d.RT_CONTEUDOS)  localStorage.setItem("RT_CONTEUDOS",  d.RT_CONTEUDOS);
-        localStorage.setItem("_aulasSeed", "1");
+        if (d.aulaEstado)    localStorage.setItem(`aulaEstado_${uidKey}`,    d.aulaEstado);
+        if (d.aulaOrdem)     localStorage.setItem(`aulaOrdem_${uidKey}`,     d.aulaOrdem);
+        if (d.aulaEventuais) localStorage.setItem(`aulaEventuais_${uidKey}`, d.aulaEventuais);
+        if (d.RT_CONTEUDOS)  localStorage.setItem(`RT_CONTEUDOS_${uidKey}`,  d.RT_CONTEUDOS);
+        localStorage.setItem(seedKey, "1");
       }
     } catch (e) {
       console.warn("Firestore inacessível, usando cache local:", e);
     }
   }
-  try { estadoAulas     = JSON.parse(localStorage.getItem("aulaEstado"))    || {}; } catch { estadoAulas = {}; }
-  try { ordemConteudos  = JSON.parse(localStorage.getItem("aulaOrdem"))     || {}; } catch { ordemConteudos = {}; }
-  try { linhasEventuais = JSON.parse(localStorage.getItem("aulaEventuais")) || {}; } catch { linhasEventuais = {}; }
+  try { estadoAulas     = JSON.parse(localStorage.getItem(`aulaEstado_${uidKey}`))    || {}; } catch { estadoAulas = {}; }
+  try { ordemConteudos  = JSON.parse(localStorage.getItem(`aulaOrdem_${uidKey}`))     || {}; } catch { ordemConteudos = {}; }
+  try { linhasEventuais = JSON.parse(localStorage.getItem(`aulaEventuais_${uidKey}`)) || {}; } catch { linhasEventuais = {}; }
   try {
-    const rc = JSON.parse(localStorage.getItem("RT_CONTEUDOS"));
+    const rc = JSON.parse(localStorage.getItem(`RT_CONTEUDOS_${uidKey}`));
     if (rc && typeof rc === "object") RT_CONTEUDOS = rc;
   } catch {}
-  if (!localStorage.getItem("_aulasSeed")) {
+  if (!localStorage.getItem(seedKey)) {
     if (typeof ESTADO !== "undefined" && Object.keys(ESTADO).length > 0)
       estadoAulas = Object.assign({}, ESTADO, estadoAulas);
     if (typeof ORDEM !== "undefined" && Object.keys(ORDEM).length > 0)
       ordemConteudos = Object.assign({}, ORDEM, ordemConteudos);
-    localStorage.setItem("_aulasSeed", "1");
-    localStorage.setItem("aulaEstado", JSON.stringify(estadoAulas));
-    localStorage.setItem("aulaOrdem",  JSON.stringify(ordemConteudos));
+    localStorage.setItem(seedKey, "1");
+    localStorage.setItem(`aulaEstado_${uidKey}`, JSON.stringify(estadoAulas));
+    localStorage.setItem(`aulaOrdem_${uidKey}`,  JSON.stringify(ordemConteudos));
   }
-  await _verificarSessao();
   _ativarListenerFirestore();
 }
 
@@ -478,10 +663,14 @@ function esconderTooltip() {
 
 function _atualizarTagline() {
   const el = document.getElementById("header-tagline");
-  if (!el || !RT_TURMAS) return;
-  const disciplinas = [...new Set(RT_TURMAS.map(t => t.disciplina))].join(" · ");
-  const ano = new Date().getFullYear();
-  el.textContent = `Escola Estadual Professora Mathilde Teixeira de Moraes · Professor Tarciso · ${ano} · ${disciplinas}`;
+  if (!el) return;
+  const disciplinas = RT_TURMAS ? [...new Set(RT_TURMAS.map(t => t.disciplina))].join(" · ") : "";
+  const ano    = new Date().getFullYear();
+  const escola = _perfilProf?.escola || "Escola Estadual Profª Mathilde Teixeira de Moraes";
+  const nome   = _perfilProf?.nome
+    || (_userAtual ? (_userAtual.displayName || _userAtual.email.split("@")[0]) : "");
+  const nomeFmt = nome ? `Prof. ${nome}` : "";
+  el.textContent = [escola, nomeFmt, ano, disciplinas].filter(Boolean).join(" · ");
 }
 
 function renderizarSidebar() {
@@ -1107,20 +1296,31 @@ function baixarArquivo(blob, nome) {
 // ════════════════════════════════════════════════════════════
 function abrirPainelGestao() {
   if (!_autenticado) { _abrirModalGoogle(); return; }
+  const adminTab = _isAdmin(_userAtual?.email) ? `
+    <button class="gtab" onclick="abrirGTab(this,'g-professores')">👥 Professores</button>` : "";
+  const adminSection = _isAdmin(_userAtual?.email) ? `
+    <div id="g-professores" class="gestao-secao">${htmlGestaoProfessores()}</div>` : "";
   document.getElementById("conteudo-principal").innerHTML = `
     <div class="gestao-painel">
       <div class="gestao-header">
         <h1 class="gestao-titulo">⚙ Painel de Gestão</h1>
-        <button class="btn-voltar" onclick="voltarPrincipal()">← Voltar</button>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <button class="btn-exportar-js" onclick="exportarJS()" style="font-size:.8rem">⬇ aulas.js</button>
+          <button class="btn-voltar" onclick="voltarPrincipal()">← Voltar</button>
+        </div>
       </div>
       <div class="gestao-tabs">
-        <button class="gtab ativo" onclick="abrirGTab(this,'g-turmas')">Séries / Turmas</button>
+        <button class="gtab ativo" onclick="abrirGTab(this,'g-conteudos')">Conteúdos</button>
+        <button class="gtab" onclick="abrirGTab(this,'g-turmas')">Séries / Turmas</button>
         <button class="gtab" onclick="abrirGTab(this,'g-bimestres')">Bimestres</button>
-        <button class="gtab" onclick="abrirGTab(this,'g-conteudos')">Conteúdos</button>
+        <button class="gtab" onclick="abrirGTab(this,'g-perfil')">Meu Perfil</button>
+        ${adminTab}
       </div>
-      <div id="g-turmas" class="gestao-secao ativa">${htmlGestaoTurmas()}</div>
+      <div id="g-conteudos" class="gestao-secao ativa">${htmlGestaoConteudos()}</div>
+      <div id="g-turmas" class="gestao-secao">${htmlGestaoTurmas()}</div>
       <div id="g-bimestres" class="gestao-secao">${htmlGestaoBimestres()}</div>
-      <div id="g-conteudos" class="gestao-secao">${htmlGestaoConteudos()}</div>
+      <div id="g-perfil" class="gestao-secao">${htmlGestaoPerfil()}</div>
+      ${adminSection}
     </div>`;
 }
 
@@ -1129,9 +1329,11 @@ function abrirGTab(btn, secId) {
   document.querySelectorAll(".gestao-secao").forEach(s=>s.classList.remove("ativa"));
   btn.classList.add("ativo");
   document.getElementById(secId).classList.add("ativa");
-  if (secId==="g-turmas")    document.getElementById(secId).innerHTML = htmlGestaoTurmas();
-  if (secId==="g-bimestres") document.getElementById(secId).innerHTML = htmlGestaoBimestres();
-  if (secId==="g-conteudos") document.getElementById(secId).innerHTML = htmlGestaoConteudos();
+  if (secId==="g-turmas")      document.getElementById(secId).innerHTML = htmlGestaoTurmas();
+  if (secId==="g-bimestres")   document.getElementById(secId).innerHTML = htmlGestaoBimestres();
+  if (secId==="g-conteudos")   document.getElementById(secId).innerHTML = htmlGestaoConteudos();
+  if (secId==="g-perfil")      document.getElementById(secId).innerHTML = htmlGestaoPerfil();
+  if (secId==="g-professores") { document.getElementById(secId).innerHTML = htmlGestaoProfessores(); _carregarProfessores(); }
 }
 
 function voltarPrincipal() {
@@ -1450,6 +1652,154 @@ function addChaveCont() {
   document.getElementById("g-conteudos").innerHTML = htmlGestaoConteudos();
 }
 
+
+// ════════════════════════════════════════════════════════════
+//  PAINEL: MEU PERFIL
+// ════════════════════════════════════════════════════════════
+function htmlGestaoPerfil() {
+  const p = _perfilProf || {};
+  return `
+    <div class="gestao-bloco">
+      <div class="gestao-bloco-header">
+        <h3>Meu Perfil</h3>
+      </div>
+      <div class="perfil-form">
+        <label>Nome completo
+          <input class="gi" id="perf-nome" value="${(p.nome||'').replace(/"/g,'&quot;')}"
+            placeholder="Prof. Seu Nome" />
+        </label>
+        <label>Escola
+          <input class="gi" id="perf-escola" value="${(p.escola||'').replace(/"/g,'&quot;')}"
+            placeholder="Escola Estadual…" />
+        </label>
+        <label>Disciplina(s)
+          <input class="gi" id="perf-disc" value="${(p.disciplinas||'').replace(/"/g,'&quot;')}"
+            placeholder="Geografia, Sociologia…" />
+        </label>
+        <label style="opacity:.6;pointer-events:none;">E-mail (não editável)
+          <input class="gi" value="${p.email||''}" readonly />
+        </label>
+        <div style="margin-top:4px;">
+          <button class="btn-add" onclick="_salvarPerfil()">💾 Salvar perfil</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function _salvarPerfil() {
+  const nome   = document.getElementById("perf-nome")?.value.trim();
+  const escola = document.getElementById("perf-escola")?.value.trim();
+  const disc   = document.getElementById("perf-disc")?.value.trim();
+  if (!nome) { alert("Informe seu nome."); return; }
+  if (!_perfilProf) _perfilProf = { uid: _userAtual.uid, email: _userAtual.email, status: "aprovado" };
+  _perfilProf.nome        = nome;
+  _perfilProf.escola      = escola;
+  _perfilProf.disciplinas = disc;
+  await _salvarPerfilFirestore(_perfilProf);
+  _atualizarBotaoAuth();
+  _atualizarTagline();
+  _mostrarIndicadorSync("✓ Perfil salvo");
+}
+
+// ════════════════════════════════════════════════════════════
+//  PAINEL: PROFESSORES (apenas admin)
+// ════════════════════════════════════════════════════════════
+function htmlGestaoProfessores() {
+  return `
+    <div class="gestao-bloco">
+      <div class="gestao-bloco-header">
+        <h3>Professores cadastrados</h3>
+        <span id="profs-count" style="font-size:.8rem;color:var(--text-muted)">Carregando…</span>
+      </div>
+      <div id="profs-lista">
+        <div style="padding:30px;text-align:center;color:var(--text-muted)">⏳ Buscando professores…</div>
+      </div>
+    </div>`;
+}
+
+async function _carregarProfessores() {
+  try {
+    const snap = await firebase.firestore().collection("professores").get();
+    const profs = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    profs.sort((a,b) => {
+      const ordem = { pendente:0, aprovado:1, rejeitado:2 };
+      return (ordem[a.status]??3) - (ordem[b.status]??3);
+    });
+    const count = document.getElementById("profs-count");
+    if (count) count.textContent = `${profs.length} professor(es)`;
+    const lista = document.getElementById("profs-lista");
+    if (!lista) return;
+    if (!profs.length) {
+      lista.innerHTML = `<div style="padding:30px;text-align:center;color:var(--text-muted)">Nenhum professor cadastrado.</div>`;
+      return;
+    }
+    lista.innerHTML = `
+      <div class="tabela-wrapper">
+        <table class="tabela-gestao">
+          <thead><tr>
+            <th>Nome</th><th>E-mail</th><th>Escola</th><th>Disciplinas</th>
+            <th>Status</th><th>Solicitado em</th><th>Ações</th>
+          </tr></thead>
+          <tbody>
+            ${profs.map(p => {
+              const statusCls = p.status==="aprovado" ? "prof-status-ok"
+                : p.status==="rejeitado" ? "prof-status-rej"
+                : "prof-status-pend";
+              const statusLabel = p.status==="aprovado" ? "✓ Aprovado"
+                : p.status==="rejeitado" ? "✗ Rejeitado"
+                : "⏳ Pendente";
+              const dt = p.solicitadoEm ? new Date(p.solicitadoEm).toLocaleDateString("pt-BR") : "—";
+              const adminBadge = p.admin ? ' <span class="badge-admin">admin</span>' : "";
+              const acoes = p.admin ? '<span style="color:#4a5568;font-size:.75rem">—</span>' : `
+                ${p.status!=="aprovado" ? `<button class="btn-add" style="padding:4px 10px;font-size:.73rem" onclick="_aprovarProf('${p.uid}')">Aprovar</button>` : ""}
+                ${p.status!=="rejeitado" ? `<button class="btn-limpar" style="padding:4px 10px;font-size:.73rem" onclick="_rejeitarProf('${p.uid}')">Rejeitar</button>` : ""}
+                <button class="btn-icon-del" onclick="_excluirProf('${p.uid}')" title="Excluir">🗑</button>
+              `;
+              return `<tr>
+                <td>${(p.nome||"—")}${adminBadge}</td>
+                <td style="font-size:.78rem">${p.email||"—"}</td>
+                <td style="font-size:.78rem">${p.escola||"—"}</td>
+                <td style="font-size:.78rem">${p.disciplinas||"—"}</td>
+                <td><span class="prof-status ${statusCls}">${statusLabel}</span></td>
+                <td style="font-size:.78rem">${dt}</td>
+                <td style="white-space:nowrap">${acoes}</td>
+              </tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>`;
+  } catch (e) {
+    console.error("Erro ao carregar professores:", e);
+    const lista = document.getElementById("profs-lista");
+    if (lista) lista.innerHTML = `<div style="padding:20px;color:var(--red)">Erro ao carregar professores.</div>`;
+  }
+}
+
+async function _aprovarProf(uid) {
+  try {
+    await firebase.firestore().collection("professores").doc(uid).update({ status: "aprovado" });
+    _mostrarIndicadorSync("✓ Professor aprovado");
+    _carregarProfessores();
+  } catch(e) { alert("Erro ao aprovar."); }
+}
+
+async function _rejeitarProf(uid) {
+  if (!confirm("Rejeitar o acesso deste professor?")) return;
+  try {
+    await firebase.firestore().collection("professores").doc(uid).update({ status: "rejeitado" });
+    _mostrarIndicadorSync("✓ Acesso rejeitado");
+    _carregarProfessores();
+  } catch(e) { alert("Erro ao rejeitar."); }
+}
+
+async function _excluirProf(uid) {
+  if (!confirm("Excluir completamente este professor? Isso não apaga os dados do diário dele.")) return;
+  try {
+    await firebase.firestore().collection("professores").doc(uid).delete();
+    _mostrarIndicadorSync("✓ Professor excluído");
+    _carregarProfessores();
+  } catch(e) { alert("Erro ao excluir."); }
+}
 let contDragIdx = null;
 function contDragStart(e, i)  { contDragIdx = i; e.dataTransfer.effectAllowed="move"; e.dataTransfer.setData("text/plain",i); }
 function contDragEnter(e, i)  { e.target.closest("tr")?.classList.add("cont-drag-over"); }
