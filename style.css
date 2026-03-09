@@ -1257,3 +1257,17 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   padding: 1px 5px; border-radius: 3px; margin-left: 4px;
   vertical-align: middle; letter-spacing: .04em;
 }
+
+/* ── Bimestres somente leitura (não-admin) ──────────────── */
+.bim-label-ro {
+  font-size: .85rem; font-weight: 600; color: var(--text);
+}
+
+.bim-data-ro {
+  font-size: .83rem; color: var(--text-mid);
+}
+
+.bim-ro-aviso {
+  font-size: .78rem; color: var(--text-muted);
+  font-style: italic;
+}

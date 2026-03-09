@@ -94,6 +94,22 @@ function _dbProfessores() {
   catch { return null; }
 }
 
+// Retorna referência ao documento de configuração global (bimestres)
+function _dbConfig() {
+  try { return firebase.firestore().collection("config").doc("bimestres"); }
+  catch { return null; }
+}
+
+async function _salvarBimestresFirestore() {
+  if (!_isAdmin(_userAtual?.email)) return;
+  const ref = _dbConfig();
+  if (!ref) return;
+  try {
+    await ref.set({ bimestres: JSON.stringify(RT_BIMESTRES), _atualizado: new Date().toISOString() });
+    _mostrarIndicadorSync("✓ Bimestres salvos");
+  } catch(e) { console.error("Erro ao salvar bimestres:", e); }
+}
+
 async function _verificarSessao() {
   return new Promise(resolve => {
     try {
@@ -404,6 +420,7 @@ function salvarTudo() {
   localStorage.setItem(`aulaOrdem_${uid}`,     JSON.stringify(ordemConteudos));
   localStorage.setItem(`aulaEventuais_${uid}`, JSON.stringify(linhasEventuais));
   localStorage.setItem(`RT_CONTEUDOS_${uid}`,  JSON.stringify(RT_CONTEUDOS));
+  localStorage.setItem(`RT_TURMAS_${uid}`,     JSON.stringify(RT_TURMAS));
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(() => _salvarFirestore(), 800);
 }
@@ -418,6 +435,7 @@ async function _salvarFirestore() {
       aulaOrdem:     JSON.stringify(ordemConteudos),
       aulaEventuais: JSON.stringify(linhasEventuais),
       RT_CONTEUDOS:  JSON.stringify(RT_CONTEUDOS),
+      RT_TURMAS:     JSON.stringify(RT_TURMAS),
       _atualizado:   new Date().toISOString(),
     });
     _mostrarIndicadorSync("✓ Salvo");
@@ -464,6 +482,16 @@ async function carregarTudo() {
   RT_PERIODOS  = JSON.parse(JSON.stringify(
     typeof PERIODOS !== "undefined" ? PERIODOS : PERIODOS_PADRAO
   ));
+
+  // Carrega bimestres globais do Firestore (compartilhados entre todos)
+  try {
+    const cfgSnap = await _dbConfig().get();
+    if (cfgSnap.exists && cfgSnap.data().bimestres) {
+      const bim = JSON.parse(cfgSnap.data().bimestres);
+      if (Array.isArray(bim) && bim.length) RT_BIMESTRES = bim;
+    }
+  } catch(e) { console.warn("Bimestres globais indisponíveis, usando padrão:", e); }
+
   // Chave de cache isolada por UID para evitar colisão entre professores
   const uidKey = _userAtual ? _userAtual.uid : "anonimo";
   const seedKey = `_aulasSeed_${uidKey}`;
@@ -477,6 +505,7 @@ async function carregarTudo() {
         if (d.aulaOrdem)     localStorage.setItem(`aulaOrdem_${uidKey}`,     d.aulaOrdem);
         if (d.aulaEventuais) localStorage.setItem(`aulaEventuais_${uidKey}`, d.aulaEventuais);
         if (d.RT_CONTEUDOS)  localStorage.setItem(`RT_CONTEUDOS_${uidKey}`,  d.RT_CONTEUDOS);
+        if (d.RT_TURMAS)     localStorage.setItem(`RT_TURMAS_${uidKey}`,     d.RT_TURMAS);
         localStorage.setItem(seedKey, "1");
       }
     } catch (e) {
@@ -489,6 +518,10 @@ async function carregarTudo() {
   try {
     const rc = JSON.parse(localStorage.getItem(`RT_CONTEUDOS_${uidKey}`));
     if (rc && typeof rc === "object") RT_CONTEUDOS = rc;
+  } catch {}
+  try {
+    const rt = JSON.parse(localStorage.getItem(`RT_TURMAS_${uidKey}`));
+    if (Array.isArray(rt) && rt.length) RT_TURMAS = rt;
   } catch {}
   if (!localStorage.getItem(seedKey)) {
     if (typeof ESTADO !== "undefined" && Object.keys(ESTADO).length > 0)
@@ -503,6 +536,7 @@ async function carregarTudo() {
 }
 
 let _listenerAtivo = false;
+let _listenerBimAtivo = false;
 function _ativarListenerFirestore() {
   if (_listenerAtivo) return;
   const doc = _initFirebase();
@@ -519,13 +553,36 @@ function _ativarListenerFirestore() {
     try { ordemConteudos  = JSON.parse(d.aulaOrdem)     || ordemConteudos; } catch {}
     try { linhasEventuais = JSON.parse(d.aulaEventuais) || linhasEventuais;} catch {}
     try { const rc = JSON.parse(d.RT_CONTEUDOS); if (rc) RT_CONTEUDOS = rc; } catch {}
-    if (d.aulaEstado)    localStorage.setItem("aulaEstado",    d.aulaEstado);
-    if (d.aulaOrdem)     localStorage.setItem("aulaOrdem",     d.aulaOrdem);
-    if (d.aulaEventuais) localStorage.setItem("aulaEventuais", d.aulaEventuais);
-    if (d.RT_CONTEUDOS)  localStorage.setItem("RT_CONTEUDOS",  d.RT_CONTEUDOS);
+    try { const rt = JSON.parse(d.RT_TURMAS);    if (Array.isArray(rt) && rt.length) RT_TURMAS = rt; } catch {}
+    const _uk = _userAtual?.uid || "anonimo";
+    if (d.aulaEstado)    localStorage.setItem(`aulaEstado_${_uk}`,    d.aulaEstado);
+    if (d.aulaOrdem)     localStorage.setItem(`aulaOrdem_${_uk}`,     d.aulaOrdem);
+    if (d.aulaEventuais) localStorage.setItem(`aulaEventuais_${_uk}`, d.aulaEventuais);
+    if (d.RT_CONTEUDOS)  localStorage.setItem(`RT_CONTEUDOS_${_uk}`,  d.RT_CONTEUDOS);
+    if (d.RT_TURMAS)     localStorage.setItem(`RT_TURMAS_${_uk}`,     d.RT_TURMAS);
     if (turmaAtiva) renderizarConteudo();
     _mostrarIndicadorSync("↓ Sincronizado");
   }, err => console.warn("onSnapshot erro:", err));
+
+  // Listener separado para bimestres globais (atualiza em tempo real para todos)
+  if (!_listenerBimAtivo) {
+    _listenerBimAtivo = true;
+    const cfg = _dbConfig();
+    if (!cfg) return;
+    let _primeiroBimSnap = true;
+    cfg.onSnapshot(snap => {
+      if (_primeiroBimSnap) { _primeiroBimSnap = false; return; }
+      if (!snap.exists) return;
+      try {
+        const bim = JSON.parse(snap.data().bimestres);
+        if (Array.isArray(bim) && bim.length) {
+          RT_BIMESTRES = bim;
+          if (turmaAtiva) renderizarConteudo();
+          _mostrarIndicadorSync("↓ Bimestres atualizados");
+        }
+      } catch {}
+    }, err => console.warn("onSnapshot bimestres erro:", err));
+  }
 }
 
 function chaveSlot(turmaId, bim, slotId) { return `${turmaId}_b${bim}_s${slotId}`; }
@@ -1305,7 +1362,7 @@ function abrirPainelGestao() {
       <div class="gestao-header">
         <h1 class="gestao-titulo">⚙ Painel de Gestão</h1>
         <div style="display:flex;gap:8px;align-items:center;">
-          <button class="btn-exportar-js" onclick="exportarJS()" style="font-size:.8rem">⬇ aulas.js</button>
+          ${_isAdmin(_userAtual?.email) ? '<button class="btn-exportar-js" onclick="exportarJS()" style="font-size:.8rem">⬇ aulas.js</button>' : ''}
           <button class="btn-voltar" onclick="voltarPrincipal()">← Voltar</button>
         </div>
       </div>
@@ -1415,18 +1472,36 @@ function addTurma() {
 }
 
 function htmlGestaoBimestres() {
-  const rows = RT_BIMESTRES.map((b,i) => `
-    <tr>
-      <td><input class="gi gi-sm" value="${b.label}" onchange="editBimField(${i},'label',this.value)" /></td>
-      <td><input class="gi" type="date" value="${b.inicio}" onchange="editBimField(${i},'inicio',this.value)" /></td>
-      <td><input class="gi" type="date" value="${b.fim}"    onchange="editBimField(${i},'fim',this.value)" /></td>
-      <td><button class="btn-icon-del" onclick="delBim(${i})">🗑</button></td>
-    </tr>`).join("");
+  const admin = _isAdmin(_userAtual?.email);
+  const rows = RT_BIMESTRES.map((b,i) => {
+    if (admin) {
+      return `
+        <tr>
+          <td><input class="gi gi-sm" value="${b.label}" onchange="editBimField(${i},'label',this.value)" /></td>
+          <td><input class="gi" type="date" value="${b.inicio}" onchange="editBimField(${i},'inicio',this.value)" /></td>
+          <td><input class="gi" type="date" value="${b.fim}"    onchange="editBimField(${i},'fim',this.value)" /></td>
+          <td><button class="btn-icon-del" onclick="delBim(${i})">🗑</button></td>
+        </tr>`;
+    } else {
+      // Não-admin: somente leitura nas datas
+      return `
+        <tr>
+          <td><span class="bim-label-ro">${b.label}</span></td>
+          <td><span class="bim-data-ro">${b.inicio ? _fmtDataSimples(b.inicio) : '—'}</span></td>
+          <td><span class="bim-data-ro">${b.fim    ? _fmtDataSimples(b.fim)    : '—'}</span></td>
+          <td></td>
+        </tr>`;
+    }
+  }).join("");
+
+  const headerAcao = admin ? `<button class="btn-add" onclick="addBim()">+ Novo período</button>` :
+    `<span class="bim-ro-aviso">📋 Definido pelo administrador</span>`;
+
   return `
     <div class="gestao-bloco">
       <div class="gestao-bloco-header">
         <h3>Bimestres / Períodos</h3>
-        <button class="btn-add" onclick="addBim()">+ Novo período</button>
+        ${headerAcao}
       </div>
       <div class="tabela-wrapper">
         <table class="tabela-gestao">
@@ -1437,18 +1512,29 @@ function htmlGestaoBimestres() {
     </div>`;
 }
 
+function _fmtDataSimples(iso) {
+  if (!iso) return "—";
+  const [a,m,d] = iso.split("-");
+  return `${d}/${m}/${a}`;
+}
+
 function editBimField(i, campo, val) {
-  RT_BIMESTRES[i][campo] = campo==="bimestre" ? +val : val; salvarTudo();
+  if (!_isAdmin(_userAtual?.email)) return;
+  RT_BIMESTRES[i][campo] = campo==="bimestre" ? +val : val;
+  _salvarBimestresFirestore();
 }
 function delBim(i) {
+  if (!_isAdmin(_userAtual?.email)) return;
   if (!confirm("Excluir este período?")) return;
-  RT_BIMESTRES.splice(i,1); salvarTudo();
+  RT_BIMESTRES.splice(i,1);
+  _salvarBimestresFirestore();
   document.getElementById("g-bimestres").innerHTML = htmlGestaoBimestres();
 }
 function addBim() {
+  if (!_isAdmin(_userAtual?.email)) return;
   const num = RT_BIMESTRES.length + 1;
   RT_BIMESTRES.push({ bimestre: num, label: `${num}º Bimestre`, inicio: "", fim: "" });
-  salvarTudo();
+  _salvarBimestresFirestore();
   document.getElementById("g-bimestres").innerHTML = htmlGestaoBimestres();
 }
 
