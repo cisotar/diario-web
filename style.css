@@ -1271,3 +1271,17 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   font-size: .78rem; color: var(--text-muted);
   font-style: italic;
 }
+
+/* ── Badges de papel ────────────────────────────────────── */
+.badge-papel {
+  display: inline-block;
+  font-size: .7rem; font-weight: 700; letter-spacing: .04em;
+  padding: 2px 7px; border-radius: 4px;
+  text-transform: uppercase;
+}
+.badge-coord {
+  background: #ede9fe; color: #6d28d9;
+}
+.badge-prof {
+  background: #dbeafe; color: #1d4ed8;
+}

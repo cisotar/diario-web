@@ -1,5 +1,5 @@
 // ============================================================
-//  APP.JS — Controle de Aulas v5 · Multi-professor
+//  APP.JS — Controle de Aulas v6 · Perfis admin/coordenador/professor
 // ============================================================
 
 let turmaAtiva    = null;
@@ -74,6 +74,17 @@ function _isAdmin(email) {
   return _ADMINS.includes(email || "");
 }
 
+// Retorna o papel do usuário logado: "admin"|"coordenador"|"professor"|null
+function _papel() {
+  if (!_perfilProf) return null;
+  if (_isAdmin(_userAtual?.email)) return "admin";
+  return _perfilProf.papel || "professor";
+}
+const _ehAdmin       = () => _papel() === "admin";
+const _ehCoordenador = () => _papel() === "coordenador";
+const _ehProfessor   = () => _papel() === "professor";
+const _podeEscrever  = () => _papel() === "admin" || _papel() === "professor";
+
 // Retorna o doc do diário do professor logado
 function _initFirebase() {
   if (!_userAtual) return null;
@@ -141,7 +152,7 @@ async function _verificarAcessoProfessor() {
       uid: _userAtual.uid, email,
       nome: _userAtual.displayName || email.split("@")[0],
       escola: "Escola Estadual Profª Mathilde Teixeira de Moraes",
-      status: "aprovado", admin: true,
+      status: "aprovado", papel: "admin",
     };
     await _salvarPerfilFirestore(_perfilProf);
     return true;
@@ -228,8 +239,8 @@ async function _enviarPedidoAcesso() {
     email: _userAtual.email,
     nome, escola, disciplinas: disc,
     status: "pendente",
+    papel: "professor",
     solicitadoEm: new Date().toISOString(),
-    admin: false,
   };
   try {
     await firebase.firestore()
@@ -341,8 +352,10 @@ function _atualizarBotaoAuth() {
     else document.body.appendChild(btn);
   }
   if (_autenticado && _userAtual) {
-    const nome = _perfilProf?.nome || _userAtual.displayName || _userAtual.email.split("@")[0];
-    btn.textContent = nome + " · Sair";
+    const nome   = _perfilProf?.nome || _userAtual.displayName || _userAtual.email.split("@")[0];
+    const papelLabels = { admin:"Admin", coordenador:"Coord.", professor:"Prof." };
+    const papelBadge  = papelLabels[_papel()] ? ` [${papelLabels[_papel()]}]` : "";
+    btn.textContent = nome + papelBadge + " · Sair";
     btn.classList.add("logado");
     btn.onclick = () => { if (confirm("Encerrar sessão?")) _logout(); };
   } else {
@@ -532,7 +545,37 @@ async function carregarTudo() {
     localStorage.setItem(`aulaEstado_${uidKey}`, JSON.stringify(estadoAulas));
     localStorage.setItem(`aulaOrdem_${uidKey}`,  JSON.stringify(ordemConteudos));
   }
+  // Coordenador: pré-carrega diários dos professores associados (somente leitura)
+  if (_ehCoordenador() && Array.isArray(_perfilProf?.professoresAssociados)) {
+    await _carregarDiariosAssociados(_perfilProf.professoresAssociados);
+  }
   _ativarListenerFirestore();
+}
+
+// Diários dos professores associados ao coordenador (somente leitura)
+// Estrutura: { uid: { perfil, estadoAulas, ordemConteudos, linhasEventuais, RT_CONTEUDOS, RT_TURMAS } }
+let _diariosAssociados = {};
+
+async function _carregarDiariosAssociados(uids) {
+  _diariosAssociados = {};
+  for (const uid of uids) {
+    try {
+      const [dSnap, pSnap] = await Promise.all([
+        firebase.firestore().collection("diario").doc(uid).get(),
+        firebase.firestore().collection("professores").doc(uid).get(),
+      ]);
+      if (!dSnap.exists) continue;
+      const d = dSnap.data();
+      _diariosAssociados[uid] = {
+        perfil:          pSnap.exists ? pSnap.data() : { uid },
+        estadoAulas:     d.aulaEstado    ? JSON.parse(d.aulaEstado)    : {},
+        ordemConteudos:  d.aulaOrdem     ? JSON.parse(d.aulaOrdem)     : {},
+        linhasEventuais: d.aulaEventuais ? JSON.parse(d.aulaEventuais) : {},
+        RT_CONTEUDOS:    d.RT_CONTEUDOS  ? JSON.parse(d.RT_CONTEUDOS)  : {},
+        RT_TURMAS:       d.RT_TURMAS     ? JSON.parse(d.RT_TURMAS)     : [],
+      };
+    } catch(e) { console.warn(`Erro ao carregar diário ${uid}:`, e); }
+  }
 }
 
 let _listenerAtivo = false;
@@ -1035,6 +1078,7 @@ function renderizarLinhas(slots) {
 
 function iniciarEdicao(spanEl, slotId, base) {
   if (!_autenticado) { _abrirModalGoogle(); return; }
+  if (_ehCoordenador()) { _mostrarIndicadorSync("⛔ Somente leitura"); return; }
   if (spanEl.querySelector("textarea")) return;
   const cur = spanEl.innerText.replace("—","").trim();
   const ta  = document.createElement("textarea");
@@ -1078,6 +1122,7 @@ function iniciarEdicao(spanEl, slotId, base) {
 
 function salvarAnotacao(slotId, valor) {
   if (!_autenticado) { _abrirModalGoogle(); return; }
+  if (_ehCoordenador()) { return; }
   const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
   if (!estadoAulas[ch]) estadoAulas[ch] = {};
   if (valor.trim() === "") delete estadoAulas[ch].anotacao;
@@ -1089,11 +1134,8 @@ function salvarAnotacao(slotId, valor) {
 // imediatamente no DOM se o visitante não estiver autenticado.
 // Antes, o check ficava visualmente marcado até o modal fechar.
 function toggleCampo(slotId, campo, val, inputEl) {
-  if (!_autenticado) {
-    inputEl.checked = !val;  // reverte o checkbox antes de abrir o modal
-    _abrirModalGoogle();
-    return;
-  }
+  if (!_autenticado) { inputEl.checked = !val; _abrirModalGoogle(); return; }
+  if (_ehCoordenador()) { inputEl.checked = !val; _mostrarIndicadorSync("⛔ Somente leitura"); return; }
   const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
   if (!estadoAulas[ch]) estadoAulas[ch] = {};
   estadoAulas[ch][campo] = val;
@@ -1259,6 +1301,7 @@ function mudarBimestre(num) { bimestreAtivo = num; selConteudos.clear(); renderi
 
 function resetarOrdem() {
   if (!_autenticado) { _abrirModalGoogle(); return; }
+  if (_ehCoordenador()) { _mostrarIndicadorSync("⛔ Somente leitura"); return; }
   if (!confirm("Restaurar ordem original dos conteúdos?")) return;
   delete ordemConteudos[chaveOrdem(turmaAtiva.id, bimestreAtivo)];
   salvarTudo(); renderizarConteudo();
@@ -1266,6 +1309,7 @@ function resetarOrdem() {
 
 function abrirModalEventual() {
   if (!_autenticado) { _abrirModalGoogle(); return; }
+  if (_ehCoordenador()) { _mostrarIndicadorSync("⛔ Somente leitura"); return; }
   document.getElementById("ev-data").value = hoje();
   document.getElementById("modal-eventual").style.display = "flex";
 }
@@ -1293,6 +1337,7 @@ function removerEventual(slotId) {
 
 function confirmarLimpar() {
   if (!_autenticado) { _abrirModalGoogle(); return; }
+  if (_ehCoordenador()) { _mostrarIndicadorSync("⛔ Somente leitura"); return; }
   const lbl = RT_BIMESTRES.find(b=>b.bimestre===bimestreAtivo)?.label;
   if (!confirm(`Apagar todos os registros do ${lbl} desta turma?`)) return;
   getSlotsCompletos(turmaAtiva.id, bimestreAtivo).forEach(s => {
@@ -1353,31 +1398,56 @@ function baixarArquivo(blob, nome) {
 // ════════════════════════════════════════════════════════════
 function abrirPainelGestao() {
   if (!_autenticado) { _abrirModalGoogle(); return; }
-  const adminTab = _isAdmin(_userAtual?.email) ? `
-    <button class="gtab" onclick="abrirGTab(this,'g-professores')">👥 Professores</button>` : "";
-  const adminSection = _isAdmin(_userAtual?.email) ? `
-    <div id="g-professores" class="gestao-secao">${htmlGestaoProfessores()}</div>` : "";
+  const papel   = _papel();
+  const isAdmin = papel === "admin";
+  const isCoord = papel === "coordenador";
+  const isProf  = papel === "professor";
+
+  // Abas e seções variam por papel:
+  // Admin:       Conteúdos · Turmas · Bimestres · Meu Perfil · Usuários
+  // Professor:   Conteúdos · Turmas · Bimestres · Meu Perfil
+  // Coordenador: Bimestres · Meu Perfil · Diários (leitura)
+  const tabs = [], sections = [];
+
+  if (isAdmin || isProf) {
+    tabs.push(`<button class="gtab ativo" onclick="abrirGTab(this,'g-conteudos')">Conteúdos</button>`);
+    sections.push(`<div id="g-conteudos" class="gestao-secao ativa">${htmlGestaoConteudos()}</div>`);
+    tabs.push(`<button class="gtab" onclick="abrirGTab(this,'g-turmas')">Séries / Turmas</button>`);
+    sections.push(`<div id="g-turmas" class="gestao-secao">${htmlGestaoTurmas()}</div>`);
+  }
+
+  const bimAtivo = isCoord ? " ativo" : "";
+  const bimSecAtivo = isCoord ? " ativa" : "";
+  tabs.push(`<button class="gtab${bimAtivo}" onclick="abrirGTab(this,'g-bimestres')">Bimestres</button>`);
+  sections.push(`<div id="g-bimestres" class="gestao-secao${bimSecAtivo}">${htmlGestaoBimestres()}</div>`);
+
+  tabs.push(`<button class="gtab" onclick="abrirGTab(this,'g-perfil')">Meu Perfil</button>`);
+  sections.push(`<div id="g-perfil" class="gestao-secao">${htmlGestaoPerfil()}</div>`);
+
+  if (isAdmin) {
+    tabs.push(`<button class="gtab" onclick="abrirGTab(this,'g-usuarios')">👥 Usuários</button>`);
+    sections.push(`<div id="g-usuarios" class="gestao-secao">${htmlGestaoUsuarios()}</div>`);
+  }
+  if (isCoord) {
+    tabs.push(`<button class="gtab" onclick="abrirGTab(this,'g-diarios')">📚 Diários</button>`);
+    sections.push(`<div id="g-diarios" class="gestao-secao">${htmlGestaoDiarios()}</div>`);
+  }
+
+  const btnExportar = isAdmin
+    ? `<button class="btn-exportar-js" onclick="exportarJS()" style="font-size:.8rem">⬇ aulas.js</button>`
+    : "";
+
   document.getElementById("conteudo-principal").innerHTML = `
     <div class="gestao-painel">
       <div class="gestao-header">
         <h1 class="gestao-titulo">⚙ Painel de Gestão</h1>
         <div style="display:flex;gap:8px;align-items:center;">
-          ${_isAdmin(_userAtual?.email) ? '<button class="btn-exportar-js" onclick="exportarJS()" style="font-size:.8rem">⬇ aulas.js</button>' : ''}
+          ${btnExportar}
           <button class="btn-voltar" onclick="voltarPrincipal()">← Voltar</button>
         </div>
       </div>
-      <div class="gestao-tabs">
-        <button class="gtab ativo" onclick="abrirGTab(this,'g-conteudos')">Conteúdos</button>
-        <button class="gtab" onclick="abrirGTab(this,'g-turmas')">Séries / Turmas</button>
-        <button class="gtab" onclick="abrirGTab(this,'g-bimestres')">Bimestres</button>
-        <button class="gtab" onclick="abrirGTab(this,'g-perfil')">Meu Perfil</button>
-        ${adminTab}
-      </div>
-      <div id="g-conteudos" class="gestao-secao ativa">${htmlGestaoConteudos()}</div>
-      <div id="g-turmas" class="gestao-secao">${htmlGestaoTurmas()}</div>
-      <div id="g-bimestres" class="gestao-secao">${htmlGestaoBimestres()}</div>
-      <div id="g-perfil" class="gestao-secao">${htmlGestaoPerfil()}</div>
-      ${adminSection}
+      <div class="gestao-tabs">${tabs.join("")}</div>
+      ${sections.join("")}
     </div>`;
 }
 
@@ -1386,11 +1456,12 @@ function abrirGTab(btn, secId) {
   document.querySelectorAll(".gestao-secao").forEach(s=>s.classList.remove("ativa"));
   btn.classList.add("ativo");
   document.getElementById(secId).classList.add("ativa");
-  if (secId==="g-turmas")      document.getElementById(secId).innerHTML = htmlGestaoTurmas();
-  if (secId==="g-bimestres")   document.getElementById(secId).innerHTML = htmlGestaoBimestres();
-  if (secId==="g-conteudos")   document.getElementById(secId).innerHTML = htmlGestaoConteudos();
-  if (secId==="g-perfil")      document.getElementById(secId).innerHTML = htmlGestaoPerfil();
-  if (secId==="g-professores") { document.getElementById(secId).innerHTML = htmlGestaoProfessores(); _carregarProfessores(); }
+  if (secId==="g-turmas")    document.getElementById(secId).innerHTML = htmlGestaoTurmas();
+  if (secId==="g-bimestres") document.getElementById(secId).innerHTML = htmlGestaoBimestres();
+  if (secId==="g-conteudos") document.getElementById(secId).innerHTML = htmlGestaoConteudos();
+  if (secId==="g-perfil")    document.getElementById(secId).innerHTML = htmlGestaoPerfil();
+  if (secId==="g-usuarios")  { document.getElementById(secId).innerHTML = htmlGestaoUsuarios();  _carregarUsuarios(); }
+  if (secId==="g-diarios")   { document.getElementById(secId).innerHTML = htmlGestaoDiarios();   _carregarDiariosCoord(); }
 }
 
 function voltarPrincipal() {
@@ -1788,35 +1859,35 @@ async function _salvarPerfil() {
 }
 
 // ════════════════════════════════════════════════════════════
-//  PAINEL: PROFESSORES (apenas admin)
+//  PAINEL: USUÁRIOS (apenas admin)
 // ════════════════════════════════════════════════════════════
-function htmlGestaoProfessores() {
+function htmlGestaoUsuarios() {
   return `
     <div class="gestao-bloco">
       <div class="gestao-bloco-header">
-        <h3>Professores cadastrados</h3>
-        <span id="profs-count" style="font-size:.8rem;color:var(--text-muted)">Carregando…</span>
+        <h3>Usuários cadastrados</h3>
+        <span id="usuarios-count" style="font-size:.8rem;color:var(--text-muted)">Carregando…</span>
       </div>
-      <div id="profs-lista">
-        <div style="padding:30px;text-align:center;color:var(--text-muted)">⏳ Buscando professores…</div>
+      <div id="usuarios-lista">
+        <div style="padding:30px;text-align:center;color:var(--text-muted)">⏳ Buscando usuários…</div>
       </div>
     </div>`;
 }
 
-async function _carregarProfessores() {
+async function _carregarUsuarios() {
   try {
     const snap = await firebase.firestore().collection("professores").get();
-    const profs = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
-    profs.sort((a,b) => {
-      const ordem = { pendente:0, aprovado:1, rejeitado:2 };
-      return (ordem[a.status]??3) - (ordem[b.status]??3);
+    const users = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+    users.sort((a,b) => {
+      const ord = { pendente:0, aprovado:1, rejeitado:2 };
+      return (ord[a.status]??3) - (ord[b.status]??3);
     });
-    const count = document.getElementById("profs-count");
-    if (count) count.textContent = `${profs.length} professor(es)`;
-    const lista = document.getElementById("profs-lista");
+    const count = document.getElementById("usuarios-count");
+    if (count) count.textContent = `${users.length} usuário(s)`;
+    const lista = document.getElementById("usuarios-lista");
     if (!lista) return;
-    if (!profs.length) {
-      lista.innerHTML = `<div style="padding:30px;text-align:center;color:var(--text-muted)">Nenhum professor cadastrado.</div>`;
+    if (!users.length) {
+      lista.innerHTML = `<div style="padding:30px;text-align:center;color:var(--text-muted)">Nenhum usuário cadastrado.</div>`;
       return;
     }
     lista.innerHTML = `
@@ -1824,67 +1895,144 @@ async function _carregarProfessores() {
         <table class="tabela-gestao">
           <thead><tr>
             <th>Nome</th><th>E-mail</th><th>Escola</th><th>Disciplinas</th>
-            <th>Status</th><th>Solicitado em</th><th>Ações</th>
+            <th>Papel</th><th>Status</th><th>Solicitado em</th><th>Ações</th>
           </tr></thead>
           <tbody>
-            ${profs.map(p => {
-              const statusCls = p.status==="aprovado" ? "prof-status-ok"
-                : p.status==="rejeitado" ? "prof-status-rej"
-                : "prof-status-pend";
-              const statusLabel = p.status==="aprovado" ? "✓ Aprovado"
-                : p.status==="rejeitado" ? "✗ Rejeitado"
-                : "⏳ Pendente";
-              const dt = p.solicitadoEm ? new Date(p.solicitadoEm).toLocaleDateString("pt-BR") : "—";
-              const adminBadge = p.admin ? ' <span class="badge-admin">admin</span>' : "";
-              const acoes = p.admin ? '<span style="color:#4a5568;font-size:.75rem">—</span>' : `
-                ${p.status!=="aprovado" ? `<button class="btn-add" style="padding:4px 10px;font-size:.73rem" onclick="_aprovarProf('${p.uid}')">Aprovar</button>` : ""}
-                ${p.status!=="rejeitado" ? `<button class="btn-limpar" style="padding:4px 10px;font-size:.73rem" onclick="_rejeitarProf('${p.uid}')">Rejeitar</button>` : ""}
-                <button class="btn-icon-del" onclick="_excluirProf('${p.uid}')" title="Excluir">🗑</button>
-              `;
+            ${users.map(u => {
+              const isAdminUser = _isAdmin(u.email);
+              const statusCls   = u.status==="aprovado" ? "prof-status-ok"
+                : u.status==="rejeitado" ? "prof-status-rej" : "prof-status-pend";
+              const statusLabel = u.status==="aprovado" ? "✓ Aprovado"
+                : u.status==="rejeitado" ? "✗ Rejeitado" : "⏳ Pendente";
+              const dt = u.solicitadoEm
+                ? new Date(u.solicitadoEm).toLocaleDateString("pt-BR") : "—";
+              const papelAtual = u.papel || "professor";
+              const papelCell  = isAdminUser
+                ? `<span class="badge-papel badge-admin">Admin</span>`
+                : `<select class="gi gi-xs" onchange="_alterarPapel('${u.uid}',this.value)">
+                    <option value="professor"   ${papelAtual==="professor"  ?"selected":""}>Professor</option>
+                    <option value="coordenador" ${papelAtual==="coordenador"?"selected":""}>Coordenador</option>
+                   </select>`;
+              const acoes = isAdminUser
+                ? `<span style="color:#4a5568;font-size:.75rem">—</span>`
+                : `<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
+                    ${u.status!=="aprovado"  ? `<button class="btn-add"    style="padding:4px 10px;font-size:.73rem" onclick="_aprovarUsuario('${u.uid}')">Aprovar</button>` : ""}
+                    ${u.status!=="rejeitado" ? `<button class="btn-limpar" style="padding:4px 10px;font-size:.73rem" onclick="_rejeitarUsuario('${u.uid}')">Rejeitar</button>` : ""}
+                    <button class="btn-icon-del" onclick="_excluirUsuario('${u.uid}')" title="Excluir">🗑</button>
+                   </div>`;
               return `<tr>
-                <td>${(p.nome||"—")}${adminBadge}</td>
-                <td style="font-size:.78rem">${p.email||"—"}</td>
-                <td style="font-size:.78rem">${p.escola||"—"}</td>
-                <td style="font-size:.78rem">${p.disciplinas||"—"}</td>
+                <td>${u.nome||"—"}</td>
+                <td style="font-size:.78rem">${u.email||"—"}</td>
+                <td style="font-size:.78rem">${u.escola||"—"}</td>
+                <td style="font-size:.78rem">${u.disciplinas||"—"}</td>
+                <td>${papelCell}</td>
                 <td><span class="prof-status ${statusCls}">${statusLabel}</span></td>
                 <td style="font-size:.78rem">${dt}</td>
-                <td style="white-space:nowrap">${acoes}</td>
+                <td>${acoes}</td>
               </tr>`;
             }).join("")}
           </tbody>
         </table>
       </div>`;
-  } catch (e) {
-    console.error("Erro ao carregar professores:", e);
-    const lista = document.getElementById("profs-lista");
-    if (lista) lista.innerHTML = `<div style="padding:20px;color:var(--red)">Erro ao carregar professores.</div>`;
+  } catch(e) {
+    const lista = document.getElementById("usuarios-lista");
+    if (lista) lista.innerHTML = `<div style="padding:20px;color:var(--red)">Erro ao carregar usuários.</div>`;
   }
 }
 
-async function _aprovarProf(uid) {
+async function _aprovarUsuario(uid) {
+  // Lê o papel selecionado no select da linha antes de aprovar
+  const papelSel = document.querySelector(`[onchange*="_alterarPapel('${uid}"]`)?.value || "professor";
   try {
-    await firebase.firestore().collection("professores").doc(uid).update({ status: "aprovado" });
-    _mostrarIndicadorSync("✓ Professor aprovado");
-    _carregarProfessores();
+    await firebase.firestore().collection("professores").doc(uid)
+      .update({ status: "aprovado", papel: papelSel });
+    _mostrarIndicadorSync(`✓ Aprovado como ${papelSel}`);
+    _carregarUsuarios();
   } catch(e) { alert("Erro ao aprovar."); }
 }
 
-async function _rejeitarProf(uid) {
-  if (!confirm("Rejeitar o acesso deste professor?")) return;
+async function _rejeitarUsuario(uid) {
+  if (!confirm("Rejeitar o acesso deste usuário?")) return;
   try {
     await firebase.firestore().collection("professores").doc(uid).update({ status: "rejeitado" });
     _mostrarIndicadorSync("✓ Acesso rejeitado");
-    _carregarProfessores();
+    _carregarUsuarios();
   } catch(e) { alert("Erro ao rejeitar."); }
 }
 
-async function _excluirProf(uid) {
-  if (!confirm("Excluir completamente este professor? Isso não apaga os dados do diário dele.")) return;
+async function _excluirUsuario(uid) {
+  if (!confirm("Excluir este usuário? Os dados do diário dele não serão apagados.")) return;
   try {
     await firebase.firestore().collection("professores").doc(uid).delete();
-    _mostrarIndicadorSync("✓ Professor excluído");
-    _carregarProfessores();
+    _mostrarIndicadorSync("✓ Usuário excluído");
+    _carregarUsuarios();
   } catch(e) { alert("Erro ao excluir."); }
+}
+
+async function _alterarPapel(uid, papel) {
+  try {
+    await firebase.firestore().collection("professores").doc(uid).update({ papel });
+    _mostrarIndicadorSync(`✓ Papel alterado: ${papel}`);
+  } catch(e) { alert("Erro ao alterar papel."); }
+}
+
+// ════════════════════════════════════════════════════════════
+//  PAINEL: DIÁRIOS (coordenador — somente leitura)
+// ════════════════════════════════════════════════════════════
+function htmlGestaoDiarios() {
+  return `
+    <div class="gestao-bloco">
+      <div class="gestao-bloco-header">
+        <h3>Diários dos professores associados</h3>
+        <span id="diarios-count" style="font-size:.8rem;color:var(--text-muted)">Carregando…</span>
+      </div>
+      <div id="diarios-lista">
+        <div style="padding:30px;text-align:center;color:var(--text-muted)">⏳ Carregando…</div>
+      </div>
+    </div>`;
+}
+
+async function _carregarDiariosCoord() {
+  const lista = document.getElementById("diarios-lista");
+  const count = document.getElementById("diarios-count");
+  const uids  = _perfilProf?.professoresAssociados || [];
+  if (!uids.length) {
+    if (lista) lista.innerHTML = `<div style="padding:30px;text-align:center;color:var(--text-muted)">
+      Nenhum professor associado a você ainda.<br>
+      Peça ao administrador para fazer a associação.</div>`;
+    if (count) count.textContent = "0 professor(es)";
+    return;
+  }
+  await _carregarDiariosAssociados(uids);
+  const qtd = Object.keys(_diariosAssociados).length;
+  if (count) count.textContent = `${qtd} professor(es)`;
+  if (!lista) return;
+  if (!qtd) {
+    lista.innerHTML = `<div style="padding:30px;text-align:center;color:var(--text-muted)">Nenhum dado encontrado.</div>`;
+    return;
+  }
+  lista.innerHTML = Object.entries(_diariosAssociados).map(([uid, dados]) => {
+    const p      = dados.perfil;
+    const turmas = dados.RT_TURMAS || [];
+    const tags   = turmas.length
+      ? turmas.map(t =>
+          `<span style="display:inline-block;background:var(--amber-pale);color:var(--amber);
+            border-radius:4px;padding:2px 8px;margin:2px;font-weight:600;font-size:.78rem;">
+            ${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""} · ${t.sigla}
+          </span>`).join("")
+      : `<em style="color:var(--text-muted);font-size:.8rem;">Sem turmas cadastradas</em>`;
+    return `
+      <div style="margin-bottom:16px;padding:16px 18px;
+        background:var(--bg-paper);border:1px solid var(--border);border-radius:var(--radius);">
+        <div style="font-family:'DM Serif Display',serif;font-size:1.05rem;margin-bottom:3px;">
+          ${p.nome||uid}
+        </div>
+        <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:10px;">
+          ${p.email||""} · ${p.disciplinas||""}
+        </div>
+        <div>${tags}</div>
+      </div>`;
+  }).join("");
 }
 let contDragIdx = null;
 function contDragStart(e, i)  { contDragIdx = i; e.dataTransfer.effectAllowed="move"; e.dataTransfer.setData("text/plain",i); }
