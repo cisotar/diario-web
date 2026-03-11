@@ -13,8 +13,8 @@
   --bg-paper:    #faf8f3;
   --bg-sidebar:  #1e2530;
   --text:        #1a1e26;
-  --text-mid:    #e2e8f0;
-  --text-muted:  #cbd5e1;
+  --text-mid:    #4a5568;
+  --text-muted:  #718096;
   --border:      #d9d4c9;
   --amber:       #c97d20;
   --amber-light: #f0a84a;
@@ -67,7 +67,7 @@ body {
 
 .header-tagline {
   font-size: .7rem;
-  color: var(--text-muted);
+  color: #cbd5e1;
   text-transform: uppercase;
   letter-spacing: .1em;
   font-weight: 600;
@@ -329,7 +329,7 @@ body {
   width: 100%; border-collapse: collapse; font-size: .845rem;
 }
 
-.tabela-aulas thead { background: #1e2530; color: #8896a5; }
+.tabela-aulas thead { background: #1e2530; color: #e2e8f0; }
 
 .tabela-aulas th {
   padding: 12px 12px;
@@ -400,7 +400,7 @@ body {
 
 .td-numero {
   text-align: center; font-weight: 700;
-  color: var(--text-mid); font-size: .78rem;
+  color: #2d3748; font-size: .78rem;
 }
 
 .row-pendente .td-numero { color: var(--red); }
@@ -755,7 +755,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 
 /* Tabela de gestão */
 .tabela-gestao { width: 100%; border-collapse: collapse; font-size: .845rem; }
-.tabela-gestao thead { background: #1e2530; color: #8896a5; }
+.tabela-gestao thead { background: #1e2530; color: #e2e8f0; }
 .tabela-gestao th {
   padding: 10px 12px; text-align: left;
   font-size: .63rem; text-transform: uppercase;
