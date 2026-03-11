@@ -150,7 +150,9 @@ function _initFirebase() {
   if (_dbDoc) return _dbDoc;
   try {
     const db = firebase.firestore();
-    _dbDoc = db.collection("diario").doc(_userAtual.uid);
+    // Admins compartilham um único documento global; professores usam seu uid
+    const docId = _isAdmin(_userAtual.email) ? "global" : _userAtual.uid;
+    _dbDoc = db.collection("diario").doc(docId);
     return _dbDoc;
   } catch (e) {
     console.warn("Firebase não disponível, usando localStorage:", e);
@@ -487,7 +489,7 @@ function _abrirModalGoogle() {
 
 let _saveTimer = null;
 function salvarTudo() {
-  const uid = _userAtual ? _userAtual.uid : "anonimo";
+  const uid = _userAtual ? (_isAdmin(_userAtual.email) ? "global" : _userAtual.uid) : "anonimo";
   // Cache local de inicialização rápida (não é fonte de verdade)
   try {
     localStorage.setItem(`aulaEstado_${uid}`,    JSON.stringify(estadoAulas));
@@ -533,7 +535,7 @@ async function _salvarFirestore() {
 // Fallback de emergência — usado apenas quando o Firestore falha com conexão ativa
 function _salvarLocalStorageEmergencia() {
   try {
-    const uid = _userAtual?.uid || "anonimo";
+    const uid = _userAtual ? (_isAdmin(_userAtual.email) ? "global" : _userAtual.uid) : "anonimo";
     const bkp = {
       aulaEstado:    JSON.stringify(estadoAulas),
       aulaOrdem:     JSON.stringify(ordemConteudos),
@@ -550,7 +552,7 @@ function _salvarLocalStorageEmergencia() {
 // Restaura backup de emergência se existir e for mais recente que o Firestore
 function _restaurarEmergenciaSeNecessario(dadosFirestore) {
   try {
-    const uid  = _userAtual?.uid || "anonimo";
+    const uid  = _userAtual ? (_isAdmin(_userAtual.email) ? "global" : _userAtual.uid) : "anonimo";
     const raw  = localStorage.getItem(`_emergencia_${uid}`);
     if (!raw) return false;
     const bkp  = JSON.parse(raw);
@@ -620,7 +622,7 @@ async function carregarTudo() {
   } catch(e) { console.warn("Bimestres globais indisponíveis, usando padrão:", e); }
 
   // Chave de cache isolada por UID para evitar colisão entre professores
-  const uidKey = _userAtual ? _userAtual.uid : "anonimo";
+  const uidKey = _userAtual ? (_isAdmin(_userAtual.email) ? "global" : _userAtual.uid) : "anonimo";
   const seedKey = `_aulasSeed_${uidKey}`;
   const doc = _initFirebase();
   if (doc) {
