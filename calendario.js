@@ -40,9 +40,13 @@ function calAulasNoDia(isoDate) {
 // ── Toggle — NÃO depende de turmaAtiva/bimestreAtivo ──────────
 function calToggle(turmaId, bimestre, slotId, campo, novoVal, inputEl) {
   if (!_autenticado) {
-    // Reverte o elemento clicado se for um checkbox
     if (inputEl) inputEl.checked = !novoVal;
     _abrirModalGoogle();
+    return;
+  }
+  if (_ehCoordenador()) {
+    if (inputEl) inputEl.checked = !novoVal;
+    _mostrarIndicadorSync("⛔ Somente leitura");
     return;
   }
   const ch = chaveSlot(turmaId, bimestre, slotId);

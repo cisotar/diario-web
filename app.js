@@ -603,7 +603,12 @@ function _ativarListenerFirestore() {
     if (d.aulaEventuais) localStorage.setItem(`aulaEventuais_${_uk}`, d.aulaEventuais);
     if (d.RT_CONTEUDOS)  localStorage.setItem(`RT_CONTEUDOS_${_uk}`,  d.RT_CONTEUDOS);
     if (d.RT_TURMAS)     localStorage.setItem(`RT_TURMAS_${_uk}`,     d.RT_TURMAS);
-    if (turmaAtiva) renderizarConteudo();
+    // Atualiza a view ativa (cronograma ou calendário)
+    const calVisivel = !!document.getElementById("cal-corpo");
+    if (calVisivel && typeof _calRenderCorpo === "function") {
+      _calRenderCorpo();
+    }
+    if (turmaAtiva && !calVisivel) renderizarConteudo();
     _mostrarIndicadorSync("↓ Sincronizado");
   }, err => console.warn("onSnapshot erro:", err));
 
@@ -620,7 +625,9 @@ function _ativarListenerFirestore() {
         const bim = JSON.parse(snap.data().bimestres);
         if (Array.isArray(bim) && bim.length) {
           RT_BIMESTRES = bim;
-          if (turmaAtiva) renderizarConteudo();
+          const _calVis = !!document.getElementById("cal-corpo");
+          if (_calVis && typeof _calRenderCorpo === "function") _calRenderCorpo();
+          if (turmaAtiva && !_calVis) renderizarConteudo();
           _mostrarIndicadorSync("↓ Bimestres atualizados");
         }
       } catch {}
