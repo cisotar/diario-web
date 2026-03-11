@@ -1,4 +1,4 @@
-// AULAS.JS — Exportado em 11/03/2026, 18:32:31
+// AULAS.JS — Exportado em 11/03/2026, 20:10:44
 
 const BIMESTRES = [
   {
@@ -176,7 +176,7 @@ const TURMAS    = [
     "id": "2A_SOC",
     "serie": "2",
     "turma": "A",
-    "subtitulo": "ADM",
+    "subtitulo": "(ADM)",
     "disciplina": "Sociologia",
     "sigla": "SOC",
     "horarios": [
@@ -1538,6 +1538,14 @@ const ESTADO = {
     "conteudoEntregue": true
   },
   "2B_SOC_b1_sr10": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1D_GEO_b1_sr10": {
+    "chamada": false,
+    "conteudoEntregue": false
+  },
+  "1B_GEO_b1_sr11": {
     "chamada": true,
     "conteudoEntregue": true
   }
