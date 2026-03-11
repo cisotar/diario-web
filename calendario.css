@@ -91,18 +91,18 @@
   color: #fff !important;
 }
 
-/* ── Estado: DIA PASSADO + NÃO MARCADO — vermelho claro ── */
+/* ── Estado: DIA PASSADO + NÃO MARCADO — vermelho claro, fonte escura ── */
 .cal-chk-vermelho {
   background: #fde8e8 !important;
   border-color: #e05252 !important;
-  color: #c0392b !important;
+  color: #922b21 !important;
 }
 
-/* ── Estado: DIA FUTURO + NÃO MARCADO — cinza neutro ───── */
+/* ── Estado: DIA FUTURO + NÃO MARCADO — cinza claro, fonte escura ───── */
 .cal-chk-fut {
   background: #f4f5f7;
   border-color: #dde2ea;
-  color: #a0acb8;
+  color: #4a5568;
 }
 
 .cal-chk-ico { font-size: .95em; }
@@ -238,7 +238,7 @@
 .ccs-topo { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
 .ccs-sigla {
   font-size: .6rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-  background: #1e2530; color: var(--amber-light); padding: 1px 5px; border-radius: 3px;
+  background: #1e2530; color: #fff; padding: 1px 5px; border-radius: 3px;
 }
 .ccs-nome { font-size: .72rem; font-weight: 600; color: var(--text); }
 
@@ -290,9 +290,9 @@
 .ccd-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
 .ccd-info { display: flex; align-items: flex-start; gap: 8px; }
 .ccd-sigla-badge {
-  flex-shrink: 0; background: var(--amber); color: #fff;
-  font-size: .6rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-  padding: 3px 7px; border-radius: 4px; margin-top: 2px;
+  display: inline-block; background: #1e2530; color: #fff;
+  font-size: .58rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  padding: 1px 5px; border-radius: 3px; vertical-align: middle; margin-right: 3px;
 }
 .ccd-nomes { display: flex; flex-direction: column; gap: 1px; }
 .ccd-nome-turma { font-size: .86rem; font-weight: 600; color: var(--text); line-height: 1.3; }
