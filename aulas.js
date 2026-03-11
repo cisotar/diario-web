@@ -1,4 +1,4 @@
-// AULAS.JS — Exportado em 09/03/2026, 10:31:15
+// AULAS.JS — Exportado em 11/03/2026, 18:32:31
 
 const BIMESTRES = [
   {
@@ -122,7 +122,7 @@ const TURMAS    = [
     "id": "2A_GEO",
     "serie": "2",
     "turma": "A",
-    "subtitulo": "ADM",
+    "subtitulo": "(ADM)",
     "disciplina": "Geografia",
     "sigla": "GEO",
     "horarios": [
@@ -140,7 +140,7 @@ const TURMAS    = [
     "id": "2B_GEO",
     "serie": "2",
     "turma": "B",
-    "subtitulo": "SIST",
+    "subtitulo": "(ADS)",
     "disciplina": "Geografia",
     "sigla": "GEO",
     "horarios": [
@@ -158,7 +158,7 @@ const TURMAS    = [
     "id": "2C_GEO",
     "serie": "2",
     "turma": "C",
-    "subtitulo": "HUM",
+    "subtitulo": "(HUM)",
     "disciplina": "Geografia",
     "sigla": "GEO",
     "horarios": [
@@ -194,7 +194,7 @@ const TURMAS    = [
     "id": "2B_SOC",
     "serie": "2",
     "turma": "B",
-    "subtitulo": "SIST",
+    "subtitulo": "(ADS)",
     "disciplina": "Sociologia",
     "sigla": "SOC",
     "horarios": [
@@ -212,7 +212,7 @@ const TURMAS    = [
     "id": "2C_SOC",
     "serie": "2",
     "turma": "C",
-    "subtitulo": "HUM",
+    "subtitulo": "(HUM)",
     "disciplina": "Sociologia",
     "sigla": "SOC",
     "horarios": [
@@ -230,7 +230,7 @@ const TURMAS    = [
     "id": "3B_ATUAL",
     "serie": "3",
     "turma": "B",
-    "subtitulo": "HUM",
+    "subtitulo": "(HUM)",
     "disciplina": "Atualidades",
     "sigla": "ATUAL",
     "horarios": [
@@ -894,7 +894,10 @@ const ESTADO = {
     "conteudoEntregue": true,
     "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema."
   },
-  "1B_GEO_b1_sr8": {},
+  "1B_GEO_b1_sr8": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
   "1C_GEO_b1_sr0": {
     "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
     "feita": true,
@@ -1092,10 +1095,10 @@ const ESTADO = {
   },
   "1E_GEO_b1_sr9": {
     "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
-    "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "feita": false,
+    "dataFeita": null,
+    "chamada": false,
+    "conteudoEntregue": false
   },
   "1C_GEO_b1_sr9": {
     "feita": true,
@@ -1106,49 +1109,51 @@ const ESTADO = {
   "1E_GEO_b1_sr10": {
     "feita": false,
     "dataFeita": null,
-    "chamada": false
+    "chamada": true,
+    "conteudoEntregue": true
   },
   "1A_GEO_b1_sr9": {
     "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
     "feita": true,
-    "dataFeita": "2026-03-08",
+    "dataFeita": "2026-03-09",
     "chamada": true,
     "conteudoEntregue": true
   },
   "2B_SOC_b1_sr9": {
-    "feita": true,
-    "dataFeita": "2026-03-08",
-    "chamada": true,
-    "conteudoEntregue": true
+    "feita": false,
+    "dataFeita": null,
+    "chamada": false,
+    "conteudoEntregue": false
   },
   "2C_GEO_b1_sr9": {
-    "feita": true,
-    "dataFeita": "2026-03-08",
-    "chamada": true,
-    "conteudoEntregue": true
+    "feita": false,
+    "dataFeita": null,
+    "chamada": false,
+    "conteudoEntregue": false
   },
   "3B_ATUAL_b1_sr9": {
-    "feita": true,
-    "dataFeita": "2026-03-08",
-    "chamada": true,
-    "conteudoEntregue": true
+    "feita": false,
+    "dataFeita": null,
+    "chamada": false,
+    "conteudoEntregue": false
   },
   "2B_GEO_b1_sr9": {
-    "feita": true,
-    "dataFeita": "2026-03-08",
-    "chamada": true,
-    "conteudoEntregue": true
+    "feita": false,
+    "dataFeita": null,
+    "chamada": false,
+    "conteudoEntregue": false
   },
   "2A_GEO_b1_sr9": {
-    "feita": true,
-    "dataFeita": "2026-03-08",
-    "chamada": true
+    "feita": false,
+    "dataFeita": null,
+    "chamada": false,
+    "conteudoEntregue": false
   },
   "2C_SOC_b1_sr9": {
-    "feita": true,
-    "dataFeita": "2026-03-08",
-    "chamada": true,
-    "conteudoEntregue": true
+    "feita": false,
+    "dataFeita": null,
+    "chamada": false,
+    "conteudoEntregue": false
   },
   "2C_GEO_b1_sr11": {
     "feita": false,
@@ -1233,9 +1238,307 @@ const ESTADO = {
     "dataFeita": null
   },
   "2A_SOC_b1_sr10": {
-    "conteudoEntregue": true,
-    "chamada": true,
+    "conteudoEntregue": false,
+    "chamada": false,
+    "feita": false,
+    "dataFeita": null
+  },
+  "1A_GEO_b1_sr10": {
     "feita": true,
-    "dataFeita": "2026-03-09"
+    "dataFeita": "2026-03-09",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1A_GEO_b1_sr11": {
+    "feita": true,
+    "dataFeita": "2026-03-09",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2C_SOC_b1_sr2": {
+    "feita": true,
+    "dataFeita": "2026-03-10",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2C_SOC_b1_sr3": {
+    "feita": true,
+    "dataFeita": "2026-03-10",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2C_SOC_b1_sr4": {
+    "feita": true,
+    "dataFeita": "2026-03-10",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2C_SOC_b1_sr6": {
+    "feita": true,
+    "dataFeita": "2026-03-10",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2C_SOC_b1_sr7": {
+    "feita": true,
+    "dataFeita": "2026-03-10",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2C_SOC_b1_sr8": {
+    "feita": true,
+    "dataFeita": "2026-03-10",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2C_SOC_b1_sr5": {
+    "feita": true,
+    "dataFeita": "2026-03-10",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2B_SOC_b1_sr2": {
+    "feita": true,
+    "dataFeita": "2026-03-10",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2B_SOC_b1_sr3": {
+    "feita": true,
+    "dataFeita": "2026-03-10",
+    "conteudoEntregue": true,
+    "chamada": true
+  },
+  "2B_SOC_b1_sr4": {
+    "feita": true,
+    "dataFeita": "2026-03-10",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2B_SOC_b1_sr5": {
+    "feita": true,
+    "dataFeita": "2026-03-10",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2B_SOC_b1_sr6": {
+    "feita": true,
+    "dataFeita": "2026-03-10",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2B_SOC_b1_sr7": {
+    "feita": true,
+    "dataFeita": "2026-03-10",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2B_SOC_b1_sr8": {
+    "feita": true,
+    "dataFeita": "2026-03-10",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2B_GEO_b1_sr2": {
+    "feita": true,
+    "dataFeita": "2026-03-10",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2B_GEO_b1_sr3": {
+    "conteudoEntregue": true,
+    "feita": true,
+    "dataFeita": "2026-03-10",
+    "chamada": true
+  },
+  "2B_GEO_b1_sr4": {
+    "feita": true,
+    "dataFeita": "2026-03-10",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2B_GEO_b1_sr5": {
+    "feita": true,
+    "dataFeita": "2026-03-10",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2B_GEO_b1_sr6": {
+    "feita": true,
+    "dataFeita": "2026-03-10",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2B_GEO_b1_sr7": {
+    "feita": true,
+    "dataFeita": "2026-03-10",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2B_GEO_b1_sr8": {
+    "feita": true,
+    "dataFeita": "2026-03-10",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2B_GEO_b1_sr10": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2C_SOC_b1_sr10": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2C_GEO_b1_sr10": {
+    "chamada": true,
+    "conteudoEntregue": true,
+    "feita": false,
+    "dataFeita": null
+  },
+  "3B_ATUAL_b1_sr10": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2C_GEO_b1_sr8": {
+    "chamada": true,
+    "conteudoEntregue": true,
+    "feita": true,
+    "dataFeita": "2026-03-11"
+  },
+  "3B_ATUAL_b1_sr8": {
+    "chamada": true,
+    "conteudoEntregue": true,
+    "feita": true,
+    "dataFeita": "2026-03-11"
+  },
+  "1B_GEO_b1_sr9": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1B_GEO_b1_sr10": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1C_GEO_b1_sr10": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2A_GEO_b1_sr2": {
+    "chamada": true,
+    "conteudoEntregue": true,
+    "feita": true,
+    "dataFeita": "2026-03-11"
+  },
+  "2A_GEO_b1_sr3": {
+    "chamada": true,
+    "conteudoEntregue": true,
+    "feita": true,
+    "dataFeita": "2026-03-11"
+  },
+  "2A_GEO_b1_sr4": {
+    "chamada": true,
+    "conteudoEntregue": true,
+    "feita": true,
+    "dataFeita": "2026-03-11"
+  },
+  "2A_GEO_b1_sr5": {
+    "chamada": true,
+    "conteudoEntregue": true,
+    "feita": true,
+    "dataFeita": "2026-03-11"
+  },
+  "2A_GEO_b1_sr6": {
+    "chamada": true,
+    "conteudoEntregue": true,
+    "feita": true,
+    "dataFeita": "2026-03-11"
+  },
+  "2A_GEO_b1_sr8": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2C_GEO_b1_sr7": {
+    "chamada": true,
+    "conteudoEntregue": true,
+    "feita": true,
+    "dataFeita": "2026-03-11"
+  },
+  "3B_ATUAL_b1_sr7": {
+    "chamada": true,
+    "conteudoEntregue": true,
+    "feita": true,
+    "dataFeita": "2026-03-11"
+  },
+  "2A_GEO_b1_sr7": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "3B_ATUAL_b1_sr6": {
+    "chamada": true,
+    "conteudoEntregue": true,
+    "feita": true,
+    "dataFeita": "2026-03-11"
+  },
+  "2C_GEO_b1_sr6": {
+    "chamada": true,
+    "conteudoEntregue": true,
+    "feita": true,
+    "dataFeita": "2026-03-11"
+  },
+  "2C_GEO_b1_sr5": {
+    "chamada": true,
+    "conteudoEntregue": true,
+    "feita": true,
+    "dataFeita": "2026-03-11"
+  },
+  "2C_GEO_b1_sr4": {
+    "chamada": true,
+    "conteudoEntregue": true,
+    "feita": true,
+    "dataFeita": "2026-03-11"
+  },
+  "2C_GEO_b1_sr3": {
+    "chamada": true,
+    "conteudoEntregue": true,
+    "feita": true,
+    "dataFeita": "2026-03-11"
+  },
+  "2C_GEO_b1_sr2": {
+    "chamada": true,
+    "conteudoEntregue": true,
+    "feita": true,
+    "dataFeita": "2026-03-11"
+  },
+  "3B_ATUAL_b1_sr4": {
+    "chamada": true,
+    "conteudoEntregue": true,
+    "feita": true,
+    "dataFeita": "2026-03-11"
+  },
+  "3B_ATUAL_b1_sr2": {
+    "feita": true,
+    "dataFeita": "2026-03-11",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "3B_ATUAL_b1_sr3": {
+    "feita": true,
+    "dataFeita": "2026-03-11",
+    "conteudoEntregue": true,
+    "chamada": true
+  },
+  "3B_ATUAL_b1_sr5": {
+    "feita": true,
+    "dataFeita": "2026-03-11",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2A_GEO_b1_sr10": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2B_SOC_b1_sr10": {
+    "chamada": true,
+    "conteudoEntregue": true
   }
 };
