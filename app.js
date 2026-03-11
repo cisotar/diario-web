@@ -20,7 +20,9 @@ let _perfilProf = null;  // { nome, email, escola, status, uid }
 
 document.addEventListener("DOMContentLoaded", async () => {
   _mostrarCarregando(true);
-  await _verificarSessao();   // 1º: saber quem está logado
+  await _ativarOffline();          // 0º: habilitar cache offline antes de qualquer leitura
+  _iniciarMonitorConexao();        // 0º: monitorar conexão
+  await _verificarSessao();        // 1º: saber quem está logado
   const ok = await _verificarAcessoProfessor(); // 2º: checar status
   if (!ok) { _mostrarCarregando(false); return; } // tela de aguardo já renderizada
   await carregarTudo();
@@ -84,6 +86,63 @@ const _ehAdmin       = () => _papel() === "admin";
 const _ehCoordenador = () => _papel() === "coordenador";
 const _ehProfessor   = () => _papel() === "professor";
 const _podeEscrever  = () => _papel() === "admin" || _papel() === "professor";
+
+// Persistência offline inicializada uma única vez
+let _offlineAtivo = false;
+async function _ativarOffline() {
+  if (_offlineAtivo) return;
+  _offlineAtivo = true;
+  try {
+    await firebase.firestore().enablePersistence({ synchronizeTabs: true });
+    console.info("Firestore: persistência offline ativa");
+  } catch(e) {
+    if (e.code === "failed-precondition") {
+      console.warn("Firestore offline: múltiplas abas — apenas uma sincroniza por vez");
+    } else if (e.code === "unimplemented") {
+      console.warn("Firestore offline: navegador não suporta persistência");
+    }
+  }
+}
+
+// Monitor de conexão — atualiza indicador e o flag global _online
+let _online = navigator.onLine;
+function _iniciarMonitorConexao() {
+  const atualizar = (online) => {
+    _online = online;
+    _atualizarIndicadorConexao();
+  };
+  window.addEventListener("online",  () => atualizar(true));
+  window.addEventListener("offline", () => atualizar(false));
+}
+
+function _atualizarIndicadorConexao() {
+  let el = document.getElementById("conn-indicator");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "conn-indicator";
+    el.style.cssText = [
+      "position:fixed","bottom:40px","right:16px","z-index:9998",
+      "font-size:11px","padding:3px 10px","border-radius:20px",
+      "pointer-events:none","transition:opacity 0.4s","opacity:0",
+      "font-family:'DM Sans',sans-serif","font-weight:600"
+    ].join(";");
+    document.body.appendChild(el);
+  }
+  if (_online) {
+    el.textContent = "🟢 Online";
+    el.style.background = "#0f2a1e";
+    el.style.color = "#4ade80";
+    el.style.opacity = "1";
+    clearTimeout(el._timer);
+    el._timer = setTimeout(() => { el.style.opacity = "0"; }, 2500);
+  } else {
+    el.textContent = "🔴 Offline — alterações salvas localmente";
+    el.style.background = "#2a0f0f";
+    el.style.color = "#f87171";
+    el.style.opacity = "1";
+    clearTimeout(el._timer); // mantém visível enquanto offline
+  }
+}
 
 // Retorna o doc do diário do professor logado
 function _initFirebase() {
@@ -429,11 +488,16 @@ function _abrirModalGoogle() {
 let _saveTimer = null;
 function salvarTudo() {
   const uid = _userAtual ? _userAtual.uid : "anonimo";
-  localStorage.setItem(`aulaEstado_${uid}`,    JSON.stringify(estadoAulas));
-  localStorage.setItem(`aulaOrdem_${uid}`,     JSON.stringify(ordemConteudos));
-  localStorage.setItem(`aulaEventuais_${uid}`, JSON.stringify(linhasEventuais));
-  localStorage.setItem(`RT_CONTEUDOS_${uid}`,  JSON.stringify(RT_CONTEUDOS));
-  localStorage.setItem(`RT_TURMAS_${uid}`,     JSON.stringify(RT_TURMAS));
+  // Cache local de inicialização rápida (não é fonte de verdade)
+  try {
+    localStorage.setItem(`aulaEstado_${uid}`,    JSON.stringify(estadoAulas));
+    localStorage.setItem(`aulaOrdem_${uid}`,     JSON.stringify(ordemConteudos));
+    localStorage.setItem(`aulaEventuais_${uid}`, JSON.stringify(linhasEventuais));
+    localStorage.setItem(`RT_CONTEUDOS_${uid}`,  JSON.stringify(RT_CONTEUDOS));
+    localStorage.setItem(`RT_TURMAS_${uid}`,     JSON.stringify(RT_TURMAS));
+  } catch(e) { console.warn("localStorage cheio ou indisponível:", e); }
+  // Persistência principal: Firestore (com suporte offline nativo)
+  // Debounce de 800 ms para agrupar alterações rápidas em uma única escrita
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(() => _salvarFirestore(), 800);
 }
@@ -442,20 +506,70 @@ async function _salvarFirestore() {
   const doc = _initFirebase();
   if (!doc) return;
   if (!_autenticado) { _abrirModalGoogle(); return; }
+  const payload = {
+    aulaEstado:    JSON.stringify(estadoAulas),
+    aulaOrdem:     JSON.stringify(ordemConteudos),
+    aulaEventuais: JSON.stringify(linhasEventuais),
+    RT_CONTEUDOS:  JSON.stringify(RT_CONTEUDOS),
+    RT_TURMAS:     JSON.stringify(RT_TURMAS),
+    _atualizado:   new Date().toISOString(),
+  };
   try {
-    await doc.set({
+    await doc.set(payload);
+    _mostrarIndicadorSync("✓ Salvo");
+  } catch (e) {
+    if (!_online) {
+      // Offline: o SDK já enfileirou a escrita — vai sincronizar quando voltar
+      _mostrarIndicadorSync("💾 Salvo localmente — pendente de sincronização");
+    } else {
+      console.error("Erro ao salvar no Firestore:", e);
+      _mostrarIndicadorSync("⚠ Erro ao salvar — verifique a conexão");
+      // Fallback de emergência: persiste no localStorage caso Firestore falhe online
+      _salvarLocalStorageEmergencia();
+    }
+  }
+}
+
+// Fallback de emergência — usado apenas quando o Firestore falha com conexão ativa
+function _salvarLocalStorageEmergencia() {
+  try {
+    const uid = _userAtual?.uid || "anonimo";
+    const bkp = {
       aulaEstado:    JSON.stringify(estadoAulas),
       aulaOrdem:     JSON.stringify(ordemConteudos),
       aulaEventuais: JSON.stringify(linhasEventuais),
       RT_CONTEUDOS:  JSON.stringify(RT_CONTEUDOS),
       RT_TURMAS:     JSON.stringify(RT_TURMAS),
-      _atualizado:   new Date().toISOString(),
-    });
-    _mostrarIndicadorSync("✓ Salvo");
-  } catch (e) {
-    console.error("Erro ao salvar no Firestore:", e);
-    _mostrarIndicadorSync("⚠ Sem permissão");
-  }
+      _salvoEm:      new Date().toISOString(),
+    };
+    localStorage.setItem(`_emergencia_${uid}`, JSON.stringify(bkp));
+    console.warn("Backup de emergência salvo no localStorage:", bkp._salvoEm);
+  } catch(e) { console.error("Falha até no backup de emergência:", e); }
+}
+
+// Restaura backup de emergência se existir e for mais recente que o Firestore
+function _restaurarEmergenciaSeNecessario(dadosFirestore) {
+  try {
+    const uid  = _userAtual?.uid || "anonimo";
+    const raw  = localStorage.getItem(`_emergencia_${uid}`);
+    if (!raw) return false;
+    const bkp  = JSON.parse(raw);
+    const tBkp = bkp._salvoEm ? new Date(bkp._salvoEm) : new Date(0);
+    const tFs  = dadosFirestore?._atualizado ? new Date(dadosFirestore._atualizado) : new Date(0);
+    if (tBkp > tFs) {
+      console.warn("Backup de emergência é mais recente — restaurando:", bkp._salvoEm);
+      try { estadoAulas     = JSON.parse(bkp.aulaEstado)    || estadoAulas;    } catch {}
+      try { ordemConteudos  = JSON.parse(bkp.aulaOrdem)     || ordemConteudos; } catch {}
+      try { linhasEventuais = JSON.parse(bkp.aulaEventuais) || linhasEventuais;} catch {}
+      try { const rc = JSON.parse(bkp.RT_CONTEUDOS); if (rc) RT_CONTEUDOS = rc; } catch {}
+      try { const rt = JSON.parse(bkp.RT_TURMAS); if (Array.isArray(rt)) RT_TURMAS = rt; } catch {}
+      _mostrarIndicadorSync("⚠ Dados restaurados do backup local");
+      // Reenvia para o Firestore para reconciliar
+      setTimeout(() => _salvarFirestore(), 1500);
+      return true;
+    }
+    return false;
+  } catch(e) { return false; }
 }
 
 let _syncEl = null;
@@ -514,15 +628,24 @@ async function carregarTudo() {
       const snap = await doc.get();
       if (snap.exists) {
         const d = snap.data();
+        // Sincroniza cache local com Firestore
         if (d.aulaEstado)    localStorage.setItem(`aulaEstado_${uidKey}`,    d.aulaEstado);
         if (d.aulaOrdem)     localStorage.setItem(`aulaOrdem_${uidKey}`,     d.aulaOrdem);
         if (d.aulaEventuais) localStorage.setItem(`aulaEventuais_${uidKey}`, d.aulaEventuais);
         if (d.RT_CONTEUDOS)  localStorage.setItem(`RT_CONTEUDOS_${uidKey}`,  d.RT_CONTEUDOS);
         if (d.RT_TURMAS)     localStorage.setItem(`RT_TURMAS_${uidKey}`,     d.RT_TURMAS);
         localStorage.setItem(seedKey, "1");
+        // Aplica dados do Firestore nas variáveis em memória antes de checar emergência
+        try { estadoAulas     = JSON.parse(d.aulaEstado)    || {}; } catch {}
+        try { ordemConteudos  = JSON.parse(d.aulaOrdem)     || {}; } catch {}
+        try { linhasEventuais = JSON.parse(d.aulaEventuais) || {}; } catch {}
+        try { const rc = JSON.parse(d.RT_CONTEUDOS); if (rc) RT_CONTEUDOS = rc; } catch {}
+        try { const rt = JSON.parse(d.RT_TURMAS); if (Array.isArray(rt)) RT_TURMAS = rt; } catch {}
+        // Verifica se há backup de emergência mais recente
+        _restaurarEmergenciaSeNecessario(d);
       }
     } catch (e) {
-      console.warn("Firestore inacessível, usando cache local:", e);
+      console.warn("Firestore inacessível (offline?), usando cache local:", e);
     }
   }
   try { estadoAulas     = JSON.parse(localStorage.getItem(`aulaEstado_${uidKey}`))    || {}; } catch { estadoAulas = {}; }
@@ -603,11 +726,11 @@ function _ativarListenerFirestore() {
     if (d.aulaEventuais) localStorage.setItem(`aulaEventuais_${_uk}`, d.aulaEventuais);
     if (d.RT_CONTEUDOS)  localStorage.setItem(`RT_CONTEUDOS_${_uk}`,  d.RT_CONTEUDOS);
     if (d.RT_TURMAS)     localStorage.setItem(`RT_TURMAS_${_uk}`,     d.RT_TURMAS);
+    // Limpa backup de emergência após sincronização bem-sucedida
+    try { localStorage.removeItem(`_emergencia_${_uk}`); } catch {}
     // Atualiza a view ativa (cronograma ou calendário)
     const calVisivel = !!document.getElementById("cal-corpo");
-    if (calVisivel && typeof _calRenderCorpo === "function") {
-      _calRenderCorpo();
-    }
+    if (calVisivel && typeof _calRenderCorpo === "function") _calRenderCorpo();
     if (turmaAtiva && !calVisivel) renderizarConteudo();
     _mostrarIndicadorSync("↓ Sincronizado");
   }, err => console.warn("onSnapshot erro:", err));
@@ -625,9 +748,7 @@ function _ativarListenerFirestore() {
         const bim = JSON.parse(snap.data().bimestres);
         if (Array.isArray(bim) && bim.length) {
           RT_BIMESTRES = bim;
-          const _calVis = !!document.getElementById("cal-corpo");
-          if (_calVis && typeof _calRenderCorpo === "function") _calRenderCorpo();
-          if (turmaAtiva && !_calVis) renderizarConteudo();
+          if (turmaAtiva) renderizarConteudo();
           _mostrarIndicadorSync("↓ Bimestres atualizados");
         }
       } catch {}
@@ -1480,7 +1601,7 @@ function htmlGestaoTurmas() {
   const diasNomes = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
   const rows = RT_TURMAS.map((t,i) => `
     <tr>
-      <td>${t.serie}ª</td>
+      <td><input class="gi gi-xs" value="${t.serie}" onchange="editTurmaField(${i},'serie',this.value)" style="width:48px" /></td>
       <td><input class="gi gi-xs" value="${t.turma}" onchange="editTurmaField(${i},'turma',this.value)" /></td>
       <td><input class="gi gi-sm" value="${t.subtitulo}" onchange="editTurmaField(${i},'subtitulo',this.value)" /></td>
       <td><input class="gi" value="${t.disciplina}" onchange="editTurmaField(${i},'disciplina',this.value)" /></td>

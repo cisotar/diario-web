@@ -173,9 +173,12 @@ function _calChecks(item, modo) {
   const ch  = !!est.chamada;
   const reg = !!est.conteudoEntregue;
   const tid = turma.id, b = bim, sid = slot.slotId;
+  const passada = slot.data < hoje();
 
   const btn = (campo, val, label, tipo) => {
-    const cls   = val ? `cal-chk-on cal-chk-on-${tipo}` : "cal-chk-off";
+    const cls   = val     ? "cal-chk-on cal-chk-verde"
+                : passada ? "cal-chk-off cal-chk-vermelho"
+                :           "cal-chk-off cal-chk-fut";
     const ico   = val ? "✓" : "○";
     const title = `${label}: ${val ? "feito — clique para desmarcar" : "não feito — clique para marcar"}`;
     return `<button class="cal-chk cal-chk-${modo} ${cls}"
@@ -201,7 +204,7 @@ function _calChipMes(item) {
   const cor = ad ? "chip-cor-ad" : (passada ? "chip-cor-pend" : "chip-cor-fut");
   return `<div class="cal-chip-mes ${cor}"
     title="${turma.serie}ª ${turma.turma}${turma.subtitulo?" "+turma.subtitulo:""} · ${turma.sigla}&#10;${slot.label||slot.aula||""} ${slot.inicio}–${slot.fim}">
-    <span class="cpm-turma">${turma.serie}ª${turma.turma}<em>${turma.sigla}</em></span>
+    <span class="cpm-turma">${turma.serie}ª${turma.turma} <em>${turma.sigla}</em></span>
     <span class="cpm-hora">${slot.inicio||""}</span>
     <span class="cpm-dots">
       <span class="dot ${ad  ? "dot-ad"  : "dot-off"}" title="AD">●</span>
