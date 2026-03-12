@@ -21,7 +21,7 @@ function calIso(d) {
 
 function calAulasNoDia(isoDate) {
   const lista = [];
-  for (const t of (RT_TURMAS || [])) {
+  for (const t of (_turmasVisiveis ? _turmasVisiveis() : (RT_TURMAS || []))) {
     for (const bim of (RT_BIMESTRES || [])) {
       if (isoDate < bim.inicio || isoDate > bim.fim) continue;
       const slots = getSlotsCompletos(t.id, bim.bimestre);
@@ -173,12 +173,9 @@ function _calChecks(item, modo) {
   const ch  = !!est.chamada;
   const reg = !!est.conteudoEntregue;
   const tid = turma.id, b = bim, sid = slot.slotId;
-  const passada = slot.data < hoje();
 
   const btn = (campo, val, label, tipo) => {
-    const cls   = val     ? "cal-chk-on cal-chk-verde"
-                : passada ? "cal-chk-off cal-chk-vermelho"
-                :           "cal-chk-off cal-chk-fut";
+    const cls   = val ? `cal-chk-on cal-chk-on-${tipo}` : "cal-chk-off";
     const ico   = val ? "✓" : "○";
     const title = `${label}: ${val ? "feito — clique para desmarcar" : "não feito — clique para marcar"}`;
     return `<button class="cal-chk cal-chk-${modo} ${cls}"
@@ -204,7 +201,7 @@ function _calChipMes(item) {
   const cor = ad ? "chip-cor-ad" : (passada ? "chip-cor-pend" : "chip-cor-fut");
   return `<div class="cal-chip-mes ${cor}"
     title="${turma.serie}ª ${turma.turma}${turma.subtitulo?" "+turma.subtitulo:""} · ${turma.sigla}&#10;${slot.label||slot.aula||""} ${slot.inicio}–${slot.fim}">
-    <span class="cpm-turma">${turma.serie}ª${turma.turma} <em>${turma.sigla}</em></span>
+    <span class="cpm-turma">${turma.serie}ª${turma.turma}<em>${turma.sigla}</em></span>
     <span class="cpm-hora">${slot.inicio||""}</span>
     <span class="cpm-dots">
       <span class="dot ${ad  ? "dot-ad"  : "dot-off"}" title="AD">●</span>
@@ -224,8 +221,8 @@ function _calCardSem(item) {
   const cor = ad ? "chip-cor-ad" : (passada ? "chip-cor-pend" : "chip-cor-fut");
   return `<div class="cal-card-sem ${cor}">
     <button class="ccs-topo cal-turma-link" onclick="calIrTurma('${turma.id}')" title="Abrir diário de classe: ${turma.serie}ª ${turma.turma} ${turma.disciplina}">
-      <span class="ccs-nome">${turma.serie}ª${turma.turma}${turma.subtitulo ? " "+turma.subtitulo : ""}</span>
       <span class="ccs-sigla">${turma.sigla}</span>
+      <span class="ccs-nome">${turma.serie}ª${turma.turma}${turma.subtitulo ? " "+turma.subtitulo : ""}</span>
       <span class="ccs-link-ico">↗</span>
     </button>
     ${_calChecks(item, "sm")}
@@ -248,9 +245,10 @@ function _calCardDia(item) {
   return `<div class="cal-card-dia ${cor}">
     <div class="ccd-topo">
       <button class="ccd-info cal-turma-link" onclick="calIrTurma('${turma.id}')" title="Abrir diário de classe: ${turma.serie}ª ${turma.turma} ${turma.disciplina}">
+        <span class="ccd-sigla-badge">${turma.sigla}</span>
         <div class="ccd-nomes">
           <span class="ccd-nome-turma">${turma.serie}ª Série ${turma.turma}${turma.subtitulo?" — "+turma.subtitulo:""}</span>
-          <span class="ccd-disciplina"><span class="ccd-sigla-badge">${turma.sigla}</span> ${turma.disciplina}</span>
+          <span class="ccd-disciplina">${turma.disciplina}</span>
         </div>
         <span class="ccd-link-ico">↗</span>
       </button>

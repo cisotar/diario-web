@@ -611,7 +611,11 @@ const PERIODOS_PADRAO = [
 
 async function carregarTudo() {
   RT_BIMESTRES = JSON.parse(JSON.stringify(BIMESTRES));
-  RT_TURMAS    = JSON.parse(JSON.stringify(TURMAS));
+  // Professor começa com lista vazia — só vê as turmas que ele mesmo criou (no Firestore)
+  // Admin herda TURMAS do aulas.js como ponto de partida
+  RT_TURMAS    = _isAdmin(_userAtual?.email)
+    ? JSON.parse(JSON.stringify(TURMAS))
+    : [];
   RT_CONTEUDOS = JSON.parse(JSON.stringify(CONTEUDOS));
   RT_PERIODOS  = JSON.parse(JSON.stringify(
     typeof PERIODOS !== "undefined" ? PERIODOS : PERIODOS_PADRAO
@@ -683,6 +687,13 @@ async function carregarTudo() {
     localStorage.setItem(`aulaEstado_${uidKey}`, JSON.stringify(estadoAulas));
     localStorage.setItem(`aulaOrdem_${uidKey}`,  JSON.stringify(ordemConteudos));
   }
+  // Professor: garante que RT_TURMAS só contém as turmas dele
+  // (sanitiza dados legados que possam ter sido salvos com turmas de outros)
+  if (!_isAdmin(_userAtual?.email) && !_ehCoordenador()) {
+    const uid = _userAtual?.uid;
+    RT_TURMAS = RT_TURMAS.filter(t => !t.profUid || t.profUid === uid);
+  }
+
   // Coordenador: pré-carrega diários dos professores associados (somente leitura)
   if (_ehCoordenador() && Array.isArray(_perfilProf?.professoresAssociados)) {
     await _carregarDiariosAssociados(_perfilProf.professoresAssociados);
@@ -917,11 +928,18 @@ function _atualizarTagline() {
     .filter(Boolean).map(l => `<span>${l}</span>`).join("");
 }
 
+function _turmasVisiveis() {
+  // Admin vê todas; professor vê só as suas (profUid === uid ou sem profUid no doc global)
+  if (_isAdmin(_userAtual?.email)) return RT_TURMAS;
+  const uid = _userAtual?.uid;
+  return RT_TURMAS.filter(t => !t.profUid || t.profUid === uid);
+}
+
 function renderizarSidebar() {
   const container = document.getElementById("sidebar-turmas");
   container.innerHTML = "";
   const porSerie = {};
-  for (const t of RT_TURMAS) {
+  for (const t of _turmasVisiveis()) {
     if (!porSerie[t.serie]) porSerie[t.serie] = {};
     const chTurma = `${t.turma}${t.subtitulo ? " "+t.subtitulo : ""}`;
     if (!porSerie[t.serie][chTurma]) porSerie[t.serie][chTurma] = [];
@@ -973,7 +991,7 @@ function _renderizarMobileNav() {
   if (!wrap) return;
   wrap.innerHTML = "";
   const porSerie = {};
-  for (const t of RT_TURMAS) {
+  for (const t of _turmasVisiveis()) {
     if (!porSerie[t.serie]) porSerie[t.serie] = [];
     porSerie[t.serie].push(t);
   }
@@ -1681,7 +1699,9 @@ function addTurma() {
   const sigla = prompt("Sigla:", "GEO");            if (!sigla) return;
   const id    = `${serie}${turma}_${sigla.toUpperCase()}`;
   if (RT_TURMAS.find(t=>t.id===id)) { alert("Turma com este ID já existe."); return; }
-  RT_TURMAS.push({ id, serie, turma, subtitulo:"", disciplina:disc, sigla:sigla.toUpperCase(), horarios:[] });
+  // profUid identifica o dono da turma; admin usa "global"
+  const profUid = _isAdmin(_userAtual?.email) ? "global" : (_userAtual?.uid || "anonimo");
+  RT_TURMAS.push({ id, serie, turma, subtitulo:"", disciplina:disc, sigla:sigla.toUpperCase(), horarios:[], profUid });
   salvarTudo(); renderizarSidebar();
   document.getElementById("g-turmas").innerHTML = htmlGestaoTurmas();
 }
