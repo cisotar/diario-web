@@ -14,6 +14,7 @@ let RT_BIMESTRES  = null;
 let RT_TURMAS     = null;
 let RT_CONTEUDOS  = null;
 let RT_PERIODOS   = null;
+let RT_CONFIG     = { nomeEscola: "", materias: [] };  // config global editável pelo admin
 
 // Perfil do professor logado (carregado do Firestore)
 let _perfilProf = null;  // { nome, email, escola, status, uid }
@@ -172,6 +173,11 @@ function _dbConfig() {
   catch { return null; }
 }
 
+function _dbConfigEscola() {
+  try { return firebase.firestore().collection("config").doc("escola"); }
+  catch { return null; }
+}
+
 async function _salvarBimestresFirestore() {
   if (!_isAdmin(_userAtual?.email)) return;
   const ref = _dbConfig();
@@ -276,12 +282,10 @@ function _renderizarFormularioCadastro() {
             <input type="text" id="cad-nome" placeholder="Prof. João Silva"
               value="${_userAtual.displayName || ''}" />
           </label>
-          <label>Escola
-            <input type="text" id="cad-escola" placeholder="Escola Estadual…" />
+          <label style="opacity:.6;pointer-events:none;">Escola
+            <input class="gi" value="${RT_CONFIG?.nomeEscola || ''}" readonly />
           </label>
-          <label>Disciplina(s)
-            <input type="text" id="cad-disc" placeholder="Geografia, Sociologia…" />
-          </label>
+          ${_htmlCheckboxMaterias("")}
         </div>
         <div class="acesso-email">📧 ${_userAtual.email}</div>
         <button class="acesso-btn-ok" onclick="_enviarPedidoAcesso()">Solicitar acesso</button>
@@ -291,14 +295,15 @@ function _renderizarFormularioCadastro() {
 }
 
 async function _enviarPedidoAcesso() {
-  const nome   = document.getElementById("cad-nome")?.value.trim();
-  const escola = document.getElementById("cad-escola")?.value.trim();
-  const disc   = document.getElementById("cad-disc")?.value.trim();
+  const nome = document.getElementById("cad-nome")?.value.trim();
   if (!nome) { alert("Informe seu nome."); return; }
+  const disc = _lerDisciplinasSelecionadas();
   const perfil = {
     uid: _userAtual.uid,
     email: _userAtual.email,
-    nome, escola, disciplinas: disc,
+    nome,
+    escola: RT_CONFIG?.nomeEscola || "",
+    disciplinas: disc,
     status: "pendente",
     papel: "professor",
     solicitadoEm: new Date().toISOString(),
@@ -621,6 +626,14 @@ async function carregarTudo() {
     }
   } catch(e) { console.warn("Bimestres globais indisponíveis, usando padrão:", e); }
 
+  // Carrega configuração global da escola (nome e lista de matérias)
+  try {
+    const escolaSnap = await _dbConfigEscola().get();
+    if (escolaSnap.exists) {
+      RT_CONFIG = { nomeEscola: "", materias: [], ...escolaSnap.data() };
+    }
+  } catch(e) { console.warn("Config escola indisponível:", e); }
+
   // Chave de cache isolada por UID para evitar colisão entre professores
   const uidKey = _userAtual ? (_isAdmin(_userAtual.email) ? "global" : _userAtual.uid) : "anonimo";
   const seedKey = `_aulasSeed_${uidKey}`;
@@ -894,13 +907,14 @@ function esconderTooltip() {
 function _atualizarTagline() {
   const el = document.getElementById("header-tagline");
   if (!el) return;
-  const disciplinas = RT_TURMAS ? [...new Set(RT_TURMAS.map(t => t.disciplina))].join(" · ") : "";
-  const ano    = new Date().getFullYear();
-  const escola = _perfilProf?.escola || "Escola Estadual Profª Mathilde Teixeira de Moraes";
+  const escola = RT_CONFIG?.nomeEscola || _perfilProf?.escola || "";
   const nome   = _perfilProf?.nome
     || (_userAtual ? (_userAtual.displayName || _userAtual.email.split("@")[0]) : "");
-  const nomeFmt = nome ? `Prof. ${nome}` : "";
-  el.textContent = [escola, nomeFmt, ano, disciplinas].filter(Boolean).join(" · ");
+  const nomeFmt  = nome ? `Prof. ${nome}` : "";
+  const ano      = new Date().getFullYear();
+  const disciplinas = _perfilProf?.disciplinas || "";
+  el.innerHTML = [escola, [nomeFmt, ano].filter(Boolean).join(" — "), disciplinas]
+    .filter(Boolean).map(l => `<span>${l}</span>`).join("");
 }
 
 function renderizarSidebar() {
@@ -1943,8 +1957,49 @@ function addChaveCont() {
 // ════════════════════════════════════════════════════════════
 //  PAINEL: MEU PERFIL
 // ════════════════════════════════════════════════════════════
+// ── Helper: UI de seleção de matérias (checkboxes + campo Outro) ──────────
+function _htmlCheckboxMaterias(selecionadas) {
+  // selecionadas: string "Geografia; Sociologia; Outra"
+  const globais  = Array.isArray(RT_CONFIG?.materias)
+    ? RT_CONFIG.materias.filter(m => m.trim())
+    : [];
+  const lista    = selecionadas ? selecionadas.split(";").map(s => s.trim()).filter(Boolean) : [];
+  const extras   = lista.filter(m => !globais.includes(m)).join("; ");
+  if (!globais.length) {
+    // Sem matérias globais — só campo livre
+    return `<label>Disciplina(s) <span style="font-size:.72rem;color:var(--text-muted)">(separe por ;)</span>
+      <input class="gi" id="perf-disc-outro" value="${extras.replace(/"/g,'&quot;')}"
+        placeholder="Geografia; Sociologia…" />
+    </label>`;
+  }
+  const checks = globais.map(m => {
+    const checked = lista.includes(m) ? "checked" : "";
+    return `<label class="mat-check-label">
+      <input type="checkbox" class="mat-chk" value="${m.replace(/"/g,'&quot;')}" ${checked}>
+      <span>${m}</span>
+    </label>`;
+  }).join("");
+  return `
+    <label class="mat-group-label">Disciplina(s)</label>
+    <div class="mat-checks">${checks}</div>
+    <label class="mat-outro-label">Outra(s) <span style="font-size:.72rem;color:var(--text-muted)">(separe por ;)</span>
+      <input class="gi" id="perf-disc-outro" value="${extras.replace(/"/g,'&quot;')}"
+        placeholder="Ex: Filosofia; Arte" />
+    </label>`;
+}
+
+function _lerDisciplinasSelecionadas() {
+  const checks = [...document.querySelectorAll(".mat-chk:checked")].map(c => c.value);
+  const outroEl = document.getElementById("perf-disc-outro");
+  const outros  = outroEl ? outroEl.value.split(";").map(s => s.trim()).filter(Boolean) : [];
+  return [...checks, ...outros].join("; ");
+}
+
 function htmlGestaoPerfil() {
-  const p = _perfilProf || {};
+  const p   = _perfilProf || {};
+  const adm = _isAdmin(_userAtual?.email);
+  const escolaGlobal  = RT_CONFIG?.nomeEscola || p.escola || "";
+  const materiasGlob  = (RT_CONFIG?.materias || []).join("; ");
   return `
     <div class="gestao-bloco">
       <div class="gestao-bloco-header">
@@ -1955,14 +2010,19 @@ function htmlGestaoPerfil() {
           <input class="gi" id="perf-nome" value="${(p.nome||'').replace(/"/g,'&quot;')}"
             placeholder="Prof. Seu Nome" />
         </label>
-        <label>Escola
-          <input class="gi" id="perf-escola" value="${(p.escola||'').replace(/"/g,'&quot;')}"
+        ${adm ? `
+        <label>Nome da escola <span style="font-size:.72rem;color:var(--text-muted)">(global — visível a todos)</span>
+          <input class="gi" id="perf-escola-global" value="${escolaGlobal.replace(/"/g,'&quot;')}"
             placeholder="Escola Estadual…" />
         </label>
-        <label>Disciplina(s)
-          <input class="gi" id="perf-disc" value="${(p.disciplinas||'').replace(/"/g,'&quot;')}"
-            placeholder="Geografia, Sociologia…" />
-        </label>
+        <label>Matérias escolares <span style="font-size:.72rem;color:var(--text-muted)">(global — separe por ;)</span>
+          <input class="gi" id="perf-materias-global" value="${materiasGlob.replace(/"/g,'&quot;')}"
+            placeholder="Geografia; Sociologia; Atualidades…" />
+        </label>` : `
+        <label>Escola
+          <input class="gi" value="${escolaGlobal.replace(/"/g,'&quot;')}" readonly style="opacity:.6" />
+        </label>`}
+        ${_htmlCheckboxMaterias(p.disciplinas || "")}
         <label style="opacity:.6;pointer-events:none;">E-mail (não editável)
           <input class="gi" value="${p.email||''}" readonly />
         </label>
@@ -1974,14 +2034,21 @@ function htmlGestaoPerfil() {
 }
 
 async function _salvarPerfil() {
-  const nome   = document.getElementById("perf-nome")?.value.trim();
-  const escola = document.getElementById("perf-escola")?.value.trim();
-  const disc   = document.getElementById("perf-disc")?.value.trim();
+  const nome = document.getElementById("perf-nome")?.value.trim();
   if (!nome) { alert("Informe seu nome."); return; }
   if (!_perfilProf) _perfilProf = { uid: _userAtual.uid, email: _userAtual.email, status: "aprovado" };
   _perfilProf.nome        = nome;
-  _perfilProf.escola      = escola;
-  _perfilProf.disciplinas = disc;
+  _perfilProf.disciplinas = _lerDisciplinasSelecionadas();
+  // Admin: salva nome da escola e lista de matérias globalmente
+  if (_isAdmin(_userAtual?.email)) {
+    const nomeEscola = document.getElementById("perf-escola-global")?.value.trim() || "";
+    const matRaw     = document.getElementById("perf-materias-global")?.value || "";
+    const materias   = matRaw.split(";").map(s => s.trim()).filter(Boolean);
+    RT_CONFIG.nomeEscola = nomeEscola;
+    RT_CONFIG.materias   = materias;
+    try { await _dbConfigEscola().set({ nomeEscola, materias }); }
+    catch(e) { console.warn("Erro ao salvar config escola:", e); }
+  }
   await _salvarPerfilFirestore(_perfilProf);
   _atualizarBotaoAuth();
   _atualizarTagline();
