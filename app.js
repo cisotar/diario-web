@@ -102,6 +102,15 @@ const _ADMINS = [
   "tarciso@prof.educacao.sp.gov.br",
 ];
 
+// Retorna turmas globais (TURMAS do aulas.js) que correspondem a uma lista de disciplinas
+function _turmasParaDiscs(discs) {
+  if (!discs || !discs.length) return [];
+  const lower = discs.map(d => d.toLowerCase());
+  return TURMAS.filter(t =>
+    lower.some(d => (t.disciplina || "").toLowerCase().includes(d) || d.includes((t.disciplina||"").toLowerCase()))
+  );
+}
+
 // ── MODO DEV (apenas localhost) ──────────────────────────────
 const _DEV = (() => {
   if (!location.hostname.includes("localhost") && !location.hostname.includes("127.0.0.1")) return null;
@@ -373,8 +382,11 @@ function _renderizarFormularioCadastro() {
 async function _enviarPedidoAcesso() {
   const nome = document.getElementById("cad-nome")?.value.trim();
   if (!nome) { alert("Informe seu nome."); return; }
-  const disc = _lerDisciplinasSelecionadas();
-  const area = document.getElementById("perf-area")?.value || "";
+  const disc     = _lerDisciplinasSelecionadas();
+  const area     = document.getElementById("perf-area")?.value || "";
+  const turmasIds = _lerTurmasSelecionadas();
+  if (!disc) { alert("Selecione pelo menos uma disciplina."); return; }
+  if (!turmasIds.length) { alert("Selecione pelo menos uma turma."); return; }
   const perfil = {
     uid: _userAtual.uid,
     email: _userAtual.email,
@@ -382,6 +394,7 @@ async function _enviarPedidoAcesso() {
     escola: RT_CONFIG?.nomeEscola || "",
     disciplinas: disc,
     area,
+    turmasIds,
     status: "pendente",
     papel: "professor",
     solicitadoEm: new Date().toISOString(),
@@ -1922,17 +1935,18 @@ let gContChave = null;   // chave ativa no painel (formato "serie_Disciplina_bN"
 let gContModo  = "lista";
 let gContBim   = 1;      // bimestre selecionado no painel de conteúdos
 
-// Retorna as chaves base (sem bimestre) únicas presentes em RT_CONTEUDOS,
-// incluindo chaves definidas em RT_TURMAS que ainda não têm entrada.
+// Retorna as chaves base (sem bimestre) únicas para as turmas visíveis do professor.
+// Admin vê todas; professor vê só as chaves série_disciplina das suas turmas.
 function _gContChavesBase() {
   const set = new Set();
-  // Chaves já criadas (com ou sem bimestre)
+  const turmas = _turmasVisiveis();
+  // Chaves derivadas das turmas visíveis (série_disciplina)
+  for (const t of turmas) set.add(`${t.serie}_${t.disciplina}`);
+  // Inclui chaves já criadas em RT_CONTEUDOS que pertençam às turmas visíveis
   for (const k of Object.keys(RT_CONTEUDOS)) {
-    const m = k.match(/^(.+)_b\d+$/);
-    set.add(m ? m[1] : k);
+    const base = k.replace(/_b\d+$/, "");
+    if (set.has(base)) set.add(base); // já está
   }
-  // Chaves derivadas das turmas (garante que toda disciplina apareça)
-  for (const t of RT_TURMAS) set.add(`${t.serie}_${t.disciplina}`);
   return [...set].sort();
 }
 
@@ -2123,9 +2137,10 @@ function addChaveCont() {
 //  PAINEL: MEU PERFIL
 // ════════════════════════════════════════════════════════════
 // ── Helper: UI de seleção de matérias (checkboxes + campo Outro) ──────────
-// Renderiza seletor área + disciplinas para professor/cadastro
-function _htmlCheckboxMaterias(selecionadas, areaAtual) {
+// Renderiza seletor área + disciplinas + turmas para professor/cadastro
+function _htmlCheckboxMaterias(selecionadas, areaAtual, turmasSelecionadas) {
   const lista = selecionadas ? selecionadas.split(";").map(s => s.trim()).filter(Boolean) : [];
+  const turmasIds = Array.isArray(turmasSelecionadas) ? turmasSelecionadas : [];
   const temDiscs = Object.keys(RT_CONFIG.disciplinasPorSerie || {}).length > 0;
 
   // Sem disciplinas cadastradas pelo admin — campo livre
@@ -2147,10 +2162,25 @@ function _htmlCheckboxMaterias(selecionadas, areaAtual) {
   const checks = discsDaArea.map(m => {
     const checked = lista.includes(m) ? "checked" : "";
     return `<label class="mat-check-label">
-      <input type="checkbox" class="mat-chk" value="${m.replace(/"/g,'&quot;')}" ${checked}>
+      <input type="checkbox" class="mat-chk" value="${m.replace(/"/g,'&quot;')}"
+        ${checked} onchange="_onDiscChange()">
       <span>${m}</span>
     </label>`;
   }).join("");
+
+  // Turmas disponíveis para as disciplinas já selecionadas
+  const turmasDisp = _turmasParaDiscs(lista);
+  const turmasHtml = turmasDisp.length ? `
+    <label class="mat-group-label" id="mat-turmas-label" style="margin-top:12px">Turmas em que leciona</label>
+    <div class="mat-checks" id="mat-turmas-wrap">
+      ${turmasDisp.map(t => {
+        const checked = turmasIds.includes(t.id) ? "checked" : "";
+        return `<label class="mat-check-label">
+          <input type="checkbox" class="mat-turma-chk" value="${t.id}" ${checked}>
+          <span>${t.serie}ª ${t.turma} — ${t.disciplina}</span>
+        </label>`;
+      }).join("")}
+    </div>` : `<div id="mat-turmas-wrap"></div>`;
 
   return `
     <label class="mat-group-label">Área do conhecimento
@@ -2165,8 +2195,9 @@ function _htmlCheckboxMaterias(selecionadas, areaAtual) {
     </div>
     <label class="mat-outro-label">Outra(s) não listada(s) <span style="font-size:.72rem;color:var(--text-muted)">(separe por ;)</span>
       <input class="gi" id="perf-disc-outro" value="${extras.join("; ").replace(/"/g,'&quot;')}"
-        placeholder="Ex: Filosofia; Arte" />
-    </label>`;
+        placeholder="Ex: Filosofia; Arte" onchange="_onDiscChange()" />
+    </label>
+    ${turmasHtml}`;
 }
 
 function _onAreaChange(areaId) {
@@ -2175,12 +2206,37 @@ function _onAreaChange(areaId) {
   const discs = areaId ? _disciplinasDaArea(areaId) : [];
   if (!discs.length) {
     wrap.innerHTML = `<span style="color:var(--text-muted);font-size:.8rem">Nenhuma disciplina cadastrada para esta área</span>`;
+    _onDiscChange();
     return;
   }
   wrap.innerHTML = discs.map(m =>
     `<label class="mat-check-label">
-      <input type="checkbox" class="mat-chk" value="${m.replace(/"/g,'&quot;')}">
+      <input type="checkbox" class="mat-chk" value="${m.replace(/"/g,'&quot;')}" onchange="_onDiscChange()">
       <span>${m}</span>
+    </label>`
+  ).join("");
+  _onDiscChange();
+}
+
+// Atualiza a lista de turmas quando as disciplinas mudam
+function _onDiscChange() {
+  const wrapTurmas = document.getElementById("mat-turmas-wrap");
+  if (!wrapTurmas) return;
+  const discs = _lerDisciplinasSelecionadas().split(";").map(s => s.trim()).filter(Boolean);
+  const turmas = _turmasParaDiscs(discs);
+  if (!turmas.length) {
+    wrapTurmas.innerHTML = `<span style="color:var(--text-muted);font-size:.8rem">Selecione uma disciplina para ver as turmas disponíveis</span>`;
+    // Garantir que o label existe
+    let lbl = document.getElementById("mat-turmas-label");
+    if (lbl) lbl.style.display = discs.length ? "" : "none";
+    return;
+  }
+  let lbl = document.getElementById("mat-turmas-label");
+  if (lbl) lbl.style.display = "";
+  wrapTurmas.innerHTML = turmas.map(t =>
+    `<label class="mat-check-label">
+      <input type="checkbox" class="mat-turma-chk" value="${t.id}">
+      <span>${t.serie}ª ${t.turma} — ${t.disciplina}</span>
     </label>`
   ).join("");
 }
@@ -2190,6 +2246,10 @@ function _lerDisciplinasSelecionadas() {
   const outroEl = document.getElementById("perf-disc-outro");
   const outros  = outroEl ? outroEl.value.split(";").map(s => s.trim()).filter(Boolean) : [];
   return [...checks, ...outros].join("; ");
+}
+
+function _lerTurmasSelecionadas() {
+  return [...document.querySelectorAll(".mat-turma-chk:checked")].map(c => c.value);
 }
 
 function htmlGestaoPerfil() {
@@ -2210,7 +2270,7 @@ function htmlGestaoPerfil() {
           <input class="gi" id="${adm ? 'perf-escola-global' : ''}" value="${escolaGlobal.replace(/"/g,'&quot;')}"
             placeholder="Escola Estadual…" ${adm ? "" : "readonly style='opacity:.6'"} />
         </label>
-        ${_htmlCheckboxMaterias(p.disciplinas || "", p.area || "")}
+        ${_htmlCheckboxMaterias(p.disciplinas || "", p.area || "", p.turmasIds || [])}
         <label style="opacity:.6;pointer-events:none;">E-mail (não editável)
           <input class="gi" value="${p.email||''}" readonly />
         </label>
@@ -2227,7 +2287,10 @@ async function _salvarPerfil() {
   if (!_perfilProf) _perfilProf = { uid: _userAtual.uid, email: _userAtual.email, status: "aprovado" };
   _perfilProf.nome        = nome;
   _perfilProf.disciplinas = _lerDisciplinasSelecionadas();
-  _perfilProf.area        = document.getElementById("perf-area")?.value || _perfilProf.area || "";
+  _perfilProf.area      = document.getElementById("perf-area")?.value || _perfilProf.area || "";
+  _perfilProf.turmasIds = _lerTurmasSelecionadas().length
+    ? _lerTurmasSelecionadas()
+    : (_perfilProf.turmasIds || []);
   // Admin: salva nome da escola
   if (_isAdmin(_userAtual?.email)) {
     const nomeEscola = document.getElementById("perf-escola-global")?.value.trim() || "";
@@ -2346,7 +2409,7 @@ async function _carregarUsuarios() {
       <div class="tabela-wrapper">
         <table class="tabela-gestao">
           <thead><tr>
-            <th>Nome</th><th>E-mail</th><th>Escola</th><th>Área</th><th>Disciplinas</th>
+            <th>Nome</th><th>E-mail</th><th>Escola</th><th>Área</th><th>Disciplinas</th><th>Turmas</th>
             <th>Papel</th><th>Status</th><th>Solicitado em</th><th>Ações</th>
           </tr></thead>
           <tbody>
@@ -2378,6 +2441,7 @@ async function _carregarUsuarios() {
                 <td style="font-size:.78rem">${u.escola||"—"}</td>
                 <td style="font-size:.78rem">${u.area ? AREAS_CONHECIMENTO.find(a=>a.id===u.area)?.label||u.area : "—"}</td>
                 <td style="font-size:.78rem">${u.disciplinas||"—"}</td>
+                <td style="font-size:.78rem">${Array.isArray(u.turmasIds) && u.turmasIds.length ? u.turmasIds.join(", ") : "—"}</td>
                 <td>${papelCell}</td>
                 <td><span class="prof-status ${statusCls}">${statusLabel}</span></td>
                 <td style="font-size:.78rem">${dt}</td>
@@ -2394,14 +2458,36 @@ async function _carregarUsuarios() {
 }
 
 async function _aprovarUsuario(uid) {
-  // Lê o papel selecionado no select da linha antes de aprovar
   const papelSel = document.querySelector(`[onchange*="_alterarPapel('${uid}"]`)?.value || "professor";
   try {
-    await firebase.firestore().collection("professores").doc(uid)
+    const db = firebase.firestore();
+    // Busca perfil para pegar turmasIds
+    const profSnap = await db.collection("professores").doc(uid).get();
+    const profData = profSnap.data() || {};
+    const turmasIds = Array.isArray(profData.turmasIds) ? profData.turmasIds : [];
+
+    // Se há turmas selecionadas, injeta no diário do professor
+    if (turmasIds.length) {
+      const turmasDoProf = TURMAS
+        .filter(t => turmasIds.includes(t.id))
+        .map(t => ({ ...t, profUid: uid }));
+      const diarioRef = db.collection("diario").doc(uid);
+      const diarioSnap = await diarioRef.get();
+      const diarioAtual = diarioSnap.exists ? diarioSnap.data() : {};
+      const turmasAtuais = diarioAtual.RT_TURMAS ? JSON.parse(diarioAtual.RT_TURMAS) : [];
+      const idsAtuais = new Set(turmasAtuais.map(t => t.id));
+      const novas = turmasDoProf.filter(t => !idsAtuais.has(t.id));
+      await diarioRef.set({
+        ...diarioAtual,
+        RT_TURMAS: JSON.stringify([...turmasAtuais, ...novas])
+      }, { merge: true });
+    }
+
+    await db.collection("professores").doc(uid)
       .update({ status: "aprovado", papel: papelSel });
-    _mostrarIndicadorSync(`✓ Aprovado como ${papelSel}`);
+    _mostrarIndicadorSync(`✓ Aprovado como ${papelSel}${turmasIds.length ? ` · ${turmasIds.length} turma(s) associada(s)` : ""}`);
     _carregarUsuarios();
-  } catch(e) { alert("Erro ao aprovar."); }
+  } catch(e) { console.error(e); alert("Erro ao aprovar: " + e.message); }
 }
 
 async function _rejeitarUsuario(uid) {
