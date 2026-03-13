@@ -306,7 +306,16 @@ async function _verificarAcessoProfessor() {
       _renderizarTelaAguardando(d);
       return false;
     } else {
-      // Primeiro acesso: salva pedido pendente e mostra formulário
+      // Primeiro acesso: carrega config da escola antes de mostrar formulário
+      try {
+        const cfgSnap = await firebase.firestore().collection("config").doc("escola").get();
+        if (cfgSnap.exists) {
+          RT_CONFIG = { nomeEscola: "", disciplinasPorSerie: {}, ...cfgSnap.data() };
+          if (typeof RT_CONFIG.disciplinasPorSerie === "string") {
+            try { RT_CONFIG.disciplinasPorSerie = JSON.parse(RT_CONFIG.disciplinasPorSerie); } catch { RT_CONFIG.disciplinasPorSerie = {}; }
+          }
+        }
+      } catch(e) { console.warn("Config escola indisponível no cadastro:", e); }
       _renderizarFormularioCadastro();
       return false;
     }
@@ -1013,10 +1022,18 @@ function _atualizarTagline() {
 }
 
 function _turmasVisiveis() {
-  // Admin vê todas; professor vê só as suas (profUid === uid ou sem profUid no doc global)
   if (_isAdmin(_userAtual?.email)) return RT_TURMAS;
-  const uid = _userAtual?.uid;
-  return RT_TURMAS.filter(t => !t.profUid || t.profUid === uid);
+  const uid  = _userAtual?.uid;
+  // Turmas próprias do professor (criadas por ele)
+  const proprias = RT_TURMAS.filter(t => t.profUid === uid);
+  if (proprias.length) return proprias;
+  // Professor sem turmas próprias: vê as turmas cuja disciplina ele leciona
+  const discProf = (_perfilProf?.disciplinas || "")
+    .split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
+  if (!discProf.length) return [];
+  return RT_TURMAS.filter(t =>
+    discProf.some(d => (t.disciplina || "").toLowerCase().includes(d) || d.includes((t.disciplina || "").toLowerCase()))
+  );
 }
 
 function renderizarSidebar() {
