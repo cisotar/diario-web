@@ -71,12 +71,12 @@
 /* Base */
 .cal-chk {
   display: inline-flex; align-items: center; gap: 3px;
-  border: 1.5px solid #dde2ea; background: #f4f5f7; color: #a0acb8;
+  border: 1.5px solid #c8d0da; background: #edf0f4; color: #5a6a7e;
   font-family: 'DM Sans', sans-serif; font-weight: 700; letter-spacing: .03em;
   cursor: pointer; user-select: none; border-radius: 5px;
   transition: all .13s; line-height: 1;
 }
-.cal-chk:hover { opacity: .85; }
+.cal-chk:hover { border-color: var(--amber); color: var(--amber); background: var(--amber-pale); }
 .cal-chk:active { transform: scale(.94); }
 
 /* Tamanho SM — semana */
@@ -84,25 +84,27 @@
 /* Tamanho LG — dia */
 .cal-chk-lg { padding: 6px 12px; font-size: .78rem; }
 
-/* ── Estado: MARCADO — verde sólido com fonte branca ────── */
-.cal-chk-verde {
+/* Estado ON — marcado (verde sólido, fonte branca) */
+.cal-chk-on-ad,
+.cal-chk-on-ch,
+.cal-chk-on-re {
   background: #1a7a4a !important;
   border-color: #1a7a4a !important;
   color: #fff !important;
 }
 
-/* ── Estado: DIA PASSADO + NÃO MARCADO — vermelho claro, fonte escura ── */
-.cal-chk-vermelho {
-  background: #fde8e8 !important;
-  border-color: #e05252 !important;
-  color: #922b21 !important;
+/* Estado OFF — aula passada não marcada (vermelho sólido, fonte branca) */
+.cal-chk-passada {
+  background: #e05252 !important;
+  border-color: #c03030 !important;
+  color: #fff !important;
 }
 
-/* ── Estado: DIA FUTURO + NÃO MARCADO — cinza claro, fonte escura ───── */
+/* Estado OFF — aula futura (neutro) */
 .cal-chk-fut {
-  background: #f4f5f7;
-  border-color: #dde2ea;
-  color: #4a5568;
+  background: #edf0f4 !important;
+  border-color: #c8d0da !important;
+  color: #5a6a7e !important;
 }
 
 .cal-chk-ico { font-size: .95em; }

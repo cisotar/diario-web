@@ -14,7 +14,40 @@ let RT_BIMESTRES  = null;
 let RT_TURMAS     = null;
 let RT_CONTEUDOS  = null;
 let RT_PERIODOS   = null;
-let RT_CONFIG     = { nomeEscola: "", materias: [] };  // config global editável pelo admin
+let RT_CONFIG     = { nomeEscola: "", disciplinasPorSerie: {} };  // config global editável pelo admin
+// disciplinasPorSerie: { "1": { "linguagens": ["Port.","Inglês"], "humanas": [...] }, "2": {...}, "3": {...} }
+
+// Áreas do conhecimento (BNCC) e mapeamento para as disciplinas globais
+const AREAS_CONHECIMENTO = [
+  { id: "linguagens",   label: "Linguagens",           palavras: ["português","língua","inglês","espanhol","arte","artes","educação física","literatura","redação"] },
+  { id: "matematica",   label: "Matemática",            palavras: ["matemática","geometria","estatística","álgebra"] },
+  { id: "humanas",      label: "Ciências Humanas",      palavras: ["história","geografia","filosofia","sociologia","ensino religioso"] },
+  { id: "natureza",     label: "Ciências da Natureza",  palavras: ["ciências","biologia","física","química"] },
+];
+
+// Retorna disciplinas de uma área em todas as séries (sem duplicatas)
+function _disciplinasDaArea(areaId) {
+  if (!areaId) return _todasDisciplinas();
+  const dps = RT_CONFIG.disciplinasPorSerie || {};
+  const todas = new Set();
+  for (const serie of ["1","2","3"]) {
+    const discs = dps[serie]?.[areaId] || [];
+    discs.forEach(d => todas.add(d));
+  }
+  return [...todas].sort();
+}
+
+// Todas as disciplinas cadastradas (todas séries, todas áreas)
+function _todasDisciplinas() {
+  const dps = RT_CONFIG.disciplinasPorSerie || {};
+  const todas = new Set();
+  for (const serie of Object.values(dps)) {
+    for (const discs of Object.values(serie)) {
+      discs.forEach(d => todas.add(d));
+    }
+  }
+  return [...todas].sort();
+}
 
 // Perfil do professor logado (carregado do Firestore)
 let _perfilProf = null;  // { nome, email, escola, status, uid }
@@ -69,6 +102,16 @@ const _ADMINS = [
   "tarciso@prof.educacao.sp.gov.br",
 ];
 
+// ── MODO DEV (apenas localhost) ──────────────────────────────
+const _DEV = (() => {
+  if (!location.hostname.includes("localhost") && !location.hostname.includes("127.0.0.1")) return null;
+  return localStorage.getItem("DEV_MODE");
+})();
+const _DEV_USERS = {
+  admin:     { uid: "dev-admin",     email: "protarciso@gmail.com",    displayName: "Dev Admin" },
+  professor: { uid: "dev-professor", email: "dev-prof@localhost.test", displayName: "Dev Professor" },
+};
+
 let _autenticado = false;
 let _userAtual   = null;   // objeto firebase.User
 let _dbDoc = null;
@@ -91,6 +134,7 @@ const _podeEscrever  = () => _papel() === "admin" || _papel() === "professor";
 // Persistência offline inicializada uma única vez
 let _offlineAtivo = false;
 async function _ativarOffline() {
+  if (_DEV) return;
   if (_offlineAtivo) return;
   _offlineAtivo = true;
   try {
@@ -147,6 +191,7 @@ function _atualizarIndicadorConexao() {
 
 // Retorna o doc do diário do professor logado
 function _initFirebase() {
+  if (_DEV) return null;
   if (!_userAtual) return null;
   if (_dbDoc) return _dbDoc;
   try {
@@ -189,6 +234,14 @@ async function _salvarBimestresFirestore() {
 }
 
 async function _verificarSessao() {
+  if (_DEV && _DEV_USERS[_DEV]) {
+    _userAtual   = _DEV_USERS[_DEV];
+    _autenticado = true;
+    _dbDoc       = null;
+    console.warn(`[DEV MODE] Logado como ${_DEV}: ${_userAtual.email}`);
+    _atualizarBotaoAuth();
+    return;
+  }
   return new Promise(resolve => {
     try {
       firebase.auth().onAuthStateChanged(user => {
@@ -207,6 +260,19 @@ async function _verificarSessao() {
 // Verifica se o professor tem acesso aprovado (ou é admin).
 // Retorna true se pode entrar, false se deve esperar/solicitar acesso.
 async function _verificarAcessoProfessor() {
+  if (_DEV && _DEV_USERS[_DEV]) {
+    _perfilProf = {
+      uid:         _userAtual.uid,
+      email:       _userAtual.email,
+      nome:        _userAtual.displayName,
+      status:      "aprovado",
+      papel:       _DEV === "admin" ? "admin" : "professor",
+      disciplinas: _DEV === "professor" ? "Geografia" : "",
+      area:        _DEV === "professor" ? "humanas" : "",
+      escola:      "Escola Dev Local",
+    };
+    return true;
+  }
   // Não logado: mostra tela de login e retorna false
   if (!_userAtual) {
     _renderizarTelaLogin();
@@ -254,6 +320,7 @@ async function _verificarAcessoProfessor() {
 }
 
 async function _salvarPerfilFirestore(perfil) {
+  if (_DEV) return;
   try {
     await firebase.firestore()
       .collection("professores").doc(perfil.uid)
@@ -285,7 +352,7 @@ function _renderizarFormularioCadastro() {
           <label style="opacity:.6;pointer-events:none;">Escola
             <input class="gi" value="${RT_CONFIG?.nomeEscola || ''}" readonly />
           </label>
-          ${_htmlCheckboxMaterias("")}
+          ${_htmlCheckboxMaterias("", "")}
         </div>
         <div class="acesso-email">📧 ${_userAtual.email}</div>
         <button class="acesso-btn-ok" onclick="_enviarPedidoAcesso()">Solicitar acesso</button>
@@ -298,12 +365,14 @@ async function _enviarPedidoAcesso() {
   const nome = document.getElementById("cad-nome")?.value.trim();
   if (!nome) { alert("Informe seu nome."); return; }
   const disc = _lerDisciplinasSelecionadas();
+  const area = document.getElementById("perf-area")?.value || "";
   const perfil = {
     uid: _userAtual.uid,
     email: _userAtual.email,
     nome,
     escola: RT_CONFIG?.nomeEscola || "",
     disciplinas: disc,
+    area,
     status: "pendente",
     papel: "professor",
     solicitadoEm: new Date().toISOString(),
@@ -621,6 +690,12 @@ async function carregarTudo() {
     typeof PERIODOS !== "undefined" ? PERIODOS : PERIODOS_PADRAO
   ));
 
+  // DEV: pula todas as leituras do Firestore
+  if (_DEV) {
+    _ativarListenerFirestore();
+    return;
+  }
+
   // Carrega bimestres globais do Firestore (compartilhados entre todos)
   try {
     const cfgSnap = await _dbConfig().get();
@@ -634,7 +709,11 @@ async function carregarTudo() {
   try {
     const escolaSnap = await _dbConfigEscola().get();
     if (escolaSnap.exists) {
-      RT_CONFIG = { nomeEscola: "", materias: [], ...escolaSnap.data() };
+      const d = escolaSnap.data();
+      RT_CONFIG = { nomeEscola: "", disciplinasPorSerie: {}, ...d };
+      if (typeof RT_CONFIG.disciplinasPorSerie === "string") {
+        try { RT_CONFIG.disciplinasPorSerie = JSON.parse(RT_CONFIG.disciplinasPorSerie); } catch { RT_CONFIG.disciplinasPorSerie = {}; }
+      }
     }
   } catch(e) { console.warn("Config escola indisponível:", e); }
 
@@ -921,9 +1000,14 @@ function _atualizarTagline() {
   const escola = RT_CONFIG?.nomeEscola || _perfilProf?.escola || "";
   const nome   = _perfilProf?.nome
     || (_userAtual ? (_userAtual.displayName || _userAtual.email.split("@")[0]) : "");
-  const nomeFmt  = nome ? `Prof. ${nome}` : "";
+  const papel  = _papel();
+  const prefix = papel === "coordenador" ? "Coord." : "Prof.";
+  const nomeFmt  = nome ? `${prefix} ${nome}` : "";
   const ano      = new Date().getFullYear();
-  const disciplinas = _perfilProf?.disciplinas || "";
+  // Coordenador: mostra área/papel; professor: mostra disciplinas
+  const disciplinas = papel === "coordenador"
+    ? "Coordenador(a)"
+    : (_perfilProf?.disciplinas || "");
   el.innerHTML = [escola, [nomeFmt, ano].filter(Boolean).join(" — "), disciplinas]
     .filter(Boolean).map(l => `<span>${l}</span>`).join("");
 }
@@ -1587,8 +1671,12 @@ function abrirPainelGestao() {
   sections.push(`<div id="g-perfil" class="gestao-secao">${htmlGestaoPerfil()}</div>`);
 
   if (isAdmin) {
+    tabs.push(`<button class="gtab" onclick="abrirGTab(this,'g-disciplinas')">📋 Disciplinas</button>`);
+    sections.push(`<div id="g-disciplinas" class="gestao-secao">${htmlGestaoDisciplinas()}</div>`);
     tabs.push(`<button class="gtab" onclick="abrirGTab(this,'g-usuarios')">👥 Usuários</button>`);
     sections.push(`<div id="g-usuarios" class="gestao-secao">${htmlGestaoUsuarios()}</div>`);
+    tabs.push(`<button class="gtab" onclick="abrirGTab(this,'g-diarios')">📚 Diários</button>`);
+    sections.push(`<div id="g-diarios" class="gestao-secao">${htmlGestaoDiarios()}</div>`);
   }
   if (isCoord) {
     tabs.push(`<button class="gtab" onclick="abrirGTab(this,'g-diarios')">📚 Diários</button>`);
@@ -1618,6 +1706,7 @@ function abrirGTab(btn, secId) {
   document.querySelectorAll(".gestao-secao").forEach(s=>s.classList.remove("ativa"));
   btn.classList.add("ativo");
   document.getElementById(secId).classList.add("ativa");
+  if (secId==="g-disciplinas") document.getElementById(secId).innerHTML = htmlGestaoDisciplinas();
   if (secId==="g-turmas")    document.getElementById(secId).innerHTML = htmlGestaoTurmas();
   if (secId==="g-bimestres") document.getElementById(secId).innerHTML = htmlGestaoBimestres();
   if (secId==="g-conteudos") document.getElementById(secId).innerHTML = htmlGestaoConteudos();
@@ -1633,30 +1722,51 @@ function voltarPrincipal() {
 
 function htmlGestaoTurmas() {
   const diasNomes = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
-  const rows = RT_TURMAS.map((t,i) => `
+  const adm = _isAdmin(_userAtual?.email);
+  const uid = _userAtual?.uid;
+
+  const rows = _turmasVisiveis().map((t, vi) => {
+    // índice real em RT_TURMAS (necessário para editar/excluir)
+    const i = RT_TURMAS.indexOf(t);
+    // Só o dono ou admin pode editar
+    const minha = adm || t.profUid === uid || t.profUid === "global";
+    const ro = minha ? "" : " readonly style='opacity:.55;pointer-events:none'";
+    const serieKey = `${t.serie}ª série`;
+    const discsDaSerie = (RT_CONFIG.disciplinasPorSerie?.[serieKey] || []).join("; ");
+    const discsCell = adm
+      ? `<input class="gi gi-sm" value="${discsDaSerie.replace(/"/g,'&quot;')}"
+           title="Disciplinas desta série (global)"
+           onchange="_editDiscsSerie('${serieKey}',this.value)"
+           placeholder="Port.; Mat.; …" />`
+      : `<span style="font-size:.78rem;color:var(--text-muted)">${discsDaSerie||"—"}</span>`;
+
+    return `
     <tr>
-      <td><input class="gi gi-xs" value="${t.serie}" onchange="editTurmaField(${i},'serie',this.value)" style="width:48px" /></td>
-      <td><input class="gi gi-xs" value="${t.turma}" onchange="editTurmaField(${i},'turma',this.value)" /></td>
-      <td><input class="gi gi-sm" value="${t.subtitulo}" onchange="editTurmaField(${i},'subtitulo',this.value)" /></td>
-      <td><input class="gi" value="${t.disciplina}" onchange="editTurmaField(${i},'disciplina',this.value)" /></td>
-      <td><input class="gi gi-xs" value="${t.sigla}" onchange="editTurmaField(${i},'sigla',this.value)" /></td>
+      <td><input class="gi gi-xs" value="${t.serie}"${ro} onchange="editTurmaField(${i},'serie',this.value)" style="width:48px" /></td>
+      <td><input class="gi gi-xs" value="${t.turma}"${ro} onchange="editTurmaField(${i},'turma',this.value)" /></td>
+      <td><input class="gi gi-sm" value="${t.subtitulo}"${ro} onchange="editTurmaField(${i},'subtitulo',this.value)" /></td>
+      <td><input class="gi" value="${t.disciplina}"${ro} onchange="editTurmaField(${i},'disciplina',this.value)" /></td>
+      <td><input class="gi gi-xs" value="${t.sigla}"${ro} onchange="editTurmaField(${i},'sigla',this.value)" /></td>
+      <td>${discsCell}</td>
       <td>
         <div class="horarios-lista">
           ${t.horarios.map((h,hi) => `
             <div class="horario-item">
-              <select class="gi gi-xs" onchange="editHorario(${i},${hi},'diaSemana',+this.value)">
+              <select class="gi gi-xs" ${minha?"":"disabled"} onchange="editHorario(${i},${hi},'diaSemana',+this.value)">
                 ${diasNomes.map((d,di)=>`<option value="${di}" ${h.diaSemana===di?"selected":""}>${d}</option>`).join("")}
               </select>
-              <select class="gi gi-sm" onchange="editHorario(${i},${hi},'aula',this.value)">
+              <select class="gi gi-sm" ${minha?"":"disabled"} onchange="editHorario(${i},${hi},'aula',this.value)">
                 ${RT_PERIODOS.map(p=>`<option value="${p.aula}" ${h.aula===p.aula?"selected":""}>${p.label} (${p.inicio}–${p.fim})</option>`).join("")}
               </select>
-              <button class="btn-icon-del" onclick="delHorario(${i},${hi})" title="Remover">×</button>
+              ${minha ? `<button class="btn-icon-del" onclick="delHorario(${i},${hi})" title="Remover">×</button>` : ""}
             </div>`).join("")}
-          <button class="btn-add-small" onclick="addHorario(${i})">+ Horário</button>
+          ${minha ? `<button class="btn-add-small" onclick="addHorario(${i})">+ Horário</button>` : ""}
         </div>
       </td>
-      <td><button class="btn-icon-del" onclick="delTurma(${i})" title="Excluir turma">🗑</button></td>
-    </tr>`).join("");
+      <td>${minha ? `<button class="btn-icon-del" onclick="delTurma(${i})" title="Excluir turma">🗑</button>` : ""}</td>
+    </tr>`;
+  }).join("");
+
   return `
     <div class="gestao-bloco">
       <div class="gestao-bloco-header">
@@ -1667,12 +1777,30 @@ function htmlGestaoTurmas() {
         <table class="tabela-gestao">
           <thead><tr>
             <th>Série</th><th>Turma</th><th>Subtítulo</th>
-            <th>Disciplina</th><th>Sigla</th><th>Horários (dia + período)</th><th></th>
+            <th>Disciplina</th><th>Sigla</th>
+            <th>${adm ? "Disciplinas da série (global)" : "Disciplinas da série"}</th>
+            <th>Horários (dia + período)</th><th></th>
           </tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
     </div>`;
+}
+
+// Edita disciplinas de uma série (apenas admin)
+async function _editDiscsSerie(serieKey, valor) {
+  if (!_isAdmin(_userAtual?.email)) return;
+  const lista = valor.split(";").map(s => s.trim()).filter(Boolean);
+  if (!RT_CONFIG.disciplinasPorSerie) RT_CONFIG.disciplinasPorSerie = {};
+  RT_CONFIG.disciplinasPorSerie[serieKey] = lista;
+  try {
+    await _dbConfigEscola().set({
+      nomeEscola: RT_CONFIG.nomeEscola,
+      materias: RT_CONFIG.materias,
+      disciplinasPorSerie: RT_CONFIG.disciplinasPorSerie,
+    });
+    _mostrarIndicadorSync("✓ Disciplinas da série salvas");
+  } catch(e) { console.warn("Erro ao salvar disciplinas da série:", e); }
 }
 
 function editTurmaField(i, campo, val) { RT_TURMAS[i][campo] = val; salvarTudo(); }
@@ -1978,34 +2106,66 @@ function addChaveCont() {
 //  PAINEL: MEU PERFIL
 // ════════════════════════════════════════════════════════════
 // ── Helper: UI de seleção de matérias (checkboxes + campo Outro) ──────────
-function _htmlCheckboxMaterias(selecionadas) {
-  // selecionadas: string "Geografia; Sociologia; Outra"
-  const globais  = Array.isArray(RT_CONFIG?.materias)
-    ? RT_CONFIG.materias.filter(m => m.trim())
-    : [];
-  const lista    = selecionadas ? selecionadas.split(";").map(s => s.trim()).filter(Boolean) : [];
-  const extras   = lista.filter(m => !globais.includes(m)).join("; ");
-  if (!globais.length) {
-    // Sem matérias globais — só campo livre
+// Renderiza seletor área + disciplinas para professor/cadastro
+function _htmlCheckboxMaterias(selecionadas, areaAtual) {
+  const lista = selecionadas ? selecionadas.split(";").map(s => s.trim()).filter(Boolean) : [];
+  const temDiscs = Object.keys(RT_CONFIG.disciplinasPorSerie || {}).length > 0;
+
+  // Sem disciplinas cadastradas pelo admin — campo livre
+  if (!temDiscs) {
     return `<label>Disciplina(s) <span style="font-size:.72rem;color:var(--text-muted)">(separe por ;)</span>
-      <input class="gi" id="perf-disc-outro" value="${extras.replace(/"/g,'&quot;')}"
+      <input class="gi" id="perf-disc-outro" value="${lista.join("; ").replace(/"/g,'&quot;')}"
         placeholder="Geografia; Sociologia…" />
     </label>`;
   }
-  const checks = globais.map(m => {
+
+  const areaOpts = AREAS_CONHECIMENTO.map(a =>
+    `<option value="${a.id}" ${areaAtual===a.id?"selected":""}>${a.label}</option>`
+  ).join("");
+
+  const discsDaArea = areaAtual ? _disciplinasDaArea(areaAtual) : [];
+  const todasConhecidas = _todasDisciplinas();
+  const extras = lista.filter(m => !todasConhecidas.includes(m));
+
+  const checks = discsDaArea.map(m => {
     const checked = lista.includes(m) ? "checked" : "";
     return `<label class="mat-check-label">
       <input type="checkbox" class="mat-chk" value="${m.replace(/"/g,'&quot;')}" ${checked}>
       <span>${m}</span>
     </label>`;
   }).join("");
+
   return `
-    <label class="mat-group-label">Disciplina(s)</label>
-    <div class="mat-checks">${checks}</div>
-    <label class="mat-outro-label">Outra(s) <span style="font-size:.72rem;color:var(--text-muted)">(separe por ;)</span>
-      <input class="gi" id="perf-disc-outro" value="${extras.replace(/"/g,'&quot;')}"
+    <label class="mat-group-label">Área do conhecimento
+      <select class="gi" id="perf-area" onchange="_onAreaChange(this.value)">
+        <option value="">— selecione —</option>
+        ${areaOpts}
+      </select>
+    </label>
+    <label class="mat-group-label">Disciplina(s) que leciona</label>
+    <div class="mat-checks" id="mat-checks-wrap">
+      ${discsDaArea.length ? checks : '<span style="color:var(--text-muted);font-size:.8rem">Selecione uma área para ver as disciplinas</span>'}
+    </div>
+    <label class="mat-outro-label">Outra(s) não listada(s) <span style="font-size:.72rem;color:var(--text-muted)">(separe por ;)</span>
+      <input class="gi" id="perf-disc-outro" value="${extras.join("; ").replace(/"/g,'&quot;')}"
         placeholder="Ex: Filosofia; Arte" />
     </label>`;
+}
+
+function _onAreaChange(areaId) {
+  const wrap = document.getElementById("mat-checks-wrap");
+  if (!wrap) return;
+  const discs = areaId ? _disciplinasDaArea(areaId) : [];
+  if (!discs.length) {
+    wrap.innerHTML = `<span style="color:var(--text-muted);font-size:.8rem">Nenhuma disciplina cadastrada para esta área</span>`;
+    return;
+  }
+  wrap.innerHTML = discs.map(m =>
+    `<label class="mat-check-label">
+      <input type="checkbox" class="mat-chk" value="${m.replace(/"/g,'&quot;')}">
+      <span>${m}</span>
+    </label>`
+  ).join("");
 }
 
 function _lerDisciplinasSelecionadas() {
@@ -2017,9 +2177,8 @@ function _lerDisciplinasSelecionadas() {
 
 function htmlGestaoPerfil() {
   const p   = _perfilProf || {};
-  const adm = _isAdmin(_userAtual?.email);
+  const adm = _isAdmin(_userAtual?.email) || _ehAdmin();
   const escolaGlobal  = RT_CONFIG?.nomeEscola || p.escola || "";
-  const materiasGlob  = (RT_CONFIG?.materias || []).join("; ");
   return `
     <div class="gestao-bloco">
       <div class="gestao-bloco-header">
@@ -2030,19 +2189,11 @@ function htmlGestaoPerfil() {
           <input class="gi" id="perf-nome" value="${(p.nome||'').replace(/"/g,'&quot;')}"
             placeholder="Prof. Seu Nome" />
         </label>
-        ${adm ? `
-        <label>Nome da escola <span style="font-size:.72rem;color:var(--text-muted)">(global — visível a todos)</span>
-          <input class="gi" id="perf-escola-global" value="${escolaGlobal.replace(/"/g,'&quot;')}"
-            placeholder="Escola Estadual…" />
+        <label>${adm ? "Nome da escola" : "Escola"} ${adm ? '<span style="font-size:.72rem;color:var(--text-muted)">(global — visível a todos)</span>' : ""}
+          <input class="gi" id="${adm ? 'perf-escola-global' : ''}" value="${escolaGlobal.replace(/"/g,'&quot;')}"
+            placeholder="Escola Estadual…" ${adm ? "" : "readonly style='opacity:.6'"} />
         </label>
-        <label>Matérias escolares <span style="font-size:.72rem;color:var(--text-muted)">(global — separe por ;)</span>
-          <input class="gi" id="perf-materias-global" value="${materiasGlob.replace(/"/g,'&quot;')}"
-            placeholder="Geografia; Sociologia; Atualidades…" />
-        </label>` : `
-        <label>Escola
-          <input class="gi" value="${escolaGlobal.replace(/"/g,'&quot;')}" readonly style="opacity:.6" />
-        </label>`}
-        ${_htmlCheckboxMaterias(p.disciplinas || "")}
+        ${_htmlCheckboxMaterias(p.disciplinas || "", p.area || "")}
         <label style="opacity:.6;pointer-events:none;">E-mail (não editável)
           <input class="gi" value="${p.email||''}" readonly />
         </label>
@@ -2059,14 +2210,12 @@ async function _salvarPerfil() {
   if (!_perfilProf) _perfilProf = { uid: _userAtual.uid, email: _userAtual.email, status: "aprovado" };
   _perfilProf.nome        = nome;
   _perfilProf.disciplinas = _lerDisciplinasSelecionadas();
-  // Admin: salva nome da escola e lista de matérias globalmente
+  _perfilProf.area        = document.getElementById("perf-area")?.value || _perfilProf.area || "";
+  // Admin: salva nome da escola
   if (_isAdmin(_userAtual?.email)) {
     const nomeEscola = document.getElementById("perf-escola-global")?.value.trim() || "";
-    const matRaw     = document.getElementById("perf-materias-global")?.value || "";
-    const materias   = matRaw.split(";").map(s => s.trim()).filter(Boolean);
     RT_CONFIG.nomeEscola = nomeEscola;
-    RT_CONFIG.materias   = materias;
-    try { await _dbConfigEscola().set({ nomeEscola, materias }); }
+    try { await _dbConfigEscola().set({ nomeEscola, disciplinasPorSerie: RT_CONFIG.disciplinasPorSerie || {} }); }
     catch(e) { console.warn("Erro ao salvar config escola:", e); }
   }
   await _salvarPerfilFirestore(_perfilProf);
@@ -2078,6 +2227,75 @@ async function _salvarPerfil() {
 // ════════════════════════════════════════════════════════════
 //  PAINEL: USUÁRIOS (apenas admin)
 // ════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+//  PAINEL: DISCIPLINAS POR SÉRIE (apenas admin)
+// ════════════════════════════════════════════════════════════
+function htmlGestaoDisciplinas() {
+  const series = ["1","2","3"];
+  const dps = RT_CONFIG.disciplinasPorSerie || {};
+
+  const blocos = series.map(s => {
+    const labelSerie = `${s}ª série`;
+    const areasBlocos = AREAS_CONHECIMENTO.map(area => {
+      const discs = (dps[s]?.[area.id] || []).join("\n");
+      return `
+        <div class="disc-area-bloco">
+          <div class="disc-area-label">${area.label}</div>
+          <textarea class="gi disc-textarea" rows="4"
+            data-serie="${s}" data-area="${area.id}"
+            placeholder="Uma disciplina por linha&#10;Ex: Português&#10;Literatura"
+            style="resize:vertical;font-size:.82rem;line-height:1.6"
+          >${discs}</textarea>
+        </div>`;
+    }).join("");
+
+    return `
+      <div class="gestao-bloco" style="margin-bottom:16px">
+        <div class="gestao-bloco-header">
+          <h3>${labelSerie}</h3>
+        </div>
+        <div class="disc-areas-grid">${areasBlocos}</div>
+      </div>`;
+  }).join("");
+
+  return `
+    <div class="gestao-bloco">
+      <div class="gestao-bloco-header">
+        <h3>Disciplinas por série</h3>
+        <button class="btn-add" onclick="_salvarDisciplinas()">💾 Salvar disciplinas</button>
+      </div>
+      <p style="font-size:.82rem;color:var(--text-muted);margin:0 0 16px">
+        Digite uma disciplina por linha em cada área. Professores verão apenas as disciplinas da área que selecionarem.
+      </p>
+    </div>
+    ${blocos}
+    <div style="padding:8px 0 16px">
+      <button class="btn-add" onclick="_salvarDisciplinas()">💾 Salvar disciplinas</button>
+    </div>`;
+}
+
+async function _salvarDisciplinas() {
+  const dps = {};
+  document.querySelectorAll(".disc-textarea").forEach(el => {
+    const s    = el.dataset.serie;
+    const area = el.dataset.area;
+    const list = el.value.split(/[\n;]/).map(v => v.trim()).filter(Boolean);
+    if (!dps[s]) dps[s] = {};
+    dps[s][area] = list;
+  });
+  RT_CONFIG.disciplinasPorSerie = dps;
+  try {
+    await _dbConfigEscola().set({
+      nomeEscola: RT_CONFIG.nomeEscola || "",
+      disciplinasPorSerie: dps,
+    });
+    _mostrarIndicadorSync("✓ Disciplinas salvas");
+  } catch(e) {
+    console.warn("Erro ao salvar disciplinas:", e);
+    _mostrarIndicadorSync("⚠ Salvo localmente (sem conexão)");
+  }
+}
+
 function htmlGestaoUsuarios() {
   return `
     <div class="gestao-bloco">
@@ -2111,7 +2329,7 @@ async function _carregarUsuarios() {
       <div class="tabela-wrapper">
         <table class="tabela-gestao">
           <thead><tr>
-            <th>Nome</th><th>E-mail</th><th>Escola</th><th>Disciplinas</th>
+            <th>Nome</th><th>E-mail</th><th>Escola</th><th>Área</th><th>Disciplinas</th>
             <th>Papel</th><th>Status</th><th>Solicitado em</th><th>Ações</th>
           </tr></thead>
           <tbody>
@@ -2141,6 +2359,7 @@ async function _carregarUsuarios() {
                 <td>${u.nome||"—"}</td>
                 <td style="font-size:.78rem">${u.email||"—"}</td>
                 <td style="font-size:.78rem">${u.escola||"—"}</td>
+                <td style="font-size:.78rem">${u.area ? AREAS_CONHECIMENTO.find(a=>a.id===u.area)?.label||u.area : "—"}</td>
                 <td style="font-size:.78rem">${u.disciplinas||"—"}</td>
                 <td>${papelCell}</td>
                 <td><span class="prof-status ${statusCls}">${statusLabel}</span></td>

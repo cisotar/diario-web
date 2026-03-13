@@ -174,8 +174,12 @@ function _calChecks(item, modo) {
   const reg = !!est.conteudoEntregue;
   const tid = turma.id, b = bim, sid = slot.slotId;
 
+  const passada = slot.data < hoje();
   const btn = (campo, val, label, tipo) => {
-    const cls   = val ? `cal-chk-on cal-chk-on-${tipo}` : "cal-chk-off";
+    let cls;
+    if (val)          cls = `cal-chk-on cal-chk-on-${tipo}`;
+    else if (passada) cls = "cal-chk-off cal-chk-passada";
+    else              cls = "cal-chk-off cal-chk-fut";
     const ico   = val ? "✓" : "○";
     const title = `${label}: ${val ? "feito — clique para desmarcar" : "não feito — clique para marcar"}`;
     return `<button class="cal-chk cal-chk-${modo} ${cls}"

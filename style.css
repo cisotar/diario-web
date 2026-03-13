@@ -887,7 +887,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .btn-hamburger:hover { background: rgba(255,255,255,.08); }
 .btn-hamburger span {
   display: block; width: 20px; height: 2px;
-  background: #c0cad6; border-radius: 2px;
+  background: #e2e8f0; border-radius: 2px;
   transition: transform .22s ease, opacity .22s ease;
 }
 /* animação X quando aberto */
@@ -924,7 +924,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .mob-nav-acao {
   width: 100%; padding: 15px 20px;
   background: transparent; border: none; border-bottom: 1px solid #2d3748;
-  color: #b0bec9; font-family: 'DM Sans', sans-serif;
+  color: #e2e8f0; font-family: 'DM Sans', sans-serif;
   font-size: .9rem; font-weight: 600; text-align: left;
   cursor: pointer; display: flex; align-items: center; gap: 10px;
   transition: background .13s, color .13s;
@@ -932,7 +932,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .mob-nav-acao:hover       { background: #2d3748; color: #fff; }
 .mob-nav-acao.ativo       { background: #2d3748; color: #fff; }
 .mob-nav-cal              { color: #5eead4; }
-.mob-nav-gestao           { border-top: 1px solid #2d3748; color: #8896a5; }
+.mob-nav-gestao           { border-top: 1px solid #2d3748; color: #e2e8f0; }
 
 /* Grupos recolhíveis por série */
 .mob-grp { border-bottom: 1px solid #1e2835; }
@@ -940,13 +940,13 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .mob-grp-header {
   width: 100%; padding: 12px 20px;
   background: transparent; border: none;
-  color: #5a6e82; font-family: 'DM Sans', sans-serif;
+  color: #94a3b8; font-family: 'DM Sans', sans-serif;
   font-size: .7rem; font-weight: 700; text-transform: uppercase;
   letter-spacing: .12em; text-align: left; cursor: pointer;
   display: flex; justify-content: space-between; align-items: center;
   transition: color .13s, background .13s;
 }
-.mob-grp-header:hover { color: #a0b0c0; background: #1e2530; }
+.mob-grp-header:hover { color: #e2e8f0; background: #1e2530; }
 .mob-grp-arrow        { font-size: .75rem; transition: transform .18s; }
 .mob-grp.aberto .mob-grp-arrow { transform: rotate(180deg); }
 
@@ -956,17 +956,17 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .mob-turma-btn {
   width: 100%; padding: 10px 20px 10px 32px;
   background: transparent; border: none;
-  color: #b0bec9; font-family: 'DM Sans', sans-serif; font-size: .88rem;
+  color: #e2e8f0; font-family: 'DM Sans', sans-serif; font-size: .88rem;
   text-align: left; cursor: pointer;
   display: flex; align-items: center; justify-content: space-between;
   transition: background .13s, color .13s;
 }
-.mob-turma-btn:hover { background: #252f3f; color: #e2e8f0; }
+.mob-turma-btn:hover { background: #252f3f; color: #fff; }
 .mob-turma-btn.ativo { background: var(--amber); color: #fff; font-weight: 600; }
 
 .mob-turma-sigla {
   font-size: .62rem; font-weight: 700; letter-spacing: .07em;
-  background: #2d3748; color: var(--amber-light);
+  background: #0d9488; color: #fff;
   padding: 2px 6px; border-radius: 4px; flex-shrink: 0;
 }
 .mob-turma-btn.ativo .mob-turma-sigla { background: rgba(255,255,255,.2); color: #fff; }
@@ -1130,7 +1130,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .sidebar-turma-grupo { margin-bottom: 3px; }
 
 .sidebar-turma-label {
-  font-size: .68rem; color: #5a6e82;
+  font-size: .68rem; color: #94a3b8;
   padding: 5px 10px 1px; font-weight: 600; letter-spacing: .05em;
 }
 
@@ -1337,4 +1337,28 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 }
 .badge-prof {
   background: #dbeafe; color: #1d4ed8;
+}
+
+/* ── Painel Disciplinas por Série ─────────────────────────── */
+.disc-areas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  padding: 0 16px 16px;
+}
+.disc-area-bloco {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.disc-area-label {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-muted);
+}
+.disc-textarea {
+  width: 100%;
+  box-sizing: border-box;
 }
