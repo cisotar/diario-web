@@ -1,5 +1,5 @@
 // APP-CORE.JS — Boot, autenticação, Firebase, salvar/carregar, sidebar, cronograma
-// Dependências: aulas.js (TURMAS, CONTEUDOS, BIMESTRES)
+// Dependências: bimestres.js, turmas_global.js, turmas.js, conteudos.js, periodos.js, estado.js
 
 // ============================================================
 //  APP.JS — Controle de Aulas v6 · Perfis admin/coordenador/professor
@@ -105,7 +105,7 @@ const _ADMINS = [
   "tarciso@prof.educacao.sp.gov.br",
 ];
 
-// Retorna turmas globais (TURMAS do aulas.js) que correspondem a uma lista de disciplinas
+// Retorna turmas globais (TURMAS do turmas.js) que correspondem a uma lista de disciplinas
 function _turmasParaDiscs(discs) {
   if (!discs || !discs.length) return [];
   const lower = discs.map(d => d.toLowerCase());
@@ -770,12 +770,12 @@ function _gerarPeriodosDeConfig(cfg) {
 async function carregarTudo() {
   RT_BIMESTRES = JSON.parse(JSON.stringify(BIMESTRES));
   // Professor começa com lista vazia — só vê as turmas que ele mesmo criou (no Firestore)
-  // Admin herda TURMAS do aulas.js como ponto de partida
+  // Admin herda TURMAS do turmas.js como ponto de partida
   RT_TURMAS    = _isAdmin(_userAtual?.email)
     ? JSON.parse(JSON.stringify(TURMAS))
     : [];
   RT_CONTEUDOS = JSON.parse(JSON.stringify(CONTEUDOS));
-  // Períodos: tenta usar PERIODOS do aulas.js, senão usa config de RT_CONFIG, senão padrão
+  // Períodos: tenta usar PERIODOS do periodos.js, senão usa config de RT_CONFIG, senão padrão
   RT_PERIODOS = (typeof PERIODOS !== "undefined" && Array.isArray(PERIODOS) && PERIODOS.length)
     ? JSON.parse(JSON.stringify(PERIODOS))
     : RT_CONFIG?.configPeriodos
@@ -1735,20 +1735,63 @@ function exportarCSV() {
 }
 
 function exportarJS() {
-  // Exporta RT_CONTEUDOS com chaves por bimestre (novo formato)
-  const out = [
-    `// AULAS.JS — Exportado em ${new Date().toLocaleString("pt-BR")}`,
-    `const BIMESTRES    = ${JSON.stringify(RT_BIMESTRES,null,2)};`,
-    `const TURMAS_BASE  = ${JSON.stringify(RT_CONFIG.turmasBase || TURMAS_BASE,null,2)};`,
-    `const TURMAS       = ${JSON.stringify(RT_TURMAS,null,2)};`,
-    `const CONTEUDOS    = ${JSON.stringify(RT_CONTEUDOS,null,2)};`,
-    `const PERIODOS     = ${JSON.stringify(RT_PERIODOS,null,2)};`,
-    `// Restore: localStorage.setItem("aulaOrdem", JSON.stringify(ORDEM));`,
-    `//          localStorage.setItem("aulaEstado", JSON.stringify(ESTADO));`,
-    `const ORDEM  = ${JSON.stringify(ordemConteudos,null,2)};`,
-    `const ESTADO = ${JSON.stringify(estadoAulas,null,2)};`,
-  ].join("\n\n");
-  baixarArquivo(new Blob([out],{type:"application/javascript;charset=utf-8;"}),"aulas.js");
+  const ts = new Date().toLocaleString("pt-BR");
+
+  const arquivos = [
+    {
+      nome: "bimestres.js",
+      conteudo: [
+        `// BIMESTRES.JS — Exportado em ${ts}`,
+        `const BIMESTRES = ${JSON.stringify(RT_BIMESTRES,null,2)};`,
+      ].join("\n\n"),
+    },
+    {
+      nome: "turmas_global.js",
+      conteudo: [
+        `// TURMAS_GLOBAL.JS — Turmas-base da escola — Exportado em ${ts}`,
+        `const TURMAS_BASE = ${JSON.stringify(RT_CONFIG.turmasBase || TURMAS_BASE || [],null,2)};`,
+      ].join("\n\n"),
+    },
+    {
+      nome: "turmas.js",
+      conteudo: [
+        `// TURMAS.JS — Entradas do diário (turma + disciplina + horários) — Exportado em ${ts}`,
+        `const TURMAS = ${JSON.stringify(RT_TURMAS,null,2)};`,
+      ].join("\n\n"),
+    },
+    {
+      nome: "conteudos.js",
+      conteudo: [
+        `// CONTEUDOS.JS — Conteúdos e ordem das aulas — Exportado em ${ts}`,
+        `const CONTEUDOS = ${JSON.stringify(RT_CONTEUDOS,null,2)};`,
+        `const ORDEM     = ${JSON.stringify(ordemConteudos,null,2)};`,
+      ].join("\n\n"),
+    },
+    {
+      nome: "periodos.js",
+      conteudo: [
+        `// PERIODOS.JS — Horários das aulas — Exportado em ${ts}`,
+        `const PERIODOS = ${JSON.stringify(RT_PERIODOS,null,2)};`,
+      ].join("\n\n"),
+    },
+    {
+      nome: "estado.js",
+      conteudo: [
+        `// ESTADO.JS — Estado das aulas (feita, chamada, AD, CH, RE) — Exportado em ${ts}`,
+        `// Para restaurar: localStorage.setItem("aulaEstado_SEU_UID", JSON.stringify(ESTADO));`,
+        `const ESTADO = ${JSON.stringify(estadoAulas,null,2)};`,
+      ].join("\n\n"),
+    },
+  ];
+
+  // Baixa um arquivo por vez com pequeno delay para não bloquear o browser
+  arquivos.forEach((arq, i) => {
+    setTimeout(() => {
+      baixarArquivo(new Blob([arq.conteudo],{type:"application/javascript;charset=utf-8;"}), arq.nome);
+    }, i * 400);
+  });
+
+  _mostrarIndicadorSync("⬇ Exportando 6 arquivos…");
 }
 
 function baixarArquivo(blob, nome) {
