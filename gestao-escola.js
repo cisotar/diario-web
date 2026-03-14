@@ -162,7 +162,7 @@ function htmlEscolaTurmas() {
       <td><input class="gi gi-xs" value="${tb.turma}" onchange="editTurmaBase(${i},'turma',this.value)" style="width:44px"/></td>
       <td><input class="gi gi-sm" value="${tb.subtitulo||''}" placeholder="ADM, HUM…" onchange="editTurmaBase(${i},'subtitulo',this.value)"/></td>
       <td><select class="gi gi-sm" onchange="editTurmaBase(${i},'periodo',this.value)">${perOpts}</select></td>
-      <td><button class="btn-icon-del" onclick="delTurmaBase(${i})">🗑</button></td>
+      <td><button type="button" class="btn-icon-del" onclick="delTurmaBase(${i})">🗑</button></td>
     </tr>`;
   }).join("");
 
@@ -170,7 +170,7 @@ function htmlEscolaTurmas() {
     <div class="gestao-bloco">
       <div class="gestao-bloco-header">
         <h3>Turmas da escola</h3>
-        <button class="btn-add" onclick="addTurmaBase()">+ Nova turma</button>
+        <button type="button" class="btn-add" onclick="addTurmaBase()">+ Nova turma</button>
       </div>
       <p class="gestao-hint">Cadastre aqui as turmas (séries e divisões). Os professores adicionarão suas disciplinas.</p>
       <div class="tabela-wrapper">
@@ -241,14 +241,14 @@ function htmlEscolaDisciplinas() {
     <tr>
       <td><input class="gi gi-sm" value="${a.id}" onchange="editAreaId(${ai},this.value)" placeholder="humanas"/></td>
       <td><input class="gi" value="${a.label}" onchange="editAreaLabel(${ai},this.value)" placeholder="Ciências Humanas"/></td>
-      <td><button class="btn-icon-del" onclick="delArea(${ai})">🗑</button></td>
+      <td><button type="button" class="btn-icon-del" onclick="delArea(${ai})">🗑</button></td>
     </tr>`).join("");
 
   return `
     <div class="gestao-bloco" style="margin-bottom:20px">
       <div class="gestao-bloco-header">
         <h3>Áreas do conhecimento</h3>
-        <button class="btn-add" onclick="addArea()">+ Nova área</button>
+        <button type="button" class="btn-add" onclick="addArea()">+ Nova área</button>
       </div>
       <p class="gestao-hint">Defina as áreas antes de cadastrar as disciplinas. São globais — valem para todas as séries.</p>
       <div class="tabela-wrapper">
@@ -336,7 +336,7 @@ function htmlEscolaPeriodos() {
         <span style="font-size:.78rem;color:var(--text-muted)">duração (min)</span>
         <input class="gi gi-xs" type="number" min="0" max="120" value="${iv.duracao||10}" style="width:52px"
           onchange="editCfgIntervalo('${turno}',${ii},'duracao',+this.value)"/>
-        <button class="btn-icon-del" onclick="delCfgIntervalo('${turno}',${ii})">×</button>
+        <button type="button" class="btn-icon-del" onclick="delCfgIntervalo('${turno}',${ii})">×</button>
       </div>`).join("");
 
     const _periodos = _gerarPeriodosDeConfig({ [turno]: c });
@@ -375,7 +375,7 @@ function htmlEscolaPeriodos() {
         <div style="margin-bottom:8px">
           <div style="font-size:.8rem;font-weight:600;margin-bottom:6px">Intervalos</div>
           <div id="ivs-${turno}">${intervalosHtml || '<p class="gestao-hint" style="margin:0">Nenhum intervalo.</p>'}</div>
-          <button class="btn-add-small" onclick="addCfgIntervalo('${turno}')">+ Intervalo</button>
+          <button type="button" class="btn-add-small" onclick="addCfgIntervalo('${turno}')">+ Intervalo</button>
         </div>
         <div class="periodo-preview" id="preview-${turno}">${preview}</div>
       </div>`;
@@ -386,7 +386,7 @@ function htmlEscolaPeriodos() {
       <p class="gestao-hint">Configure os turnos. As aulas são calculadas automaticamente. Intervalos são inseridos após a aula indicada.</p>
       ${blocoTurno("manha","🌅 Manhã")}
       ${blocoTurno("tarde","🌇 Tarde")}
-      <button class="btn-modal-ok" onclick="_salvarConfigPeriodos()">Salvar e aplicar</button>
+      <button type="button" class="btn-modal-ok" onclick="_salvarConfigPeriodos()">Salvar e aplicar</button>
     </div>`;
 }
 

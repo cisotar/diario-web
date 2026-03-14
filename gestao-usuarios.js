@@ -218,7 +218,7 @@ function htmlGestaoPerfil() {
           <input class="gi" value="${p.email||''}" readonly />
         </label>
         <div style="margin-top:4px;">
-          <button class="btn-add" onclick="_salvarPerfil()">💾 Salvar perfil</button>
+          <button type="button" class="btn-add" onclick="_salvarPerfil()">💾 Salvar perfil</button>
         </div>
       </div>
     </div>`;
@@ -310,9 +310,9 @@ async function _carregarUsuarios() {
               const acoes = isAdminUser
                 ? `<span style="color:#4a5568;font-size:.75rem">—</span>`
                 : `<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
-                    ${u.status!=="aprovado"  ? `<button class="btn-add"    style="padding:4px 10px;font-size:.73rem" onclick="_aprovarUsuario('${u.uid}')">Aprovar</button>` : ""}
+                    ${u.status!=="aprovado"  ? `<button type="button" class="btn-add"    style="padding:4px 10px;font-size:.73rem" onclick="_aprovarUsuario('${u.uid}')">Aprovar</button>` : ""}
                     ${u.status!=="rejeitado" ? `<button class="btn-limpar" style="padding:4px 10px;font-size:.73rem" onclick="_rejeitarUsuario('${u.uid}')">Rejeitar</button>` : ""}
-                    <button class="btn-icon-del" onclick="_excluirUsuario('${u.uid}')" title="Excluir">🗑</button>
+                    <button type="button" class="btn-icon-del" onclick="_excluirUsuario('${u.uid}')" title="Excluir">🗑</button>
                    </div>`;
               return `<tr>
                 <td>${u.nome||"—"}</td>

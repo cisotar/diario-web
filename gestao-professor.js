@@ -50,7 +50,7 @@ function htmlProfTurmas() {
           <select class="gi gi-sm" onchange="editHorario(${ti},${hi},'aula',this.value)">
             ${periodosDoTurno.map(p => `<option value="${p.aula}" ${h.aula===p.aula?"selected":""}>${p.label} (${p.inicio})</option>`).join("")}
           </select>
-          <button class="btn-icon-del" onclick="delHorario(${ti},${hi}); document.getElementById('g-minhas-turmas').innerHTML=htmlProfTurmas()">×</button>
+          <button type="button" class="btn-icon-del" onclick="delHorario(${ti},${hi}); document.getElementById('g-minhas-turmas').innerHTML=htmlProfTurmas()">×</button>
         </div>`).join("");
       return `
         <div class="prof-disc-linha" id="disc-linha-${t.id}">
@@ -68,17 +68,17 @@ function htmlProfTurmas() {
             <input class="gi gi-xs" value="${t.sigla}" placeholder="Sigla" maxlength="6"
               id="sigla-${t.id}"
               onchange="editTurmaField(${ti},'sigla',this.value)" style="max-width:72px"/>
-            <button class="btn-icon-del" title="Remover esta disciplina desta turma"
+            <button type="button" class="btn-icon-del" title="Remover esta disciplina desta turma"
               onclick="delTurma(${ti}); document.getElementById('g-minhas-turmas').innerHTML=htmlProfTurmas()">🗑 remover</button>
           </div>
           <div class="horarios-lista">
             ${horariosHtml}
-            <button class="btn-add-small" onclick="addHorario(${ti}); document.getElementById('g-minhas-turmas').innerHTML=htmlProfTurmas()">+ Horário</button>
+            <button type="button" class="btn-add-small" onclick="addHorario(${ti}); document.getElementById('g-minhas-turmas').innerHTML=htmlProfTurmas()">+ Horário</button>
           </div>
         </div>`;
     }).join("");
 
-    const btnAdd = `<button class="btn-add-small" onclick="addDiscNaTurma('${tb.serie}','${tb.turma}','${tb.subtitulo||""}','${turno}')">+ Adicionar disciplina</button>`;
+    const btnAdd = `<button type="button" class="btn-add-small" onclick="addDiscNaTurma('${tb.serie}','${tb.turma}','${tb.subtitulo||""}','${turno}')">+ Adicionar disciplina</button>`;
 
     return `
       <div class="gestao-bloco" style="margin-bottom:12px">
@@ -133,7 +133,7 @@ function htmlGestaoBimestres() {
           <td><input class="gi gi-sm" value="${b.label}" onchange="editBimField(${i},'label',this.value)" /></td>
           <td><input class="gi" type="date" value="${b.inicio}" onchange="editBimField(${i},'inicio',this.value)" /></td>
           <td><input class="gi" type="date" value="${b.fim}"    onchange="editBimField(${i},'fim',this.value)" /></td>
-          <td><button class="btn-icon-del" onclick="delBim(${i})">🗑</button></td>
+          <td><button type="button" class="btn-icon-del" onclick="delBim(${i})">🗑</button></td>
         </tr>`;
     } else {
       return `
@@ -147,7 +147,7 @@ function htmlGestaoBimestres() {
   }).join("");
 
   const headerAcao = admin
-    ? `<button class="btn-add" onclick="addBim()">+ Novo período</button>`
+    ? `<button type="button" class="btn-add" onclick="addBim()">+ Novo período</button>`
     : `<span class="bim-ro-aviso">📋 Definido pelo administrador</span>`;
 
   return `
@@ -267,12 +267,12 @@ function htmlGestaoConteudos() {
 
   // Botões de disciplina
   const discBtns = bases.map(b => `
-    <button class="gtab-cont ${b===baseAtiva?"ativo":""}" onclick="selecionarBaseGCont('${b}')">${b}</button>`
+    <button type="button" class="gtab-cont ${b===baseAtiva?"ativo":""}" onclick="selecionarBaseGCont('${b}')">${b}</button>`
   ).join("");
 
   // Abas de bimestre
   const bimBtns = (RT_BIMESTRES || []).map(b => `
-    <button class="gtab-cont gtab-bim ${b.bimestre===bim?"ativo":""}" onclick="selecionarBimGCont(${b.bimestre})">${b.label}</button>`
+    <button type="button" class="gtab-cont gtab-bim ${b.bimestre===bim?"ativo":""}" onclick="selecionarBimGCont(${b.bimestre})">${b.label}</button>`
   ).join("");
 
   const lista = chaveAtiva ? RT_CONTEUDOS[chaveAtiva] : [];
@@ -282,8 +282,8 @@ function htmlGestaoConteudos() {
       <p class="bloco-instrucao">Cole ou digite todas as aulas — <strong>uma por linha</strong>. As linhas existentes serão substituídas ao salvar.</p>
       <textarea id="bloco-textarea" class="bloco-textarea" rows="18" spellcheck="false">${lista.join("\n")}</textarea>
       <div class="bloco-actions">
-        <button class="btn-modal-cancel" onclick="gContModo='lista'; document.getElementById('g-conteudos').innerHTML=htmlGestaoConteudos()">Cancelar</button>
-        <button class="btn-modal-ok" onclick="salvarBloco('${chaveAtiva}')">Salvar bloco</button>
+        <button type="button" class="btn-modal-cancel" onclick="gContModo='lista'; document.getElementById('g-conteudos').innerHTML=htmlGestaoConteudos()">Cancelar</button>
+        <button type="button" class="btn-modal-ok" onclick="salvarBloco('${chaveAtiva}')">Salvar bloco</button>
       </div>
     </div>` : `
     <div class="tabela-wrapper" style="margin-top:12px">
@@ -305,13 +305,13 @@ function htmlGestaoConteudos() {
                     onchange="editConteudo('${chaveAtiva}',${i},this.value)" />
                 </div>
               </td>
-              <td><button class="btn-icon-del" onclick="delConteudo('${chaveAtiva}',${i})">×</button></td>
+              <td><button type="button" class="btn-icon-del" onclick="delConteudo('${chaveAtiva}',${i})">×</button></td>
             </tr>`).join("")}
         </tbody>
       </table>
     </div>
     <div style="margin-top:10px;display:flex;gap:8px;">
-      <button class="btn-add" onclick="addConteudo('${chaveAtiva}')">+ Adicionar linha</button>
+      <button type="button" class="btn-add" onclick="addConteudo('${chaveAtiva}')">+ Adicionar linha</button>
     </div>`;
 
   return `
@@ -320,7 +320,7 @@ function htmlGestaoConteudos() {
         <h3>Conteúdos por disciplina / série / bimestre</h3>
         <div style="display:flex;gap:6px;">
           <button class="btn-add btn-outline" onclick="gContModo='bloco'; document.getElementById('g-conteudos').innerHTML=htmlGestaoConteudos()">✎ Editar em bloco</button>
-          <button class="btn-add" onclick="addChaveCont()">+ Nova disciplina</button>
+          <button type="button" class="btn-add" onclick="addChaveCont()">+ Nova disciplina</button>
         </div>
       </div>
       <div class="gtab-cont-bar" style="margin-bottom:4px">${discBtns}</div>

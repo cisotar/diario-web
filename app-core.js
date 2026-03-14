@@ -1338,8 +1338,8 @@ function renderizarConteudo() {
           <label>Descrição / Conteúdo <textarea id="ev-desc" rows="2" placeholder="Ex: Reposição — Biomas"></textarea></label>
         </div>
         <div class="modal-actions">
-          <button class="btn-modal-cancel" onclick="fecharModalEventual()">Cancelar</button>
-          <button class="btn-modal-ok"     onclick="confirmarEventual()">Inserir</button>
+          <button type="button" class="btn-modal-cancel" onclick="fecharModalEventual()">Cancelar</button>
+          <button type="button" class="btn-modal-ok"     onclick="confirmarEventual()">Inserir</button>
         </div>
       </div>
     </div>`;
