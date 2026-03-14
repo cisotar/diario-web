@@ -6,62 +6,62 @@ const TURMAS_BASE = [
     "serie": "1",
     "turma": "A",
     "subtitulo": "",
-    "periodo": "manha"
+    "periodo": "tarde"
   },
   {
     "nivel": "medio",
     "serie": "1",
     "turma": "B",
     "subtitulo": "",
-    "periodo": "manha"
+    "periodo": "tarde"
   },
   {
     "nivel": "medio",
     "serie": "1",
     "turma": "C",
     "subtitulo": "",
-    "periodo": "manha"
+    "periodo": "tarde"
   },
   {
     "nivel": "medio",
     "serie": "1",
     "turma": "D",
     "subtitulo": "",
-    "periodo": "manha"
+    "periodo": "tarde"
   },
   {
     "nivel": "medio",
     "serie": "1",
     "turma": "E",
     "subtitulo": "",
-    "periodo": "manha"
+    "periodo": "tarde"
   },
   {
     "nivel": "medio",
     "serie": "2",
     "turma": "A",
     "subtitulo": "(ADM)",
-    "periodo": "manha"
+    "periodo": "tarde"
   },
   {
     "nivel": "medio",
     "serie": "2",
     "turma": "B",
     "subtitulo": "(ADS)",
-    "periodo": "manha"
+    "periodo": "tarde"
   },
   {
     "nivel": "medio",
     "serie": "2",
     "turma": "C",
     "subtitulo": "(HUM)",
-    "periodo": "manha"
+    "periodo": "tarde"
   },
   {
     "nivel": "medio",
     "serie": "3",
     "turma": "B",
     "subtitulo": "(HUM)",
-    "periodo": "manha"
+    "periodo": "tarde"
   }
 ];
