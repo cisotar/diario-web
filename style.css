@@ -1387,3 +1387,6 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   vertical-align: middle;
   padding: 4px 6px;
 }
+
+.gestao-hint { font-size:.82rem; color:var(--text-muted); margin-bottom:10px; }
+.prof-disc-linha { background:var(--bg-paper); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px; }
