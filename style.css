@@ -1392,3 +1392,40 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .prof-disc-linha { background:var(--bg-paper); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px; }
 
 .periodo-preview-intervalo { background:var(--amber-light,#f0a84a22); border-color:var(--amber,#c97d20); color:var(--amber,#c97d20); font-size:.75rem; }
+
+/* ── Gestão de turmas: níveis / séries / turmas ─────────────── */
+.serie-bloco {
+  border: 1px solid var(--border, #dde3ec);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.serie-bloco-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--bg-paper, #faf8f3);
+  border-bottom: 1px solid var(--border, #dde3ec);
+}
+.serie-bloco-header strong {
+  flex: 1;
+  font-size: .9rem;
+}
+.serie-turmas-wrap {
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.turma-inline-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.turma-inline-label {
+  font-size: .75rem;
+  color: var(--text-muted);
+  min-width: 38px;
+}

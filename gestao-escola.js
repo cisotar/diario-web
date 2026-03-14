@@ -151,65 +151,137 @@ function voltarPrincipal() {
 // ════════════════════════════════════════════════════════════════
 // ABA: TURMAS DA ESCOLA (admin — turmas-base sem disciplina)
 // ════════════════════════════════════════════════════════════════
-function htmlEscolaTurmas() {
-  const base = RT_CONFIG.turmasBase || TURMAS_BASE || [];
-  const rows = base.map((tb, i) => {
-    const perOpts = ["manha","tarde"].map(p =>
-      `<option value="${p}" ${(tb.periodo||"manha")===p?"selected":""}>${p==="manha"?"Manhã":"Tarde"}</option>`
-    ).join("");
-    return `<tr>
-      <td><input class="gi gi-xs" value="${tb.serie}" onchange="editTurmaBase(${i},'serie',this.value)" style="width:44px"/></td>
-      <td><input class="gi gi-xs" value="${tb.turma}" onchange="editTurmaBase(${i},'turma',this.value)" style="width:44px"/></td>
-      <td><input class="gi gi-sm" value="${tb.subtitulo||''}" placeholder="ADM, HUM…" onchange="editTurmaBase(${i},'subtitulo',this.value)"/></td>
-      <td><select class="gi gi-sm" onchange="editTurmaBase(${i},'periodo',this.value)">${perOpts}</select></td>
-      <td><button type="button" class="btn-icon-del" onclick="delTurmaBase(${i})">🗑</button></td>
-    </tr>`;
-  }).join("");
+function _turmasBaseInit() {
+  if (!RT_CONFIG) RT_CONFIG = {};
+  if (!RT_CONFIG.turmasBase) {
+    // Migra TURMAS_BASE legado adicionando campo nivel
+    const seed = (typeof TURMAS_BASE !== "undefined" ? TURMAS_BASE : [])
+      .map(t => ({ ...t, nivel: t.nivel || "medio" }));
+    RT_CONFIG.turmasBase = JSON.parse(JSON.stringify(seed));
+  }
+  return RT_CONFIG.turmasBase;
+}
 
-  return `
-    <div class="gestao-bloco">
-      <div class="gestao-bloco-header">
-        <h3>Turmas da escola</h3>
-        <button type="button" class="btn-add" onclick="addTurmaBase()">+ Nova turma</button>
-      </div>
-      <p class="gestao-hint">Cadastre aqui as turmas (séries e divisões). Os professores adicionarão suas disciplinas.</p>
-      <div class="tabela-wrapper">
-        <table class="tabela-gestao">
-          <thead><tr><th>Série</th><th>Turma</th><th>Subtítulo</th><th>Turno</th><th></th></tr></thead>
-          <tbody>${rows || '<tr><td colspan="5" class="td-vazio">Nenhuma turma cadastrada.</td></tr>'}</tbody>
-        </table>
-      </div>
-    </div>`;
+function _recarregarTurmas() {
+  const el = document.getElementById("g-turmas");
+  if (el) el.innerHTML = htmlEscolaTurmas();
+}
+
+// ── htmlEscolaTurmas ─────────────────────────────────────────
+// Dois blocos: Ensino Médio (1ª–3ª série) e Ensino Fundamental (5º–9º ano)
+// Cada bloco lista as séries/anos; cada série lista suas turmas inline.
+function htmlEscolaTurmas() {
+  const base = _turmasBaseInit();
+  const diasNomes = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+
+  const blocoNivel = (nivel, labelNivel, labelSerie) => {
+    // Agrupa por série
+    const series = [...new Set(base.filter(t=>t.nivel===nivel).map(t=>t.serie))].sort((a,b)=>+a-+b);
+
+    const seriesHtml = series.map(serie => {
+      const turmas = base.filter(t => t.nivel===nivel && t.serie===serie);
+      const sufixo = nivel==="medio" ? "ª Série" : "º Ano";
+
+      const turmasHtml = turmas.map(tb => {
+        const i = base.indexOf(tb);
+        const perOpts = ["manha","tarde"].map(p =>
+          `<option value="${p}" ${(tb.periodo||"manha")===p?"selected":""}>${p==="manha"?"Manhã":"Tarde"}</option>`
+        ).join("");
+        return `
+          <div class="turma-inline-linha">
+            <span class="turma-inline-label">Turma</span>
+            <input class="gi gi-xs" value="${tb.turma}" style="width:44px"
+              onchange="editTurmaBase(${i},'turma',this.value)" placeholder="A"/>
+            <input class="gi gi-sm" value="${tb.subtitulo||''}" placeholder="subtítulo opcional"
+              onchange="editTurmaBase(${i},'subtitulo',this.value)"/>
+            <select class="gi gi-sm" onchange="editTurmaBase(${i},'periodo',this.value)">${perOpts}</select>
+            <button type="button" class="btn-icon-del" onclick="delTurmaBase(${i})">×</button>
+          </div>`;
+      }).join("");
+
+      return `
+        <div class="serie-bloco">
+          <div class="serie-bloco-header">
+            <strong>${serie}${sufixo}</strong>
+            <button type="button" class="btn-add-small"
+              onclick="addTurmaNoSerie('${nivel}','${serie}')">+ Turma</button>
+            <button type="button" class="btn-icon-del"
+              onclick="delSerie('${nivel}','${serie}')">🗑 série</button>
+          </div>
+          <div class="serie-turmas-wrap">${turmasHtml}</div>
+        </div>`;
+    }).join("");
+
+    return `
+      <div class="gestao-bloco" style="margin-bottom:16px">
+        <div class="gestao-bloco-header">
+          <h3>${labelNivel}</h3>
+          <button type="button" class="btn-add" onclick="addSerie('${nivel}')">+ ${labelSerie}</button>
+        </div>
+        <p class="gestao-hint">Adicione as séries e as turmas de cada uma.</p>
+        ${seriesHtml || '<p class="gestao-hint" style="margin:0">Nenhuma série cadastrada.</p>'}
+      </div>`;
+  };
+
+  return blocoNivel("medio","📘 Ensino Médio","Série") +
+         blocoNivel("fundamental","📗 Ensino Fundamental","Ano");
 }
 
 async function editTurmaBase(i, campo, val) {
-  if (!RT_CONFIG.turmasBase) RT_CONFIG.turmasBase = JSON.parse(JSON.stringify(TURMAS_BASE||[]));
-  RT_CONFIG.turmasBase[i][campo] = val;
+  const base = _turmasBaseInit();
+  if (base[i]) base[i][campo] = val;
   await _salvarConfigEscola();
 }
+
 function delTurmaBase(i) {
-  if (!RT_CONFIG.turmasBase) RT_CONFIG.turmasBase = [...(TURMAS_BASE||[])];
-  const tb = RT_CONFIG.turmasBase[i];
-  if (!confirm(`Excluir ${tb.serie}ª ${tb.turma}?`)) return;
-  RT_CONFIG.turmasBase.splice(i, 1);
+  const base = _turmasBaseInit();
+  if (!confirm("Excluir esta turma?")) return;
+  base.splice(i, 1);
   _salvarConfigEscola();
-  document.getElementById("g-turmas").innerHTML = htmlEscolaTurmas();
+  _recarregarTurmas();
 }
-async function addTurmaBase() {
+
+function delSerie(nivel, serie) {
+  const base = _turmasBaseInit();
+  const label = nivel==="medio" ? serie+"ª Série" : serie+"º Ano";
+  if (!confirm("Excluir "+label+" e todas as suas turmas?")) return;
+  RT_CONFIG.turmasBase = base.filter(t => !(t.nivel===nivel && t.serie===serie));
+  _salvarConfigEscola();
+  _recarregarTurmas();
+}
+
+async function addSerie(nivel) {
   try {
-    if (!RT_CONFIG) RT_CONFIG = {};
-    if (!RT_CONFIG.turmasBase) {
-      const seed = (typeof TURMAS_BASE !== "undefined" ? TURMAS_BASE : null)
-        || (typeof TURMAS !== "undefined" ? [...new Map(TURMAS.map(t=>[t.serie+t.turma,{serie:t.serie,turma:t.turma,subtitulo:t.subtitulo||"",periodo:"manha"}])).values()] : []);
-      RT_CONFIG.turmasBase = JSON.parse(JSON.stringify(seed));
-    }
-    RT_CONFIG.turmasBase.push({ serie:"1", turma:"A", subtitulo:"", periodo:"manha" });
+    const base = _turmasBaseInit();
+    // Descobre o próximo número de série/ano
+    const seriesExist = base.filter(t=>t.nivel===nivel).map(t=>+t.serie);
+    const proximaSerie = seriesExist.length
+      ? String(Math.max(...seriesExist) + 1)
+      : (nivel==="medio" ? "1" : "5");
+    // Já cria com turma A
+    base.push({ nivel, serie: proximaSerie, turma:"A", subtitulo:"", periodo:"manha" });
     await _salvarConfigEscola();
-    const el = document.getElementById("g-turmas");
-    if (el) el.innerHTML = htmlEscolaTurmas();
-    else _abrirPainelEscola("turmas");
-  } catch(e) { console.error("addTurmaBase erro:", e); alert("Erro: " + e.message); }
+    _recarregarTurmas();
+  } catch(e) { console.error("addSerie:", e); alert("Erro: "+e.message); }
 }
+
+async function addTurmaNoSerie(nivel, serie) {
+  try {
+    const base = _turmasBaseInit();
+    // Próxima letra de turma
+    const turmasExist = base.filter(t=>t.nivel===nivel && t.serie===serie).map(t=>t.turma);
+    const proxLetra = turmasExist.length
+      ? String.fromCharCode(Math.max(...turmasExist.map(t=>t.charCodeAt(0))) + 1)
+      : "A";
+    base.push({ nivel, serie, turma: proxLetra, subtitulo:"", periodo:"manha" });
+    await _salvarConfigEscola();
+    _recarregarTurmas();
+  } catch(e) { console.error("addTurmaNoSerie:", e); alert("Erro: "+e.message); }
+}
+
+// Mantém compatibilidade com chamadas antigas
+async function addTurmaBase() { await addSerie("medio"); }
+
 
 // ════════════════════════════════════════════════════════════════
 // ABA: DISCIPLINAS / ÁREAS (admin)
