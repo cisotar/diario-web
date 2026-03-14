@@ -182,10 +182,10 @@ function htmlEscolaTurmas() {
     </div>`;
 }
 
-function editTurmaBase(i, campo, val) {
-  if (!RT_CONFIG.turmasBase) RT_CONFIG.turmasBase = [...(TURMAS_BASE||[])];
+async function editTurmaBase(i, campo, val) {
+  if (!RT_CONFIG.turmasBase) RT_CONFIG.turmasBase = JSON.parse(JSON.stringify(TURMAS_BASE||[]));
   RT_CONFIG.turmasBase[i][campo] = val;
-  _salvarConfigEscola();
+  await _salvarConfigEscola();
 }
 function delTurmaBase(i) {
   if (!RT_CONFIG.turmasBase) RT_CONFIG.turmasBase = [...(TURMAS_BASE||[])];
@@ -195,11 +195,13 @@ function delTurmaBase(i) {
   _salvarConfigEscola();
   document.getElementById("g-turmas").innerHTML = htmlEscolaTurmas();
 }
-function addTurmaBase() {
-  if (!RT_CONFIG.turmasBase) RT_CONFIG.turmasBase = [...(TURMAS_BASE||[])];
+async function addTurmaBase() {
+  if (!RT_CONFIG.turmasBase) RT_CONFIG.turmasBase = JSON.parse(JSON.stringify(TURMAS_BASE||[]));
   RT_CONFIG.turmasBase.push({ serie:"1", turma:"A", subtitulo:"", periodo:"manha" });
-  _salvarConfigEscola();
-  document.getElementById("g-turmas").innerHTML = htmlEscolaTurmas();
+  await _salvarConfigEscola();
+  const el = document.getElementById("g-turmas");
+  if (el) el.innerHTML = htmlEscolaTurmas();
+  else _abrirPainelEscola("turmas");
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -245,23 +247,23 @@ function htmlEscolaDisciplinas() {
   return `
     <div class="gestao-bloco" style="margin-bottom:20px">
       <div class="gestao-bloco-header">
-        <h3>Disciplinas por série e área</h3>
-      </div>
-      <p class="gestao-hint">Informe quais disciplinas existem em cada série, agrupadas por área do conhecimento.</p>
-      ${blocoAreas}
-    </div>
-    <div class="gestao-bloco">
-      <div class="gestao-bloco-header">
         <h3>Áreas do conhecimento</h3>
         <button class="btn-add" onclick="addArea()">+ Nova área</button>
       </div>
-      <p class="gestao-hint">As áreas são globais — valem para todas as séries.</p>
+      <p class="gestao-hint">Defina as áreas antes de cadastrar as disciplinas. São globais — valem para todas as séries.</p>
       <div class="tabela-wrapper">
         <table class="tabela-gestao" style="min-width:0">
           <thead><tr><th>ID (sem espaços)</th><th>Nome exibido</th><th></th></tr></thead>
           <tbody>${areasRows}</tbody>
         </table>
       </div>
+    </div>
+    <div class="gestao-bloco">
+      <div class="gestao-bloco-header">
+        <h3>Disciplinas por série e área</h3>
+      </div>
+      <p class="gestao-hint">Informe quais disciplinas existem em cada série, agrupadas por área do conhecimento.</p>
+      ${blocoAreas}
     </div>`;
 }
 
@@ -291,13 +293,158 @@ function delArea(i) {
   _salvarConfigEscola();
   document.getElementById("g-disciplinas").innerHTML = htmlEscolaDisciplinas();
 }
-function addArea() {
-  if (!RT_CONFIG.areasConhecimento) RT_CONFIG.areasConhecimento = [...AREAS_CONHECIMENTO];
-  RT_CONFIG.areasConhecimento.push({ id:"nova", label:"Nova área" });
-  _salvarConfigEscola();
-  document.getElementById("g-disciplinas").innerHTML = htmlEscolaDisciplinas();
+async function addArea() {
+  if (!RT_CONFIG.areasConhecimento) RT_CONFIG.areasConhecimento = JSON.parse(JSON.stringify(AREAS_CONHECIMENTO||[]));
+  RT_CONFIG.areasConhecimento.push({ id:"nova-area", label:"Nova área" });
+  await _salvarConfigEscola();
+  const el = document.getElementById("g-disciplinas");
+  if (el) el.innerHTML = htmlEscolaDisciplinas();
+  else _abrirPainelEscola("disciplinas");
 }
 
 // ════════════════════════════════════════════════════════════════
 // ABA: PERÍODOS (admin)
 // ════════════════════════════════════════════════════════════════
+
+function _cfgPeriodosDefault() {
+  return {
+    manha: { inicio:"07:00", duracao:50, qtd:5, intervalos:[{apos:3,duracao:20}] },
+    tarde: { inicio:"14:30", duracao:50, qtd:5, intervalos:[{apos:3,duracao:20}] },
+  };
+}
+function _garantirCfgPeriodos() {
+  if (!RT_CONFIG.configPeriodos) RT_CONFIG.configPeriodos = _cfgPeriodosDefault();
+  return RT_CONFIG.configPeriodos;
+}
+
+function htmlEscolaPeriodos() {
+  const cfg = RT_CONFIG.configPeriodos || _cfgPeriodosDefault();
+
+  const blocoTurno = (turno, label) => {
+    const c = cfg[turno] || {};
+    const ivs = c.intervalos || [];
+    const intervalosHtml = ivs.map((iv, ii) => `
+      <div class="intervalo-linha" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+        <span style="font-size:.78rem;color:var(--text-muted)">após aula nº</span>
+        <input class="gi gi-xs" type="number" min="1" max="20" value="${iv.apos||1}" style="width:52px"
+          onchange="editCfgIntervalo('${turno}',${ii},'apos',+this.value)"/>
+        <span style="font-size:.78rem;color:var(--text-muted)">início</span>
+        <input class="gi gi-xs" type="time" value="${iv.inicio||''}" style="width:90px"
+          placeholder="auto"
+          onchange="editCfgIntervalo('${turno}',${ii},'inicio',this.value)"
+          title="Deixe em branco para calcular automaticamente"/>
+        <span style="font-size:.78rem;color:var(--text-muted)">duração (min)</span>
+        <input class="gi gi-xs" type="number" min="0" max="120" value="${iv.duracao||10}" style="width:52px"
+          onchange="editCfgIntervalo('${turno}',${ii},'duracao',+this.value)"/>
+        <button class="btn-icon-del" onclick="delCfgIntervalo('${turno}',${ii})">×</button>
+      </div>`).join("");
+
+    const _periodos = _gerarPeriodosDeConfig({ [turno]: c });
+    const _ivs = c.intervalos || [];
+    const _previewItems = [];
+    _periodos.forEach((p, pi) => {
+      _previewItems.push(`<div class="periodo-preview-item"><strong>${p.label}</strong> ${p.inicio}–${p.fim}</div>`);
+      _ivs.forEach(iv => {
+        if (iv.apos === pi + 1) {
+          const iIni = iv.inicio || p.fim;
+          const iMins = iIni.split(":").reduce((a,v,i)=>i===0?+v*60:a+ +v,0) + (iv.duracao||0);
+          const iFim = String(Math.floor(iMins/60)).padStart(2,"0")+":"+String(iMins%60).padStart(2,"0");
+          _previewItems.push(`<div class="periodo-preview-item periodo-preview-intervalo">☕ Intervalo ${iIni}–${iFim} (${iv.duracao||0}min)</div>`);
+        }
+      });
+    });
+    const preview = _previewItems.join("");
+
+    return `
+      <div class="gestao-bloco" style="margin-bottom:16px">
+        <h4 style="margin-bottom:12px">${label}</h4>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:14px">
+          <label class="disc-area-label">Início
+            <input class="gi" type="time" value="${c.inicio||"07:00"}"
+              onchange="editCfgPeriodo('${turno}','inicio',this.value)"/>
+          </label>
+          <label class="disc-area-label">Duração da aula (min)
+            <input class="gi" type="number" min="30" max="120" value="${c.duracao||50}"
+              onchange="editCfgPeriodo('${turno}','duracao',+this.value)"/>
+          </label>
+          <label class="disc-area-label">Nº de aulas
+            <input class="gi" type="number" min="1" max="20" value="${c.qtd||5}"
+              onchange="editCfgPeriodo('${turno}','qtd',+this.value)"/>
+          </label>
+        </div>
+        <div style="margin-bottom:8px">
+          <div style="font-size:.8rem;font-weight:600;margin-bottom:6px">Intervalos</div>
+          <div id="ivs-${turno}">${intervalosHtml || '<p class="gestao-hint" style="margin:0">Nenhum intervalo.</p>'}</div>
+          <button class="btn-add-small" onclick="addCfgIntervalo('${turno}')">+ Intervalo</button>
+        </div>
+        <div class="periodo-preview" id="preview-${turno}">${preview}</div>
+      </div>`;
+  };
+
+  return `
+    <div style="max-width:760px">
+      <p class="gestao-hint">Configure os turnos. As aulas são calculadas automaticamente. Intervalos são inseridos após a aula indicada.</p>
+      ${blocoTurno("manha","🌅 Manhã")}
+      ${blocoTurno("tarde","🌇 Tarde")}
+      <button class="btn-modal-ok" onclick="_salvarConfigPeriodos()">Salvar e aplicar</button>
+    </div>`;
+}
+
+function editCfgPeriodo(turno, campo, val) {
+  const cfg = _garantirCfgPeriodos();
+  cfg[turno][campo] = val;
+  _atualizarPreviewPeriodo(turno);
+}
+function editCfgIntervalo(turno, idx, campo, val) {
+  const cfg = _garantirCfgPeriodos();
+  if (!cfg[turno].intervalos) cfg[turno].intervalos = [];
+  if (!cfg[turno].intervalos[idx]) cfg[turno].intervalos[idx] = {};
+  cfg[turno].intervalos[idx][campo] = val;
+  _atualizarPreviewPeriodo(turno);
+}
+function addCfgIntervalo(turno) {
+  const cfg = _garantirCfgPeriodos();
+  if (!cfg[turno].intervalos) cfg[turno].intervalos = [];
+  const qtd = cfg[turno].qtd || 5;
+  const ultimo = cfg[turno].intervalos.slice(-1)[0];
+  cfg[turno].intervalos.push({ apos: ultimo ? Math.min(ultimo.apos+1, qtd) : 3, duracao: 20 });
+  document.getElementById("g-periodos").innerHTML = htmlEscolaPeriodos();
+}
+function delCfgIntervalo(turno, idx) {
+  const cfg = _garantirCfgPeriodos();
+  cfg[turno].intervalos.splice(idx, 1);
+  document.getElementById("g-periodos").innerHTML = htmlEscolaPeriodos();
+}
+function _atualizarPreviewPeriodo(turno) {
+  const el = document.getElementById("preview-"+turno);
+  if (!el || !RT_CONFIG.configPeriodos) return;
+  const c = RT_CONFIG.configPeriodos[turno];
+  const periodos = _gerarPeriodosDeConfig({ [turno]: c });
+  const ivs = c.intervalos || [];
+  const items = [];
+  periodos.forEach((p, pi) => {
+    items.push(`<div class="periodo-preview-item"><strong>${p.label}</strong> ${p.inicio}–${p.fim}</div>`);
+    ivs.forEach(iv => {
+      if (iv.apos === pi + 1) {
+        const iIni = iv.inicio || p.fim;
+        const iMins = iIni.split(":").reduce((a,v,i)=>i===0?+v*60:a+ +v,0) + (iv.duracao||0);
+        const iFim = String(Math.floor(iMins/60)).padStart(2,"0")+":"+String(iMins%60).padStart(2,"0");
+        items.push(`<div class="periodo-preview-item periodo-preview-intervalo">☕ Intervalo ${iIni}–${iFim} (${iv.duracao||0}min)</div>`);
+      }
+    });
+  });
+  el.innerHTML = items.join("");
+}
+async function _salvarConfigPeriodos() {
+  const cfg = _garantirCfgPeriodos();
+  RT_PERIODOS = _gerarPeriodosDeConfig(cfg);
+  await _salvarConfigEscola();
+  _mostrarIndicadorSync("✓ Períodos salvos e aplicados");
+}
+
+// ════════════════════════════════════════════════════════════════
+// ABA: MINHAS TURMAS (professor)
+// Página com lista de turmas-base; professor associa disciplina,
+// sigla e horários inline — sem janela de diálogo.
+// ════════════════════════════════════════════════════════════════
+// Retorna lista flat de disciplinas cadastradas pelo admin para uma série

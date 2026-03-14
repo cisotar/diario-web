@@ -150,7 +150,11 @@ async function _ativarOffline() {
   if (_offlineAtivo) return;
   _offlineAtivo = true;
   try {
-    await firebase.firestore().enablePersistence({ synchronizeTabs: true });
+    // Usa a API moderna (evita aviso de depreciação do enablePersistence)
+    firebase.firestore().settings({
+      cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED,
+    });
+    await firebase.firestore().enableMultiTabIndexedDbPersistence();
     console.info("Firestore: persistência offline ativa");
   } catch(e) {
     if (e.code === "failed-precondition") {
@@ -235,7 +239,23 @@ function _dbConfigEscola() {
   catch { return null; }
 }
 
+async function _salvarConfigEscola() {
+  if (_DEV) { console.log("[DEV] _salvarConfigEscola — apenas memória"); return; }
+  try {
+    const payload = {
+      nomeEscola:          RT_CONFIG.nomeEscola || "",
+      disciplinasPorSerie: RT_CONFIG.disciplinasPorSerie || {},
+      areasConhecimento:   RT_CONFIG.areasConhecimento || AREAS_CONHECIMENTO,
+      turmasBase:          RT_CONFIG.turmasBase || TURMAS_BASE || [],
+      configPeriodos:      RT_CONFIG.configPeriodos || null,
+    };
+    if (RT_CONFIG.materias) payload.materias = RT_CONFIG.materias;
+    await _dbConfigEscola().set(payload, { merge: true });
+  } catch(e) { console.warn("Erro ao salvar config escola:", e); }
+}
+
 async function _salvarBimestresFirestore() {
+  if (_DEV) { console.log("[DEV] _salvarBimestresFirestore — apenas memória"); return; }
   if (!_isAdmin(_userAtual?.email)) return;
   const ref = _dbConfig();
   if (!ref) return;
@@ -604,6 +624,7 @@ function salvarTudo() {
 }
 
 async function _salvarFirestore() {
+  if (_DEV) { console.log("[DEV] _salvarFirestore — apenas memória"); return; }
   const doc = _initFirebase();
   if (!doc) return;
   if (!_autenticado) { _abrirModalGoogle(); return; }
@@ -761,6 +782,14 @@ async function carregarTudo() {
 
   // DEV: pula todas as leituras do Firestore
   if (_DEV) {
+    // Inicializa RT_CONFIG com valores padrão para testes locais
+    RT_CONFIG = {
+      nomeEscola:          "Escola (DEV)",
+      disciplinasPorSerie: {},
+      areasConhecimento:   JSON.parse(JSON.stringify(AREAS_CONHECIMENTO)),
+      turmasBase:          JSON.parse(JSON.stringify(TURMAS_BASE || [])),
+      configPeriodos:      null,
+    };
     _ativarListenerFirestore();
     return;
   }
