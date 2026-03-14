@@ -1362,3 +1362,28 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   width: 100%;
   box-sizing: border-box;
 }
+
+/* ── Períodos: preview de horários ─────────────────────── */
+.periodo-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.periodo-preview-item {
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: .78rem;
+  color: var(--text-mid);
+}
+.periodo-preview-item strong {
+  color: var(--text);
+}
+
+/* ── Tabela turmas-base no cadastro ─────────────────────── */
+.tb-linha td {
+  vertical-align: middle;
+  padding: 4px 6px;
+}

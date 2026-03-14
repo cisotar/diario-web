@@ -319,7 +319,7 @@ async function _verificarAcessoProfessor() {
       try {
         const cfgSnap = await firebase.firestore().collection("config").doc("escola").get();
         if (cfgSnap.exists) {
-          RT_CONFIG = { nomeEscola: "", disciplinasPorSerie: {}, ...cfgSnap.data() };
+          RT_CONFIG = { nomeEscola: "", disciplinasPorSerie: {}, turmasBase: null, configPeriodos: null, ...cfgSnap.data() };
           if (typeof RT_CONFIG.disciplinasPorSerie === "string") {
             try { RT_CONFIG.disciplinasPorSerie = JSON.parse(RT_CONFIG.disciplinasPorSerie); } catch { RT_CONFIG.disciplinasPorSerie = {}; }
           }
@@ -382,11 +382,11 @@ function _renderizarFormularioCadastro() {
 async function _enviarPedidoAcesso() {
   const nome = document.getElementById("cad-nome")?.value.trim();
   if (!nome) { alert("Informe seu nome."); return; }
-  const disc     = _lerDisciplinasSelecionadas();
-  const area     = document.getElementById("perf-area")?.value || "";
-  const turmasIds = _lerTurmasSelecionadas();
-  if (!disc) { alert("Selecione pelo menos uma disciplina."); return; }
-  if (!turmasIds.length) { alert("Selecione pelo menos uma turma."); return; }
+  const area      = document.getElementById("perf-area")?.value || "";
+  const turmasSel = _lerTurmasSelecionadas(); // array de objetos {turmaKey,serie,turma,disciplina,sigla,...}
+  // Extrai lista de disciplinas das turmas selecionadas (compatibilidade)
+  const disc = [...new Set(turmasSel.map(t => t.disciplina))].join("; ");
+  if (!turmasSel.length) { alert("Selecione pelo menos uma turma e informe a disciplina."); return; }
   const perfil = {
     uid: _userAtual.uid,
     email: _userAtual.email,
@@ -394,7 +394,7 @@ async function _enviarPedidoAcesso() {
     escola: RT_CONFIG?.nomeEscola || "",
     disciplinas: disc,
     area,
-    turmasIds,
+    turmasIds: turmasSel,  // agora objetos completos
     status: "pendente",
     papel: "professor",
     solicitadoEm: new Date().toISOString(),
@@ -689,16 +689,47 @@ function _mostrarIndicadorSync(texto) {
   _syncEl._timer = setTimeout(() => { _syncEl.style.opacity = "0"; }, 2500);
 }
 
-const PERIODOS_PADRAO = [
-  { aula:"a1", label:"1ª aula", inicio:"07:00", fim:"07:50" },
-  { aula:"a2", label:"2ª aula", inicio:"07:50", fim:"08:40" },
-  { aula:"a3", label:"3ª aula", inicio:"08:40", fim:"09:30" },
-  { aula:"a4", label:"4ª aula", inicio:"09:50", fim:"10:40" },
-  { aula:"a5", label:"5ª aula", inicio:"10:40", fim:"11:30" },
-  { aula:"a6", label:"6ª aula", inicio:"19:00", fim:"19:50" },
-  { aula:"a7", label:"7ª aula", inicio:"19:50", fim:"20:40" },
-  { aula:"a8", label:"8ª aula", inicio:"20:40", fim:"21:30" },
-];
+// Turmas-base derivadas de TURMAS: série+turma únicos (sem disciplina)
+// Usadas pelo admin para cadastrar e pelo professor para escolher onde leciona
+const TURMAS_BASE = (() => {
+  const seen = new Set();
+  return (typeof TURMAS !== "undefined" ? TURMAS : [])
+    .filter(t => { const k=`${t.serie}${t.turma}`; if(seen.has(k)) return false; seen.add(k); return true; })
+    .map(t => ({ serie: t.serie, turma: t.turma, subtitulo: t.subtitulo || "", periodo: t.periodo || "manha" }));
+})();
+
+// Estrutura de períodos padrão (gerada por _gerarPeriodosDeConfig)
+// Cada período tem: aula (id), label, inicio, fim, turno ("manha"|"tarde")
+const PERIODOS_PADRAO = _gerarPeriodosDeConfig({
+  manha:  { inicio: "07:00", duracao: 50, intervalos: [{ apos: 3, duracao: 20 }], qtd: 5 },
+  tarde:  { inicio: "14:30", duracao: 50, intervalos: [{ apos: 3, duracao: 20 }], qtd: 5 },
+});
+
+// Gera array de períodos a partir de uma config manhã/tarde
+function _gerarPeriodosDeConfig(cfg) {
+  const res = [];
+  ["manha","tarde"].forEach(turno => {
+    const c = cfg[turno];
+    if (!c) return;
+    let [h, m] = c.inicio.split(":").map(Number);
+    const toMin = (hh, mm) => hh * 60 + mm;
+    const toStr = (mins) => {
+      const hh = String(Math.floor(mins / 60)).padStart(2,"0");
+      const mm = String(mins % 60).padStart(2,"0");
+      return `${hh}:${mm}`;
+    };
+    let cur = toMin(h, m);
+    const prefixo = turno === "manha" ? "m" : "t";
+    for (let i = 1; i <= (c.qtd || 5); i++) {
+      const fim = cur + (c.duracao || 50);
+      res.push({ aula: `${prefixo}${i}`, label: `${i}ª aula (${turno==="manha"?"manhã":"tarde"})`, inicio: toStr(cur), fim: toStr(fim), turno });
+      cur = fim;
+      // Aplica intervalo se houver após esta aula
+      (c.intervalos || []).forEach(iv => { if (iv.apos === i) cur += iv.duracao; });
+    }
+  });
+  return res;
+}
 
 async function carregarTudo() {
   RT_BIMESTRES = JSON.parse(JSON.stringify(BIMESTRES));
@@ -708,9 +739,12 @@ async function carregarTudo() {
     ? JSON.parse(JSON.stringify(TURMAS))
     : [];
   RT_CONTEUDOS = JSON.parse(JSON.stringify(CONTEUDOS));
-  RT_PERIODOS  = JSON.parse(JSON.stringify(
-    typeof PERIODOS !== "undefined" ? PERIODOS : PERIODOS_PADRAO
-  ));
+  // Períodos: tenta usar PERIODOS do aulas.js, senão usa config de RT_CONFIG, senão padrão
+  RT_PERIODOS = (typeof PERIODOS !== "undefined" && Array.isArray(PERIODOS) && PERIODOS.length)
+    ? JSON.parse(JSON.stringify(PERIODOS))
+    : RT_CONFIG?.configPeriodos
+      ? _gerarPeriodosDeConfig(RT_CONFIG.configPeriodos)
+      : JSON.parse(JSON.stringify(PERIODOS_PADRAO));
 
   // DEV: pula todas as leituras do Firestore
   if (_DEV) {
@@ -732,9 +766,13 @@ async function carregarTudo() {
     const escolaSnap = await _dbConfigEscola().get();
     if (escolaSnap.exists) {
       const d = escolaSnap.data();
-      RT_CONFIG = { nomeEscola: "", disciplinasPorSerie: {}, ...d };
+      RT_CONFIG = { nomeEscola: "", disciplinasPorSerie: {}, turmasBase: null, configPeriodos: null, ...d };
       if (typeof RT_CONFIG.disciplinasPorSerie === "string") {
         try { RT_CONFIG.disciplinasPorSerie = JSON.parse(RT_CONFIG.disciplinasPorSerie); } catch { RT_CONFIG.disciplinasPorSerie = {}; }
+      }
+      // Regenera períodos se há config personalizada no Firestore
+      if (RT_CONFIG.configPeriodos) {
+        RT_PERIODOS = _gerarPeriodosDeConfig(RT_CONFIG.configPeriodos);
       }
     }
   } catch(e) { console.warn("Config escola indisponível:", e); }
@@ -1652,9 +1690,11 @@ function exportarJS() {
   // Exporta RT_CONTEUDOS com chaves por bimestre (novo formato)
   const out = [
     `// AULAS.JS — Exportado em ${new Date().toLocaleString("pt-BR")}`,
-    `const BIMESTRES = ${JSON.stringify(RT_BIMESTRES,null,2)};`,
-    `const TURMAS    = ${JSON.stringify(RT_TURMAS,null,2)};`,
-    `const CONTEUDOS = ${JSON.stringify(RT_CONTEUDOS,null,2)};`,
+    `const BIMESTRES    = ${JSON.stringify(RT_BIMESTRES,null,2)};`,
+    `const TURMAS_BASE  = ${JSON.stringify(RT_CONFIG.turmasBase || TURMAS_BASE,null,2)};`,
+    `const TURMAS       = ${JSON.stringify(RT_TURMAS,null,2)};`,
+    `const CONTEUDOS    = ${JSON.stringify(RT_CONTEUDOS,null,2)};`,
+    `const PERIODOS     = ${JSON.stringify(RT_PERIODOS,null,2)};`,
     `// Restore: localStorage.setItem("aulaOrdem", JSON.stringify(ORDEM));`,
     `//          localStorage.setItem("aulaEstado", JSON.stringify(ESTADO));`,
     `const ORDEM  = ${JSON.stringify(ordemConteudos,null,2)};`,
@@ -1703,6 +1743,8 @@ function abrirPainelGestao() {
   if (isAdmin) {
     tabs.push(`<button class="gtab" onclick="abrirGTab(this,'g-disciplinas')">📋 Disciplinas</button>`);
     sections.push(`<div id="g-disciplinas" class="gestao-secao">${htmlGestaoDisciplinas()}</div>`);
+    tabs.push(`<button class="gtab" onclick="abrirGTab(this,'g-periodos')">🕐 Períodos</button>`);
+    sections.push(`<div id="g-periodos" class="gestao-secao">${htmlGestaoPeriodos()}</div>`);
     tabs.push(`<button class="gtab" onclick="abrirGTab(this,'g-usuarios')">👥 Usuários</button>`);
     sections.push(`<div id="g-usuarios" class="gestao-secao">${htmlGestaoUsuarios()}</div>`);
     tabs.push(`<button class="gtab" onclick="abrirGTab(this,'g-diarios')">📚 Diários</button>`);
@@ -1737,6 +1779,7 @@ function abrirGTab(btn, secId) {
   btn.classList.add("ativo");
   document.getElementById(secId).classList.add("ativa");
   if (secId==="g-disciplinas") document.getElementById(secId).innerHTML = htmlGestaoDisciplinas();
+  if (secId==="g-periodos")    document.getElementById(secId).innerHTML = htmlGestaoPeriodos();
   if (secId==="g-turmas")    document.getElementById(secId).innerHTML = htmlGestaoTurmas();
   if (secId==="g-bimestres") document.getElementById(secId).innerHTML = htmlGestaoBimestres();
   if (secId==="g-conteudos") document.getElementById(secId).innerHTML = htmlGestaoConteudos();
@@ -1755,29 +1798,50 @@ function htmlGestaoTurmas() {
   const adm = _isAdmin(_userAtual?.email);
   const uid = _userAtual?.uid;
 
-  const rows = _turmasVisiveis().map((t, vi) => {
-    // índice real em RT_TURMAS (necessário para editar/excluir)
-    const i = RT_TURMAS.indexOf(t);
-    // Só o dono ou admin pode editar
-    const minha = adm || t.profUid === uid || t.profUid === "global";
-    const ro = minha ? "" : " readonly style='opacity:.55;pointer-events:none'";
-    const serieKey = `${t.serie}ª série`;
-    const discsDaSerie = (RT_CONFIG.disciplinasPorSerie?.[serieKey] || []).join("; ");
-    const discsCell = adm
-      ? `<input class="gi gi-sm" value="${discsDaSerie.replace(/"/g,'&quot;')}"
-           title="Disciplinas desta série (global)"
-           onchange="_editDiscsSerie('${serieKey}',this.value)"
-           placeholder="Port.; Mat.; …" />`
-      : `<span style="font-size:.78rem;color:var(--text-muted)">${discsDaSerie||"—"}</span>`;
-
+  // ── Seção 1 (só admin): turmas-base (série + turma, sem disciplina)
+  const turmasBase = RT_CONFIG.turmasBase || TURMAS_BASE;
+  const rowsBase = adm ? turmasBase.map((tb, i) => {
+    const periodoOpts = ["manha","tarde"].map(p =>
+      `<option value="${p}" ${(tb.periodo||"manha")===p?"selected":""}>${p==="manha"?"Manhã":"Tarde"}</option>`
+    ).join("");
     return `
     <tr>
-      <td><input class="gi gi-xs" value="${t.serie}"${ro} onchange="editTurmaField(${i},'serie',this.value)" style="width:48px" /></td>
-      <td><input class="gi gi-xs" value="${t.turma}"${ro} onchange="editTurmaField(${i},'turma',this.value)" /></td>
-      <td><input class="gi gi-sm" value="${t.subtitulo}"${ro} onchange="editTurmaField(${i},'subtitulo',this.value)" /></td>
-      <td><input class="gi" value="${t.disciplina}"${ro} onchange="editTurmaField(${i},'disciplina',this.value)" /></td>
-      <td><input class="gi gi-xs" value="${t.sigla}"${ro} onchange="editTurmaField(${i},'sigla',this.value)" /></td>
-      <td>${discsCell}</td>
+      <td><input class="gi gi-xs" value="${tb.serie}" onchange="editTurmaBase(${i},'serie',this.value)" style="width:48px"/></td>
+      <td><input class="gi gi-xs" value="${tb.turma}" onchange="editTurmaBase(${i},'turma',this.value)"/></td>
+      <td><input class="gi gi-sm" value="${tb.subtitulo||''}" placeholder="(ADM), (HUM)…" onchange="editTurmaBase(${i},'subtitulo',this.value)"/></td>
+      <td><select class="gi gi-sm" onchange="editTurmaBase(${i},'periodo',this.value)">${periodoOpts}</select></td>
+      <td><button class="btn-icon-del" onclick="delTurmaBase(${i})" title="Excluir">🗑</button></td>
+    </tr>`;
+  }).join("") : "";
+
+  const blocoBase = adm ? `
+    <div class="gestao-bloco">
+      <div class="gestao-bloco-header">
+        <h3>Turmas da escola</h3>
+        <button class="btn-add" onclick="addTurmaBase()">+ Nova turma</button>
+      </div>
+      <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:8px">
+        Séries e turmas cadastradas pelo admin. Professores adicionam suas disciplinas abaixo.
+      </p>
+      <div class="tabela-wrapper">
+        <table class="tabela-gestao">
+          <thead><tr><th>Série</th><th>Turma</th><th>Subtítulo</th><th>Turno</th><th></th></tr></thead>
+          <tbody>${rowsBase}</tbody>
+        </table>
+      </div>
+    </div>` : "";
+
+  // ── Seção 2: disciplinas por turma (professor adiciona a sua; admin vê todas)
+  const minhasDisciplinas = _turmasVisiveis();
+  const rowsDisc = minhasDisciplinas.map((t) => {
+    const i = RT_TURMAS.indexOf(t);
+    const minha = adm || t.profUid === uid || t.profUid === "global";
+    const ro = minha ? "" : " readonly style='opacity:.55;pointer-events:none'";
+    return `
+    <tr>
+      <td style="font-size:.85rem">${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""}</td>
+      <td><input class="gi" value="${t.disciplina}"${ro} onchange="editTurmaField(${i},'disciplina',this.value)"/></td>
+      <td><input class="gi gi-xs" value="${t.sigla}"${ro} onchange="editTurmaField(${i},'sigla',this.value)" placeholder="GEO"/></td>
       <td>
         <div class="horarios-lista">
           ${t.horarios.map((h,hi) => `
@@ -1788,33 +1852,79 @@ function htmlGestaoTurmas() {
               <select class="gi gi-sm" ${minha?"":"disabled"} onchange="editHorario(${i},${hi},'aula',this.value)">
                 ${RT_PERIODOS.map(p=>`<option value="${p.aula}" ${h.aula===p.aula?"selected":""}>${p.label} (${p.inicio}–${p.fim})</option>`).join("")}
               </select>
-              ${minha ? `<button class="btn-icon-del" onclick="delHorario(${i},${hi})" title="Remover">×</button>` : ""}
+              ${minha?`<button class="btn-icon-del" onclick="delHorario(${i},${hi})">×</button>`:""}
             </div>`).join("")}
-          ${minha ? `<button class="btn-add-small" onclick="addHorario(${i})">+ Horário</button>` : ""}
+          ${minha?`<button class="btn-add-small" onclick="addHorario(${i})">+ Horário</button>`:""}
         </div>
       </td>
-      <td>${minha ? `<button class="btn-icon-del" onclick="delTurma(${i})" title="Excluir turma">🗑</button>` : ""}</td>
+      <td>${minha?`<button class="btn-icon-del" onclick="delTurma(${i})" title="Excluir">🗑</button>`:""}</td>
     </tr>`;
   }).join("");
 
-  return `
-    <div class="gestao-bloco">
+  const tituloDisc = adm ? "Disciplinas cadastradas (todas as turmas)" : "Minhas disciplinas por turma";
+  const blocoDisc = `
+    <div class="gestao-bloco" style="margin-top:20px">
       <div class="gestao-bloco-header">
-        <h3>Turmas cadastradas</h3>
-        <button class="btn-add" onclick="addTurma()">+ Nova turma</button>
+        <h3>${tituloDisc}</h3>
+        <button class="btn-add" onclick="addDisciplinaTurma()">+ Adicionar disciplina</button>
       </div>
+      <p style="font-size:.8rem;color:var(--text-muted);margin-bottom:8px">
+        ${adm ? "Cada entrada pertence a um professor. Admin pode adicionar entradas globais." : "Adicione sua disciplina a cada turma que você leciona, com os horários correspondentes."}
+      </p>
       <div class="tabela-wrapper">
         <table class="tabela-gestao">
-          <thead><tr>
-            <th>Série</th><th>Turma</th><th>Subtítulo</th>
-            <th>Disciplina</th><th>Sigla</th>
-            <th>${adm ? "Disciplinas da série (global)" : "Disciplinas da série"}</th>
-            <th>Horários (dia + período)</th><th></th>
-          </tr></thead>
-          <tbody>${rows}</tbody>
+          <thead><tr><th>Turma</th><th>Disciplina</th><th>Sigla</th><th>Horários</th><th></th></tr></thead>
+          <tbody>${rowsDisc || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:20px">Nenhuma disciplina cadastrada ainda.</td></tr>'}</tbody>
         </table>
       </div>
     </div>`;
+
+  return blocoBase + blocoDisc;
+}
+
+// ── Turmas-base: admin gerencia
+function editTurmaBase(i, campo, val) {
+  if (!RT_CONFIG.turmasBase) RT_CONFIG.turmasBase = [...TURMAS_BASE];
+  RT_CONFIG.turmasBase[i][campo] = val;
+  _salvarConfigEscola();
+}
+function delTurmaBase(i) {
+  if (!RT_CONFIG.turmasBase) RT_CONFIG.turmasBase = [...TURMAS_BASE];
+  const tb = RT_CONFIG.turmasBase[i];
+  if (!confirm(`Excluir a turma ${tb.serie}ª ${tb.turma}? As disciplinas associadas NÃO serão excluídas.`)) return;
+  RT_CONFIG.turmasBase.splice(i, 1);
+  _salvarConfigEscola();
+  document.getElementById("g-turmas").innerHTML = htmlGestaoTurmas();
+}
+function addTurmaBase() {
+  const serie = prompt("Série (1, 2 ou 3):", "1"); if (!serie) return;
+  const turma = prompt("Turma (A–E):", "A"); if (!turma) return;
+  const sub   = prompt("Subtítulo opcional (ex: ADM, HUM):", "") || "";
+  const per   = prompt("Turno (manha ou tarde):", "manha") || "manha";
+  if (!RT_CONFIG.turmasBase) RT_CONFIG.turmasBase = [...TURMAS_BASE];
+  if (RT_CONFIG.turmasBase.find(t => t.serie===serie && t.turma===turma.toUpperCase()))
+    { alert("Esta turma já existe."); return; }
+  RT_CONFIG.turmasBase.push({ serie, turma: turma.toUpperCase(), subtitulo: sub, periodo: per });
+  _salvarConfigEscola();
+  document.getElementById("g-turmas").innerHTML = htmlGestaoTurmas();
+}
+
+// ── Adicionar disciplina a uma turma (professor ou admin)
+function addDisciplinaTurma() {
+  const base = RT_CONFIG.turmasBase || TURMAS_BASE;
+  if (!base.length) { alert("Nenhuma turma cadastrada. Peça ao admin para cadastrar as turmas primeiro."); return; }
+  const opc = base.map((tb,i) => (i+1)+". "+tb.serie+"ª "+tb.turma+(tb.subtitulo?" "+tb.subtitulo:"")).join("\n");
+  const idx = parseInt(prompt("Escolha a turma:\n"+opc)) - 1;
+  if (isNaN(idx) || idx < 0 || idx >= base.length) return;
+  const tb = base[idx];
+  const disc = prompt("Disciplina:", ""); if (!disc) return;
+  const sigla = prompt("Sigla (ex: MAT, PORT):", disc.substring(0,3).toUpperCase()); if (!sigla) return;
+  const id = `${tb.serie}${tb.turma}_${sigla.toUpperCase()}`;
+  if (RT_TURMAS.find(t => t.id === id)) { alert("Esta disciplina já existe nesta turma."); return; }
+  const profUid = _isAdmin(_userAtual?.email) ? "global" : (_userAtual?.uid || "anonimo");
+  RT_TURMAS.push({ id, serie: tb.serie, turma: tb.turma, subtitulo: tb.subtitulo||"", disciplina: disc, sigla: sigla.toUpperCase(), horarios: [], profUid, periodo: tb.periodo||"manha" });
+  salvarTudo(); renderizarSidebar();
+  document.getElementById("g-turmas").innerHTML = htmlGestaoTurmas();
 }
 
 // Edita disciplinas de uma série (apenas admin)
@@ -1823,14 +1933,21 @@ async function _editDiscsSerie(serieKey, valor) {
   const lista = valor.split(";").map(s => s.trim()).filter(Boolean);
   if (!RT_CONFIG.disciplinasPorSerie) RT_CONFIG.disciplinasPorSerie = {};
   RT_CONFIG.disciplinasPorSerie[serieKey] = lista;
+  await _salvarConfigEscola();
+  _mostrarIndicadorSync("✓ Disciplinas da série salvas");
+}
+
+async function _salvarConfigEscola() {
   try {
-    await _dbConfigEscola().set({
-      nomeEscola: RT_CONFIG.nomeEscola,
-      materias: RT_CONFIG.materias,
-      disciplinasPorSerie: RT_CONFIG.disciplinasPorSerie,
-    });
-    _mostrarIndicadorSync("✓ Disciplinas da série salvas");
-  } catch(e) { console.warn("Erro ao salvar disciplinas da série:", e); }
+    const payload = {
+      nomeEscola:          RT_CONFIG.nomeEscola || "",
+      disciplinasPorSerie: RT_CONFIG.disciplinasPorSerie || {},
+      turmasBase:          RT_CONFIG.turmasBase || TURMAS_BASE,
+      configPeriodos:      RT_CONFIG.configPeriodos || null,
+    };
+    if (RT_CONFIG.materias) payload.materias = RT_CONFIG.materias;
+    await _dbConfigEscola().set(payload, { merge: true });
+  } catch(e) { console.warn("Erro ao salvar config escola:", e); }
 }
 
 function editTurmaField(i, campo, val) { RT_TURMAS[i][campo] = val; salvarTudo(); }
@@ -1850,19 +1967,7 @@ function delTurma(i) {
   RT_TURMAS.splice(i, 1); salvarTudo();
   document.getElementById("g-turmas").innerHTML = htmlGestaoTurmas();
 }
-function addTurma() {
-  const serie = prompt("Série (1, 2 ou 3):", "1"); if (!serie) return;
-  const turma = prompt("Turma (A–E):", "A");        if (!turma) return;
-  const disc  = prompt("Disciplina:", "Geografia"); if (!disc)  return;
-  const sigla = prompt("Sigla:", "GEO");            if (!sigla) return;
-  const id    = `${serie}${turma}_${sigla.toUpperCase()}`;
-  if (RT_TURMAS.find(t=>t.id===id)) { alert("Turma com este ID já existe."); return; }
-  // profUid identifica o dono da turma; admin usa "global"
-  const profUid = _isAdmin(_userAtual?.email) ? "global" : (_userAtual?.uid || "anonimo");
-  RT_TURMAS.push({ id, serie, turma, subtitulo:"", disciplina:disc, sigla:sigla.toUpperCase(), horarios:[], profUid });
-  salvarTudo(); renderizarSidebar();
-  document.getElementById("g-turmas").innerHTML = htmlGestaoTurmas();
-}
+
 
 function htmlGestaoBimestres() {
   const admin = _isAdmin(_userAtual?.email);
@@ -2141,9 +2246,57 @@ function addChaveCont() {
 function _htmlCheckboxMaterias(selecionadas, areaAtual, turmasSelecionadas) {
   const lista = selecionadas ? selecionadas.split(";").map(s => s.trim()).filter(Boolean) : [];
   const turmasIds = Array.isArray(turmasSelecionadas) ? turmasSelecionadas : [];
-  const temDiscs = Object.keys(RT_CONFIG.disciplinasPorSerie || {}).length > 0;
 
-  // Sem disciplinas cadastradas pelo admin — campo livre
+  // Turmas-base disponíveis (do Firestore via RT_CONFIG, ou seed do aulas.js)
+  const turmasBase = RT_CONFIG.turmasBase || TURMAS_BASE;
+
+  // Se há turmas-base cadastradas, usa o novo fluxo: professor escolhe disciplina+turma
+  if (turmasBase && turmasBase.length) {
+    const rows = turmasBase.map((tb, idx) => {
+      const tbKey = `${tb.serie}${tb.turma}`;
+      // Verifica se já tem disciplina escolhida para esta turma
+      const entrada = turmasIds.find ? turmasIds.find(t => t.turmaKey === tbKey) : null;
+      const disc  = entrada?.disciplina || "";
+      const sigla = entrada?.sigla || "";
+      const sel   = entrada ? "checked" : "";
+      return `
+        <tr class="tb-linha" id="tb-linha-${idx}">
+          <td>
+            <label class="mat-check-label" style="margin:0">
+              <input type="checkbox" class="mat-turma-sel" data-idx="${idx}"
+                data-serie="${tb.serie}" data-turma="${tb.turma}" data-sub="${tb.subtitulo||""}"
+                data-per="${tb.periodo||"manha"}" ${sel}
+                onchange="_toggleTurmaLinha(${idx})">
+              <span>${tb.serie}ª ${tb.turma}${tb.subtitulo?" "+tb.subtitulo:""} <small style="color:var(--text-muted)">(${tb.periodo==="tarde"?"tarde":"manhã"})</small></span>
+            </label>
+          </td>
+          <td>
+            <input class="gi gi-sm mat-turma-disc" data-idx="${idx}"
+              placeholder="Disciplina" value="${disc.replace(/"/g,'&quot;')}"
+              style="visibility:${sel?"visible":"hidden"}"
+              oninput="_sincDiscSigla(${idx})" />
+          </td>
+          <td>
+            <input class="gi gi-xs mat-turma-sigla" data-idx="${idx}"
+              placeholder="Sigla" maxlength="6" value="${sigla.replace(/"/g,'&quot;')}"
+              style="visibility:${sel?"visible":"hidden"}" />
+          </td>
+        </tr>`;
+    }).join("");
+
+    return `
+      <label class="mat-group-label" style="margin-top:4px">Turmas em que leciona e disciplina</label>
+      <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px">Marque as turmas, informe a disciplina e a sigla.</p>
+      <div class="tabela-wrapper" style="margin-bottom:8px">
+        <table class="tabela-gestao" style="min-width:0">
+          <thead><tr><th>Turma</th><th>Disciplina</th><th>Sigla</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  // Fallback sem turmas cadastradas
+  const temDiscs = Object.keys(RT_CONFIG.disciplinasPorSerie || {}).length > 0;
   if (!temDiscs) {
     return `<label>Disciplina(s) <span style="font-size:.72rem;color:var(--text-muted)">(separe por ;)</span>
       <input class="gi" id="perf-disc-outro" value="${lista.join("; ").replace(/"/g,'&quot;')}"
@@ -2248,8 +2401,40 @@ function _lerDisciplinasSelecionadas() {
   return [...checks, ...outros].join("; ");
 }
 
+// Toggle visibilidade dos campos disciplina/sigla ao marcar/desmarcar turma
+function _toggleTurmaLinha(idx) {
+  const chk  = document.querySelector(`.mat-turma-sel[data-idx="${idx}"]`);
+  const disc = document.querySelector(`.mat-turma-disc[data-idx="${idx}"]`);
+  const sig  = document.querySelector(`.mat-turma-sigla[data-idx="${idx}"]`);
+  const vis  = chk?.checked ? "visible" : "hidden";
+  if (disc) disc.style.visibility = vis;
+  if (sig)  sig.style.visibility  = vis;
+}
+
+// Sugere sigla automaticamente a partir da disciplina
+function _sincDiscSigla(idx) {
+  const disc = document.querySelector(`.mat-turma-disc[data-idx="${idx}"]`)?.value || "";
+  const sig  = document.querySelector(`.mat-turma-sigla[data-idx="${idx}"]`);
+  if (sig && !sig.value) sig.value = disc.substring(0, 4).toUpperCase().replace(/\s/g,"");
+}
+
+// Lê as turmas selecionadas no novo formulário (retorna array de objetos)
 function _lerTurmasSelecionadas() {
-  return [...document.querySelectorAll(".mat-turma-chk:checked")].map(c => c.value);
+  const sels = [...document.querySelectorAll(".mat-turma-sel:checked")];
+  return sels.map(chk => {
+    const idx   = chk.dataset.idx;
+    const disc  = document.querySelector(`.mat-turma-disc[data-idx="${idx}"]`)?.value.trim() || "";
+    const sigla = document.querySelector(`.mat-turma-sigla[data-idx="${idx}"]`)?.value.trim().toUpperCase() || disc.substring(0,3).toUpperCase();
+    return {
+      turmaKey:  `${chk.dataset.serie}${chk.dataset.turma}`,
+      serie:     chk.dataset.serie,
+      turma:     chk.dataset.turma,
+      subtitulo: chk.dataset.sub || "",
+      periodo:   chk.dataset.per || "manha",
+      disciplina: disc,
+      sigla,
+    };
+  }).filter(t => t.disciplina);
 }
 
 function htmlGestaoPerfil() {
@@ -2310,6 +2495,94 @@ async function _salvarPerfil() {
 // ════════════════════════════════════════════════════════════
 //  PAINEL: DISCIPLINAS POR SÉRIE (apenas admin)
 // ════════════════════════════════════════════════════════════
+// ── Configuração de períodos (manhã / tarde) ─────────────────
+function htmlGestaoPeriodos() {
+  const cfg = RT_CONFIG.configPeriodos || {
+    manha: { inicio:"07:00", duracao:50, intervalos:[{apos:3,duracao:20}], qtd:5 },
+    tarde: { inicio:"14:30", duracao:50, intervalos:[{apos:3,duracao:20}], qtd:5 },
+  };
+
+  const blocoTurno = (turno, label) => {
+    const c = cfg[turno] || {};
+    const iv = (c.intervalos||[])[0] || { apos:3, duracao:20 };
+    const preview = _gerarPeriodosDeConfig({ [turno]: c })
+      .map(p=>`<div class="periodo-preview-item"><strong>${p.label}</strong> ${p.inicio}–${p.fim}</div>`)
+      .join("");
+    return `
+      <div class="gestao-bloco" style="margin-bottom:16px">
+        <h4 style="margin-bottom:12px">${label}</h4>
+        <div class="disc-areas-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:12px">
+          <label class="disc-area-label">Início das aulas
+            <input class="gi" type="time" value="${c.inicio||"07:00"}"
+              onchange="editConfigPeriodo('${turno}','inicio',this.value)" />
+          </label>
+          <label class="disc-area-label">Duração da aula (min)
+            <input class="gi" type="number" min="30" max="120" value="${c.duracao||50}"
+              onchange="editConfigPeriodo('${turno}','duracao',+this.value)" />
+          </label>
+          <label class="disc-area-label">Quantidade de aulas
+            <input class="gi" type="number" min="1" max="10" value="${c.qtd||5}"
+              onchange="editConfigPeriodo('${turno}','qtd',+this.value)" />
+          </label>
+          <label class="disc-area-label">Intervalo após aula nº
+            <input class="gi" type="number" min="1" max="9" value="${iv.apos||3}"
+              onchange="editConfigIntervalo('${turno}',0,'apos',+this.value)" />
+          </label>
+          <label class="disc-area-label">Duração do intervalo (min)
+            <input class="gi" type="number" min="0" max="60" value="${iv.duracao||20}"
+              onchange="editConfigIntervalo('${turno}',0,'duracao',+this.value)" />
+          </label>
+        </div>
+        <div class="periodo-preview" id="preview-${turno}">${preview}</div>
+      </div>`;
+  };
+
+  return `
+    <div style="max-width:820px">
+      <p style="font-size:.85rem;color:var(--text-muted);margin-bottom:16px">
+        Configure os horários de cada turno. As aulas são geradas automaticamente a partir das configurações abaixo.
+        Suporta apenas um intervalo por turno.
+      </p>
+      ${blocoTurno("manha","🌅 Período da Manhã")}
+      ${blocoTurno("tarde","🌇 Período da Tarde")}
+      <button class="btn-modal-ok" onclick="_salvarConfigPeriodos()" style="margin-top:8px">Salvar e aplicar</button>
+    </div>`;
+}
+
+function editConfigPeriodo(turno, campo, val) {
+  if (!RT_CONFIG.configPeriodos) RT_CONFIG.configPeriodos = {
+    manha: { inicio:"07:00", duracao:50, intervalos:[{apos:3,duracao:20}], qtd:5 },
+    tarde: { inicio:"14:30", duracao:50, intervalos:[{apos:3,duracao:20}], qtd:5 },
+  };
+  RT_CONFIG.configPeriodos[turno][campo] = val;
+  // Atualiza preview imediatamente
+  const preview = _gerarPeriodosDeConfig({ [turno]: RT_CONFIG.configPeriodos[turno] })
+    .map(p=>`<div class="periodo-preview-item"><strong>${p.label}</strong> ${p.inicio}–${p.fim}</div>`)
+    .join("");
+  const el = document.getElementById(`preview-${turno}`);
+  if (el) el.innerHTML = preview;
+}
+
+function editConfigIntervalo(turno, idx, campo, val) {
+  if (!RT_CONFIG.configPeriodos) RT_CONFIG.configPeriodos = {
+    manha: { inicio:"07:00", duracao:50, intervalos:[{apos:3,duracao:20}], qtd:5 },
+    tarde: { inicio:"14:30", duracao:50, intervalos:[{apos:3,duracao:20}], qtd:5 },
+  };
+  if (!RT_CONFIG.configPeriodos[turno].intervalos) RT_CONFIG.configPeriodos[turno].intervalos = [];
+  if (!RT_CONFIG.configPeriodos[turno].intervalos[idx]) RT_CONFIG.configPeriodos[turno].intervalos[idx] = {};
+  RT_CONFIG.configPeriodos[turno].intervalos[idx][campo] = val;
+  editConfigPeriodo(turno, "__noop__", null); // força refresh preview
+}
+
+async function _salvarConfigPeriodos() {
+  if (!RT_CONFIG.configPeriodos) return;
+  RT_PERIODOS = _gerarPeriodosDeConfig(RT_CONFIG.configPeriodos);
+  await _salvarConfigEscola();
+  _mostrarIndicadorSync("✓ Períodos salvos e aplicados");
+  // Recarrega a aba para mostrar os períodos atualizados
+  document.getElementById("g-periodos").innerHTML = htmlGestaoPeriodos();
+}
+
 function htmlGestaoDisciplinas() {
   const series = ["1","2","3"];
   const dps = RT_CONFIG.disciplinasPorSerie || {};
@@ -2468,9 +2741,28 @@ async function _aprovarUsuario(uid) {
 
     // Se há turmas selecionadas, injeta no diário do professor
     if (turmasIds.length) {
-      const turmasDoProf = TURMAS
-        .filter(t => turmasIds.includes(t.id))
-        .map(t => ({ ...t, profUid: uid }));
+      // turmasIds pode ser array de strings (legado) ou array de objetos (novo formato)
+      const turmasDoProf = turmasIds.map(t => {
+        if (typeof t === "string") {
+          // Legado: tenta encontrar em TURMAS
+          const found = TURMAS.find(x => x.id === t);
+          return found ? { ...found, profUid: uid } : null;
+        }
+        // Novo formato: objeto {serie, turma, disciplina, sigla, subtitulo, periodo}
+        const id = `${t.serie}${t.turma}_${t.sigla}`;
+        // Verifica duplicata
+        return {
+          id,
+          serie:      t.serie,
+          turma:      t.turma,
+          subtitulo:  t.subtitulo || "",
+          disciplina: t.disciplina,
+          sigla:      t.sigla,
+          periodo:    t.periodo || "manha",
+          horarios:   [],
+          profUid:    uid,
+        };
+      }).filter(Boolean);
       const diarioRef = db.collection("diario").doc(uid);
       const diarioSnap = await diarioRef.get();
       const diarioAtual = diarioSnap.exists ? diarioSnap.data() : {};
