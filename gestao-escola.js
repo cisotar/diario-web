@@ -196,12 +196,19 @@ function delTurmaBase(i) {
   document.getElementById("g-turmas").innerHTML = htmlEscolaTurmas();
 }
 async function addTurmaBase() {
-  if (!RT_CONFIG.turmasBase) RT_CONFIG.turmasBase = JSON.parse(JSON.stringify(TURMAS_BASE||[]));
-  RT_CONFIG.turmasBase.push({ serie:"1", turma:"A", subtitulo:"", periodo:"manha" });
-  await _salvarConfigEscola();
-  const el = document.getElementById("g-turmas");
-  if (el) el.innerHTML = htmlEscolaTurmas();
-  else _abrirPainelEscola("turmas");
+  try {
+    if (!RT_CONFIG) RT_CONFIG = {};
+    if (!RT_CONFIG.turmasBase) {
+      const seed = (typeof TURMAS_BASE !== "undefined" ? TURMAS_BASE : null)
+        || (typeof TURMAS !== "undefined" ? [...new Map(TURMAS.map(t=>[t.serie+t.turma,{serie:t.serie,turma:t.turma,subtitulo:t.subtitulo||"",periodo:"manha"}])).values()] : []);
+      RT_CONFIG.turmasBase = JSON.parse(JSON.stringify(seed));
+    }
+    RT_CONFIG.turmasBase.push({ serie:"1", turma:"A", subtitulo:"", periodo:"manha" });
+    await _salvarConfigEscola();
+    const el = document.getElementById("g-turmas");
+    if (el) el.innerHTML = htmlEscolaTurmas();
+    else _abrirPainelEscola("turmas");
+  } catch(e) { console.error("addTurmaBase erro:", e); alert("Erro: " + e.message); }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -294,12 +301,15 @@ function delArea(i) {
   document.getElementById("g-disciplinas").innerHTML = htmlEscolaDisciplinas();
 }
 async function addArea() {
-  if (!RT_CONFIG.areasConhecimento) RT_CONFIG.areasConhecimento = JSON.parse(JSON.stringify(AREAS_CONHECIMENTO||[]));
-  RT_CONFIG.areasConhecimento.push({ id:"nova-area", label:"Nova área" });
-  await _salvarConfigEscola();
-  const el = document.getElementById("g-disciplinas");
-  if (el) el.innerHTML = htmlEscolaDisciplinas();
-  else _abrirPainelEscola("disciplinas");
+  try {
+    if (!RT_CONFIG) RT_CONFIG = {};
+    if (!RT_CONFIG.areasConhecimento) RT_CONFIG.areasConhecimento = JSON.parse(JSON.stringify(typeof AREAS_CONHECIMENTO !== "undefined" ? AREAS_CONHECIMENTO : []));
+    RT_CONFIG.areasConhecimento.push({ id:"nova-area", label:"Nova área" });
+    await _salvarConfigEscola();
+    const el = document.getElementById("g-disciplinas");
+    if (el) el.innerHTML = htmlEscolaDisciplinas();
+    else _abrirPainelEscola("disciplinas");
+  } catch(e) { console.error("addArea erro:", e); alert("Erro: " + e.message); }
 }
 
 // ════════════════════════════════════════════════════════════════
