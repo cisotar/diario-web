@@ -717,12 +717,7 @@ function _mostrarIndicadorSync(texto) {
 
 // Turmas-base derivadas de TURMAS: série+turma únicos (sem disciplina)
 // Usadas pelo admin para cadastrar e pelo professor para escolher onde leciona
-const TURMAS_BASE = (() => {
-  const seen = new Set();
-  return (typeof TURMAS !== "undefined" ? TURMAS : [])
-    .filter(t => { const k=`${t.serie}${t.turma}`; if(seen.has(k)) return false; seen.add(k); return true; })
-    .map(t => ({ nivel: t.nivel || "medio", serie: t.serie, turma: t.turma, subtitulo: t.subtitulo || "", periodo: t.periodo || "manha" }));
-})();
+// TURMAS_BASE carregado de turmas_global.js
 
 // Estrutura de períodos padrão (gerada por _gerarPeriodosDeConfig)
 // Cada período tem: aula (id), label, inicio, fim, turno ("manha"|"tarde")
