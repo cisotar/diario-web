@@ -1074,17 +1074,20 @@ function _atualizarTagline() {
 
 function _turmasVisiveis() {
   if (_isAdmin(_userAtual?.email)) return RT_TURMAS;
-  const uid  = _userAtual?.uid;
-  // Turmas próprias do professor (criadas por ele)
+  const uid = _userAtual?.uid;
+  // Turmas explicitamente do professor
   const proprias = RT_TURMAS.filter(t => t.profUid === uid);
   if (proprias.length) return proprias;
-  // Professor sem turmas próprias: vê as turmas cuja disciplina ele leciona
+  // Turmas legado (global ou sem profUid) — visíveis se disciplina bate com o perfil
   const discProf = (_perfilProf?.disciplinas || "")
     .split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
-  if (!discProf.length) return [];
-  return RT_TURMAS.filter(t =>
+  const legado = RT_TURMAS.filter(t =>
+    (!t.profUid || t.profUid === "global") &&
     discProf.some(d => (t.disciplina || "").toLowerCase().includes(d) || d.includes((t.disciplina || "").toLowerCase()))
   );
+  if (legado.length) return legado;
+  // Último recurso: turmas sem dono definido
+  return RT_TURMAS.filter(t => !t.profUid || t.profUid === "global");
 }
 
 function renderizarSidebar() {
@@ -1730,7 +1733,7 @@ function _atualizarBotoesGestao() {
   const btnEl   = document.getElementById("btn-gestao");
   if (!btnEl) return;
   if (isAdmin) {
-    btnEl.innerHTML = "🏫 Configurações da Escola";
+    btnEl.innerHTML = "⚙ Painel de Gestão ADM";
     btnEl.onclick   = _abrirPainelEscola;
     // Adiciona botão "Meu Diário" se ainda não existe
     if (!document.getElementById("btn-meu-diario")) {
@@ -1764,7 +1767,7 @@ function _abrirPainelEscola(abaInicial) {
     { id:"usuarios",    label:"👥 Usuários",          fn: htmlGestaoUsuarios, async: true },
     { id:"diarios",     label:"📋 Diários",           fn: htmlGestaoDiarios, async: true },
   ];
-  _renderizarPainel("🏫 Configurações da Escola", tabs, aba,
+  _renderizarPainel("⚙ Painel de Gestão ADM", tabs, aba,
     `<button class="btn-exportar-js" onclick="exportarJS()" style="font-size:.8rem">⬇ aulas.js</button>`);
 }
 
@@ -1923,12 +1926,13 @@ function htmlEscolaDisciplinas() {
   // Bloco 1: editar as áreas do conhecimento por série
   const blocoAreas = series.map(s => {
     const areasRows = areasConf.map((a, ai) => {
-      const discsSerie = (RT_CONFIG.disciplinasPorSerie?.[s]?.[a.id] || []).join("; ");
+      const discsSerie = (RT_CONFIG.disciplinasPorSerie?.[s]?.[a.id] || []).join("\n");
       return `<tr>
         <td style="font-size:.8rem;color:var(--text-muted);white-space:nowrap">${a.label}</td>
-        <td><input class="gi" value="${discsSerie.replace(/"/g,'&quot;')}"
-          placeholder="Port.; Mat.; …"
-          onchange="editDiscsPorArea('${s}','${a.id}',this.value)"/></td>
+        <td><textarea class="gi disc-textarea" rows="3"
+          placeholder="Uma por linha ou separadas por ;"
+          onchange="editDiscsPorArea('${s}','${a.id}',this.value)"
+          onblur="editDiscsPorArea('${s}','${a.id}',this.value)">${discsSerie.replace(/</g,'&lt;')}</textarea></td>
       </tr>`;
     }).join("");
     return `
@@ -1977,7 +1981,9 @@ function htmlEscolaDisciplinas() {
 function editDiscsPorArea(serie, areaId, valor) {
   if (!RT_CONFIG.disciplinasPorSerie)        RT_CONFIG.disciplinasPorSerie = {};
   if (!RT_CONFIG.disciplinasPorSerie[serie]) RT_CONFIG.disciplinasPorSerie[serie] = {};
-  RT_CONFIG.disciplinasPorSerie[serie][areaId] = valor.split(";").map(s=>s.trim()).filter(Boolean);
+  // Aceita separação por ; ou por quebra de linha
+  RT_CONFIG.disciplinasPorSerie[serie][areaId] = valor
+    .split(/;|\n/).map(s => s.trim()).filter(Boolean);
   _salvarConfigEscola();
   _mostrarIndicadorSync("✓ Disciplinas salvas");
 }
@@ -2008,22 +2014,42 @@ function addArea() {
 // ════════════════════════════════════════════════════════════════
 // ABA: PERÍODOS (admin)
 // ════════════════════════════════════════════════════════════════
-function htmlEscolaPeriodos() {
-  const cfg = RT_CONFIG.configPeriodos || {
+function _cfgPeriodosDefault() {
+  return {
     manha: { inicio:"07:00", duracao:50, qtd:5, intervalos:[{apos:3,duracao:20}] },
     tarde: { inicio:"14:30", duracao:50, qtd:5, intervalos:[{apos:3,duracao:20}] },
   };
+}
+function _garantirCfgPeriodos() {
+  if (!RT_CONFIG.configPeriodos) RT_CONFIG.configPeriodos = _cfgPeriodosDefault();
+  return RT_CONFIG.configPeriodos;
+}
+
+function htmlEscolaPeriodos() {
+  const cfg = RT_CONFIG.configPeriodos || _cfgPeriodosDefault();
 
   const blocoTurno = (turno, label) => {
-    const c  = cfg[turno] || {};
-    const iv = (c.intervalos||[])[0] || { apos:3, duracao:20 };
+    const c = cfg[turno] || {};
+    const ivs = c.intervalos || [];
+    const intervalosHtml = ivs.map((iv, ii) => `
+      <div class="intervalo-linha" style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+        <span style="font-size:.78rem;color:var(--text-muted);min-width:110px">após aula nº</span>
+        <input class="gi gi-xs" type="number" min="1" max="20" value="${iv.apos||1}" style="width:56px"
+          onchange="editCfgIntervalo('${turno}',${ii},'apos',+this.value)"/>
+        <span style="font-size:.78rem;color:var(--text-muted)">duração (min)</span>
+        <input class="gi gi-xs" type="number" min="0" max="120" value="${iv.duracao||10}" style="width:56px"
+          onchange="editCfgIntervalo('${turno}',${ii},'duracao',+this.value)"/>
+        <button class="btn-icon-del" onclick="delCfgIntervalo('${turno}',${ii})">×</button>
+      </div>`).join("");
+
     const preview = _gerarPeriodosDeConfig({ [turno]: c })
       .map(p => `<div class="periodo-preview-item"><strong>${p.label}</strong> ${p.inicio}–${p.fim}</div>`)
       .join("");
+
     return `
       <div class="gestao-bloco" style="margin-bottom:16px">
         <h4 style="margin-bottom:12px">${label}</h4>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:12px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:14px">
           <label class="disc-area-label">Início
             <input class="gi" type="time" value="${c.inicio||"07:00"}"
               onchange="editCfgPeriodo('${turno}','inicio',this.value)"/>
@@ -2033,17 +2059,14 @@ function htmlEscolaPeriodos() {
               onchange="editCfgPeriodo('${turno}','duracao',+this.value)"/>
           </label>
           <label class="disc-area-label">Nº de aulas
-            <input class="gi" type="number" min="1" max="12" value="${c.qtd||5}"
+            <input class="gi" type="number" min="1" max="20" value="${c.qtd||5}"
               onchange="editCfgPeriodo('${turno}','qtd',+this.value)"/>
           </label>
-          <label class="disc-area-label">Intervalo após aula nº
-            <input class="gi" type="number" min="1" max="11" value="${iv.apos||3}"
-              onchange="editCfgIntervalo('${turno}',0,'apos',+this.value)"/>
-          </label>
-          <label class="disc-area-label">Duração do intervalo (min)
-            <input class="gi" type="number" min="0" max="60" value="${iv.duracao||20}"
-              onchange="editCfgIntervalo('${turno}',0,'duracao',+this.value)"/>
-          </label>
+        </div>
+        <div style="margin-bottom:8px">
+          <div style="font-size:.8rem;font-weight:600;margin-bottom:6px">Intervalos</div>
+          <div id="ivs-${turno}">${intervalosHtml || '<p class="gestao-hint" style="margin:0">Nenhum intervalo.</p>'}</div>
+          <button class="btn-add-small" onclick="addCfgIntervalo('${turno}')">+ Intervalo</button>
         </div>
         <div class="periodo-preview" id="preview-${turno}">${preview}</div>
       </div>`;
@@ -2051,7 +2074,7 @@ function htmlEscolaPeriodos() {
 
   return `
     <div style="max-width:760px">
-      <p class="gestao-hint">Configure os turnos. As aulas são geradas automaticamente. Suporta um intervalo por turno.</p>
+      <p class="gestao-hint">Configure os turnos. As aulas são calculadas automaticamente. Intervalos são inseridos após a aula indicada.</p>
       ${blocoTurno("manha","🌅 Manhã")}
       ${blocoTurno("tarde","🌇 Tarde")}
       <button class="btn-modal-ok" onclick="_salvarConfigPeriodos()">Salvar e aplicar</button>
@@ -2059,22 +2082,29 @@ function htmlEscolaPeriodos() {
 }
 
 function editCfgPeriodo(turno, campo, val) {
-  if (!RT_CONFIG.configPeriodos) RT_CONFIG.configPeriodos = {
-    manha: { inicio:"07:00", duracao:50, qtd:5, intervalos:[{apos:3,duracao:20}] },
-    tarde: { inicio:"14:30", duracao:50, qtd:5, intervalos:[{apos:3,duracao:20}] },
-  };
-  RT_CONFIG.configPeriodos[turno][campo] = val;
+  const cfg = _garantirCfgPeriodos();
+  cfg[turno][campo] = val;
   _atualizarPreviewPeriodo(turno);
 }
 function editCfgIntervalo(turno, idx, campo, val) {
-  if (!RT_CONFIG.configPeriodos) RT_CONFIG.configPeriodos = {
-    manha: { inicio:"07:00", duracao:50, qtd:5, intervalos:[{apos:3,duracao:20}] },
-    tarde: { inicio:"14:30", duracao:50, qtd:5, intervalos:[{apos:3,duracao:20}] },
-  };
-  if (!RT_CONFIG.configPeriodos[turno].intervalos) RT_CONFIG.configPeriodos[turno].intervalos = [];
-  if (!RT_CONFIG.configPeriodos[turno].intervalos[idx]) RT_CONFIG.configPeriodos[turno].intervalos[idx] = {};
-  RT_CONFIG.configPeriodos[turno].intervalos[idx][campo] = val;
+  const cfg = _garantirCfgPeriodos();
+  if (!cfg[turno].intervalos) cfg[turno].intervalos = [];
+  if (!cfg[turno].intervalos[idx]) cfg[turno].intervalos[idx] = {};
+  cfg[turno].intervalos[idx][campo] = val;
   _atualizarPreviewPeriodo(turno);
+}
+function addCfgIntervalo(turno) {
+  const cfg = _garantirCfgPeriodos();
+  if (!cfg[turno].intervalos) cfg[turno].intervalos = [];
+  const qtd = cfg[turno].qtd || 5;
+  const ultimo = cfg[turno].intervalos.slice(-1)[0];
+  cfg[turno].intervalos.push({ apos: ultimo ? Math.min(ultimo.apos+1, qtd) : 3, duracao: 20 });
+  document.getElementById("g-periodos").innerHTML = htmlEscolaPeriodos();
+}
+function delCfgIntervalo(turno, idx) {
+  const cfg = _garantirCfgPeriodos();
+  cfg[turno].intervalos.splice(idx, 1);
+  document.getElementById("g-periodos").innerHTML = htmlEscolaPeriodos();
 }
 function _atualizarPreviewPeriodo(turno) {
   const el = document.getElementById("preview-"+turno);
@@ -2084,10 +2114,10 @@ function _atualizarPreviewPeriodo(turno) {
     .join("");
 }
 async function _salvarConfigPeriodos() {
-  if (!RT_CONFIG.configPeriodos) return;
-  RT_PERIODOS = _gerarPeriodosDeConfig(RT_CONFIG.configPeriodos);
+  const cfg = _garantirCfgPeriodos();
+  RT_PERIODOS = _gerarPeriodosDeConfig(cfg);
   await _salvarConfigEscola();
-  _mostrarIndicadorSync("✓ Períodos salvos");
+  _mostrarIndicadorSync("✓ Períodos salvos e aplicados");
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -2095,6 +2125,23 @@ async function _salvarConfigPeriodos() {
 // Página com lista de turmas-base; professor associa disciplina,
 // sigla e horários inline — sem janela de diálogo.
 // ════════════════════════════════════════════════════════════════
+// Retorna lista flat de disciplinas cadastradas pelo admin para uma série
+function _disciplinasDaSerie(serie) {
+  const areas = RT_CONFIG.disciplinasPorSerie?.[serie] || {};
+  const set = new Set();
+  for (const lista of Object.values(areas)) {
+    for (const d of lista) if (d) set.add(d);
+  }
+  // Fallback: disciplinas de qualquer série se essa estiver vazia
+  if (!set.size) {
+    const todas = RT_CONFIG.disciplinasPorSerie || {};
+    for (const s of Object.values(todas))
+      for (const lista of Object.values(s))
+        for (const d of lista) if (d) set.add(d);
+  }
+  return [...set].sort();
+}
+
 function htmlProfTurmas() {
   const uid      = _userAtual?.uid;
   const base     = RT_CONFIG.turmasBase || TURMAS_BASE || [];
@@ -2102,7 +2149,10 @@ function htmlProfTurmas() {
 
   // Monta mapa: turmaKey → lista de entradas do professor nessa turma
   const minhasEntradas = {};
-  for (const t of RT_TURMAS.filter(t => t.profUid === uid || (_isAdmin(_userAtual?.email) && t.profUid === "global"))) {
+  // Inclui: turmas próprias (profUid === uid), turmas globais/legado sem dono definido
+  // que já aparecem no cronograma deste professor (via _turmasVisiveis)
+  const visiveis = new Set(_turmasVisiveis().map(t => t.id));
+  for (const t of RT_TURMAS.filter(t => visiveis.has(t.id))) {
     const k = `${t.serie}${t.turma}`;
     if (!minhasEntradas[k]) minhasEntradas[k] = [];
     minhasEntradas[k].push(t);
@@ -2129,9 +2179,18 @@ function htmlProfTurmas() {
       return `
         <div class="prof-disc-linha" id="disc-linha-${t.id}">
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
-            <input class="gi" value="${t.disciplina}" placeholder="Disciplina"
-              onchange="editTurmaField(${ti},'disciplina',this.value)" style="max-width:200px"/>
+            <select class="gi" style="max-width:220px"
+              onchange="editTurmaField(${ti},'disciplina',this.value); _autoSigla(${ti},this.value)">
+              <option value="">— selecione —</option>
+              ${_disciplinasDaSerie(t.serie).map(d =>
+                `<option value="${d.replace(/"/g,'&quot;')}" ${t.disciplina===d?"selected":""}>${d}</option>`
+              ).join("")}
+              ${t.disciplina && !_disciplinasDaSerie(t.serie).includes(t.disciplina)
+                ? `<option value="${t.disciplina.replace(/"/g,'&quot;')}" selected>${t.disciplina} (manual)</option>`
+                : ""}
+            </select>
             <input class="gi gi-xs" value="${t.sigla}" placeholder="Sigla" maxlength="6"
+              id="sigla-${t.id}"
               onchange="editTurmaField(${ti},'sigla',this.value)" style="max-width:72px"/>
             <button class="btn-icon-del" title="Remover esta disciplina desta turma"
               onclick="delTurma(${ti}); document.getElementById('g-minhas-turmas').innerHTML=htmlProfTurmas()">🗑 remover</button>
@@ -2163,6 +2222,18 @@ function htmlProfTurmas() {
 }
 
 // Adiciona nova disciplina inline (sem prompt)
+function _autoSigla(ti, disciplina) {
+  // Sugere sigla a partir das 3 primeiras letras consoantes ou iniciais
+  const t = RT_TURMAS[ti];
+  if (!t || t.sigla) return; // não sobrescreve se já tem
+  const sigla = disciplina.replace(/[aeiouáéíóúâêîôûãõàèìòùü\s]/gi,"").substring(0,3).toUpperCase()
+    || disciplina.substring(0,3).toUpperCase();
+  t.sigla = sigla;
+  const el = document.getElementById("sigla-"+t.id);
+  if (el) el.value = sigla;
+  salvarTudo();
+}
+
 function addDiscNaTurma(serie, turma, subtitulo, periodo) {
   const uid    = _userAtual?.uid;
   const profUid = _isAdmin(_userAtual?.email) ? "global" : (uid || "anonimo");
@@ -2174,6 +2245,74 @@ function addDiscNaTurma(serie, turma, subtitulo, periodo) {
   RT_TURMAS.push({ id, serie, turma, subtitulo, disciplina:"", sigla, horarios:[], profUid, periodo });
   salvarTudo(); renderizarSidebar();
   document.getElementById("g-minhas-turmas").innerHTML = htmlProfTurmas();
+}
+
+
+function htmlGestaoBimestres() {
+  const admin = _isAdmin(_userAtual?.email);
+  const rows = RT_BIMESTRES.map((b,i) => {
+    if (admin) {
+      return `
+        <tr>
+          <td><input class="gi gi-sm" value="${b.label}" onchange="editBimField(${i},'label',this.value)" /></td>
+          <td><input class="gi" type="date" value="${b.inicio}" onchange="editBimField(${i},'inicio',this.value)" /></td>
+          <td><input class="gi" type="date" value="${b.fim}"    onchange="editBimField(${i},'fim',this.value)" /></td>
+          <td><button class="btn-icon-del" onclick="delBim(${i})">🗑</button></td>
+        </tr>`;
+    } else {
+      return `
+        <tr>
+          <td><span class="bim-label-ro">${b.label}</span></td>
+          <td><span class="bim-data-ro">${b.inicio ? _fmtDataSimples(b.inicio) : '—'}</span></td>
+          <td><span class="bim-data-ro">${b.fim    ? _fmtDataSimples(b.fim)    : '—'}</span></td>
+          <td></td>
+        </tr>`;
+    }
+  }).join("");
+
+  const headerAcao = admin
+    ? `<button class="btn-add" onclick="addBim()">+ Novo período</button>`
+    : `<span class="bim-ro-aviso">📋 Definido pelo administrador</span>`;
+
+  return `
+    <div class="gestao-bloco">
+      <div class="gestao-bloco-header">
+        <h3>Bimestres / Períodos letivos</h3>
+        ${headerAcao}
+      </div>
+      <div class="tabela-wrapper">
+        <table class="tabela-gestao">
+          <thead><tr><th>Rótulo</th><th>Início</th><th>Fim</th><th></th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function _fmtDataSimples(iso) {
+  if (!iso) return "—";
+  const [a,m,d] = iso.split("-");
+  return `${d}/${m}/${a}`;
+}
+
+function editBimField(i, campo, val) {
+  if (!_isAdmin(_userAtual?.email)) return;
+  RT_BIMESTRES[i][campo] = campo === "bimestre" ? +val : val;
+  _salvarBimestresFirestore();
+}
+function delBim(i) {
+  if (!_isAdmin(_userAtual?.email)) return;
+  if (!confirm("Excluir este período?")) return;
+  RT_BIMESTRES.splice(i, 1);
+  _salvarBimestresFirestore();
+  document.getElementById("g-bimestres").innerHTML = htmlGestaoBimestres();
+}
+function addBim() {
+  if (!_isAdmin(_userAtual?.email)) return;
+  const num = RT_BIMESTRES.length + 1;
+  RT_BIMESTRES.push({ bimestre: num, label: `${num}º Bimestre`, inicio: "", fim: "" });
+  _salvarBimestresFirestore();
+  document.getElementById("g-bimestres").innerHTML = htmlGestaoBimestres();
 }
 
 
