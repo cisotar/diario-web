@@ -725,7 +725,17 @@ function _gerarPeriodosDeConfig(cfg) {
       res.push({ aula: `${prefixo}${i}`, label: `${i}ª aula (${turno==="manha"?"manhã":"tarde"})`, inicio: toStr(cur), fim: toStr(fim), turno });
       cur = fim;
       // Aplica intervalo se houver após esta aula
-      (c.intervalos || []).forEach(iv => { if (iv.apos === i) cur += iv.duracao; });
+      (c.intervalos || []).forEach(iv => {
+        if (iv.apos === i) {
+          if (iv.inicio) {
+            // Horário fixo: avança para o horário de fim do intervalo
+            const [ih, im] = iv.inicio.split(":").map(Number);
+            cur = ih * 60 + im + (iv.duracao || 0);
+          } else {
+            cur += (iv.duracao || 0);
+          }
+        }
+      });
     }
   });
   return res;
@@ -2032,12 +2042,17 @@ function htmlEscolaPeriodos() {
     const c = cfg[turno] || {};
     const ivs = c.intervalos || [];
     const intervalosHtml = ivs.map((iv, ii) => `
-      <div class="intervalo-linha" style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
-        <span style="font-size:.78rem;color:var(--text-muted);min-width:110px">após aula nº</span>
-        <input class="gi gi-xs" type="number" min="1" max="20" value="${iv.apos||1}" style="width:56px"
+      <div class="intervalo-linha" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px">
+        <span style="font-size:.78rem;color:var(--text-muted)">após aula nº</span>
+        <input class="gi gi-xs" type="number" min="1" max="20" value="${iv.apos||1}" style="width:52px"
           onchange="editCfgIntervalo('${turno}',${ii},'apos',+this.value)"/>
+        <span style="font-size:.78rem;color:var(--text-muted)">início</span>
+        <input class="gi gi-xs" type="time" value="${iv.inicio||''}" style="width:90px"
+          placeholder="auto"
+          onchange="editCfgIntervalo('${turno}',${ii},'inicio',this.value)"
+          title="Deixe em branco para calcular automaticamente"/>
         <span style="font-size:.78rem;color:var(--text-muted)">duração (min)</span>
-        <input class="gi gi-xs" type="number" min="0" max="120" value="${iv.duracao||10}" style="width:56px"
+        <input class="gi gi-xs" type="number" min="0" max="120" value="${iv.duracao||10}" style="width:52px"
           onchange="editCfgIntervalo('${turno}',${ii},'duracao',+this.value)"/>
         <button class="btn-icon-del" onclick="delCfgIntervalo('${turno}',${ii})">×</button>
       </div>`).join("");
@@ -2313,6 +2328,65 @@ function addBim() {
   RT_BIMESTRES.push({ bimestre: num, label: `${num}º Bimestre`, inicio: "", fim: "" });
   _salvarBimestresFirestore();
   document.getElementById("g-bimestres").innerHTML = htmlGestaoBimestres();
+}
+
+
+// ── Edição de turmas e horários ──────────────────────────────
+function editTurmaField(i, campo, val) {
+  RT_TURMAS[i][campo] = val;
+  salvarTudo();
+}
+function editHorario(ti, hi, campo, val) {
+  RT_TURMAS[ti].horarios[hi][campo] = campo === "diaSemana" ? +val : val;
+  salvarTudo();
+}
+function addHorario(ti) {
+  const turno = RT_TURMAS[ti].periodo || "manha";
+  const prefixo = turno === "tarde" ? "t" : "m";
+  RT_TURMAS[ti].horarios.push({ diaSemana: 1, aula: prefixo + "1" });
+  salvarTudo();
+  const el = document.getElementById("g-minhas-turmas");
+  if (el) el.innerHTML = htmlProfTurmas();
+}
+function delHorario(ti, hi) {
+  RT_TURMAS[ti].horarios.splice(hi, 1);
+  salvarTudo();
+  const el = document.getElementById("g-minhas-turmas");
+  if (el) el.innerHTML = htmlProfTurmas();
+}
+function delTurma(i) {
+  const t = RT_TURMAS[i];
+  if (!confirm("Excluir " + (t.disciplina||"esta disciplina") + " da turma " + t.serie + "ª " + t.turma + "?")) return;
+  RT_TURMAS.splice(i, 1);
+  salvarTudo();
+  renderizarSidebar();
+  const el = document.getElementById("g-minhas-turmas");
+  if (el) el.innerHTML = htmlProfTurmas();
+}
+
+// ── Helpers de conteúdo ──────────────────────────────────────
+let gContChave = null;
+let gContModo  = "lista";
+let gContBim   = 1;
+
+function _gContChavesBase() {
+  const set = new Set();
+  for (const t of _turmasVisiveis()) {
+    if (t.disciplina) set.add(t.serie + "_" + t.disciplina);
+  }
+  for (const k of Object.keys(RT_CONTEUDOS)) {
+    const base = k.replace(/_b\d+$/, "");
+    if (set.has(base)) set.add(base);
+  }
+  return [...set].sort();
+}
+function _gContChaveCompleta(base, bim) { return base + "_b" + bim; }
+function _gContEnsureChave(base, bim) {
+  const chaveBim = _gContChaveCompleta(base, bim);
+  if (!RT_CONTEUDOS[chaveBim]) {
+    RT_CONTEUDOS[chaveBim] = RT_CONTEUDOS[base] ? [...RT_CONTEUDOS[base]] : [];
+  }
+  return chaveBim;
 }
 
 
