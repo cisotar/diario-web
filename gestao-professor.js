@@ -19,24 +19,36 @@ function _disciplinasDaSerie(serie) {
 }
 
 function htmlProfTurmas() {
-  const uid      = _userAtual?.uid;
-  const base     = RT_CONFIG.turmasBase || TURMAS_BASE || [];
+  const uid       = _userAtual?.uid;
   const diasNomes = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 
-  // Monta mapa: turmaKey → lista de entradas do professor nessa turma
-  const minhasEntradas = {};
-  // Inclui: turmas próprias (profUid === uid), turmas globais/legado sem dono definido
-  // que já aparecem no cronograma deste professor (via _turmasVisiveis)
-  const visiveis = new Set(_turmasVisiveis().map(t => t.id));
-  for (const t of RT_TURMAS.filter(t => visiveis.has(t.id))) {
+  // Todas as turmas visíveis do professor (legado + próprias)
+  const visiveis = _turmasVisiveis();
+
+  // Agrupa por serie+turma
+  const porChave = {};
+  for (const t of visiveis) {
     const k = `${t.serie}${t.turma}`;
-    if (!minhasEntradas[k]) minhasEntradas[k] = [];
-    minhasEntradas[k].push(t);
+    if (!porChave[k]) porChave[k] = { serie: t.serie, turma: t.turma, subtitulo: t.subtitulo||"", periodo: t.periodo||"manha", entradas: [] };
+    porChave[k].entradas.push(t);
   }
 
-  const blocos = base.map((tb) => {
-    const key      = `${tb.serie}${tb.turma}`;
-    const entradas = minhasEntradas[key] || [];
+  // Completa com turmas-base que ainda não têm entrada (para o professor adicionar)
+  const base = RT_CONFIG.turmasBase || TURMAS_BASE || [];
+  for (const tb of base) {
+    const k = `${tb.serie}${tb.turma}`;
+    if (!porChave[k]) porChave[k] = { serie: tb.serie, turma: tb.turma, subtitulo: tb.subtitulo||"", periodo: tb.periodo||"manha", entradas: [] };
+  }
+
+  // Ordena por série → turma
+  const chaves = Object.keys(porChave).sort((a,b) => {
+    const sa = porChave[a], sb = porChave[b];
+    return (+sa.serie - +sb.serie) || sa.turma.localeCompare(sb.turma);
+  });
+
+  const blocos = chaves.map((key) => {
+    const tb      = porChave[key];
+    const entradas = tb.entradas;
     const turno    = tb.periodo || "manha";
     const periodosDoTurno = RT_PERIODOS.filter(p => (p.turno||"manha") === turno);
 
