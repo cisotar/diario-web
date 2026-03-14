@@ -343,6 +343,8 @@ async function _verificarAcessoProfessor() {
         const cfgSnap = await firebase.firestore().collection("config").doc("escola").get();
         if (cfgSnap.exists) {
           RT_CONFIG = { nomeEscola: "", disciplinasPorSerie: {}, turmasBase: null, configPeriodos: null, ...cfgSnap.data() };
+      // Migra turmasBase sem nivel (legado)
+      if (Array.isArray(RT_CONFIG.turmasBase)) RT_CONFIG.turmasBase = RT_CONFIG.turmasBase.map(t => ({ nivel: t.nivel||"medio", ...t }));
           if (typeof RT_CONFIG.disciplinasPorSerie === "string") {
             try { RT_CONFIG.disciplinasPorSerie = JSON.parse(RT_CONFIG.disciplinasPorSerie); } catch { RT_CONFIG.disciplinasPorSerie = {}; }
           }
@@ -719,7 +721,7 @@ const TURMAS_BASE = (() => {
   const seen = new Set();
   return (typeof TURMAS !== "undefined" ? TURMAS : [])
     .filter(t => { const k=`${t.serie}${t.turma}`; if(seen.has(k)) return false; seen.add(k); return true; })
-    .map(t => ({ serie: t.serie, turma: t.turma, subtitulo: t.subtitulo || "", periodo: t.periodo || "manha" }));
+    .map(t => ({ nivel: t.nivel || "medio", serie: t.serie, turma: t.turma, subtitulo: t.subtitulo || "", periodo: t.periodo || "manha" }));
 })();
 
 // Estrutura de períodos padrão (gerada por _gerarPeriodosDeConfig)
@@ -787,7 +789,7 @@ async function carregarTudo() {
       nomeEscola:          "Escola (DEV)",
       disciplinasPorSerie: {},
       areasConhecimento:   JSON.parse(JSON.stringify(AREAS_CONHECIMENTO)),
-      turmasBase:          JSON.parse(JSON.stringify(TURMAS_BASE || [])),
+      turmasBase:          JSON.parse(JSON.stringify((TURMAS_BASE||[]).map(t=>({nivel:t.nivel||"medio",...t})))),
       configPeriodos:      null,
     };
     _ativarListenerFirestore();
@@ -809,6 +811,8 @@ async function carregarTudo() {
     if (escolaSnap.exists) {
       const d = escolaSnap.data();
       RT_CONFIG = { nomeEscola: "", disciplinasPorSerie: {}, turmasBase: null, configPeriodos: null, ...d };
+      // Migra turmasBase sem nivel (legado)
+      if (Array.isArray(RT_CONFIG.turmasBase)) RT_CONFIG.turmasBase = RT_CONFIG.turmasBase.map(t => ({ nivel: t.nivel||"medio", ...t }));
       if (typeof RT_CONFIG.disciplinasPorSerie === "string") {
         try { RT_CONFIG.disciplinasPorSerie = JSON.parse(RT_CONFIG.disciplinasPorSerie); } catch { RT_CONFIG.disciplinasPorSerie = {}; }
       }

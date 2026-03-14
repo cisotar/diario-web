@@ -154,11 +154,11 @@ function voltarPrincipal() {
 function _turmasBaseInit() {
   if (!RT_CONFIG) RT_CONFIG = {};
   if (!RT_CONFIG.turmasBase) {
-    // Migra TURMAS_BASE legado adicionando campo nivel
-    const seed = (typeof TURMAS_BASE !== "undefined" ? TURMAS_BASE : [])
-      .map(t => ({ ...t, nivel: t.nivel || "medio" }));
+    const seed = (typeof TURMAS_BASE !== "undefined" ? TURMAS_BASE : []);
     RT_CONFIG.turmasBase = JSON.parse(JSON.stringify(seed));
   }
+  // Garante que todas as entradas têm nivel (migração legado)
+  RT_CONFIG.turmasBase = RT_CONFIG.turmasBase.map(t => ({ nivel: t.nivel || "medio", ...t }));
   return RT_CONFIG.turmasBase;
 }
 
