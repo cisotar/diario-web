@@ -1429,3 +1429,19 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   color: var(--text-muted);
   min-width: 38px;
 }
+
+/* ── Botão horários no cabeçalho do cronograma ──────────────── */
+.btn-editar-horarios {
+  background: var(--bg-paper);
+  border: 1px solid var(--border, #dde3ec);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: .8rem;
+  color: var(--text-mid);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-editar-horarios:hover {
+  background: var(--bg);
+  color: var(--text);
+}

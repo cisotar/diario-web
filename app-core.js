@@ -1280,6 +1280,10 @@ function renderizarConteudo() {
           <p class="header-turma-disc">${t.disciplina}</p>
         </div>
       </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button type="button" class="btn-editar-horarios" onclick="abrirModalHorarios()"
+          title="Editar horários desta turma">🕐 Horários</button>
+      </div>
       <div class="stat-circulo">
         <svg viewBox="0 0 36 36" class="stat-svg">
           <path class="stat-bg"   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
@@ -1328,6 +1332,15 @@ function renderizarConteudo() {
         <button class="btn-limpar"       onclick="confirmarLimpar()">🗑 Limpar</button>
       </div>
     </div>
+    <div id="modal-horarios" class="modal-overlay" style="display:none">
+      <div class="modal-box" style="max-width:480px">
+        <h3 class="modal-titulo">🕐 Horários — ${t.serie}ª ${t.turma} ${t.disciplina}</h3>
+        <div id="modal-horarios-corpo"></div>
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-cancel" onclick="fecharModalHorarios()">Fechar</button>
+        </div>
+      </div>
+    </div>
     <div id="modal-eventual" class="modal-overlay" style="display:none">
       <div class="modal-box">
         <h3 class="modal-titulo">Inserir Aula Eventual</h3>
@@ -1344,6 +1357,72 @@ function renderizarConteudo() {
     </div>`;
   if (total > 0) renderizarLinhas(slots);
 }
+
+// ── Modal de horários da turma ativa ─────────────────────────
+function abrirModalHorarios() {
+  const t = turmaAtiva;
+  if (!t) return;
+  const modal = document.getElementById("modal-horarios");
+  if (!modal) return;
+  modal.style.display = "flex";
+  _renderizarCorpoHorarios();
+}
+
+function fecharModalHorarios() {
+  const modal = document.getElementById("modal-horarios");
+  if (modal) modal.style.display = "none";
+}
+
+function _renderizarCorpoHorarios() {
+  const t = turmaAtiva;
+  if (!t) return;
+  const corpo = document.getElementById("modal-horarios-corpo");
+  if (!corpo) return;
+  const ti = RT_TURMAS.indexOf(t);
+  const diasNomes = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+  const turno = t.periodo || "manha";
+  const periodos = RT_PERIODOS.filter(p => (p.turno||"manha") === turno);
+  // Fallback: se nenhum período bate com o turno, mostra todos
+  const opcoesPerido = (periodos.length ? periodos : RT_PERIODOS)
+    .map(p => `<option value="${p.aula}">${p.label} (${p.inicio}–${p.fim})</option>`)
+    .join("");
+
+  const horariosHtml = (t.horarios||[]).map((h, hi) => `
+    <div class="horario-item" style="margin-bottom:8px">
+      <select class="gi gi-xs" onchange="editHorario(${ti},${hi},'diaSemana',+this.value);_renderizarCorpoHorarios()">
+        ${diasNomes.map((d,di) => `<option value="${di}" ${h.diaSemana===di?"selected":""}>${d}</option>`).join("")}
+      </select>
+      <select class="gi gi-sm" onchange="editHorario(${ti},${hi},'aula',this.value);_renderizarCorpoHorarios()">
+        ${(RT_PERIODOS.length ? RT_PERIODOS : []).map(p =>
+          `<option value="${p.aula}" ${h.aula===p.aula?"selected":""}>${p.label} (${p.inicio}–${p.fim})</option>`
+        ).join("")}
+      </select>
+      <button type="button" class="btn-icon-del"
+        onclick="delHorario(${ti},${hi});_renderizarCorpoHorarios()">×</button>
+    </div>`).join("");
+
+  corpo.innerHTML = `
+    <p class="gestao-hint" style="margin-bottom:10px">
+      Dias e períodos em que esta disciplina ocorre nesta turma.
+    </p>
+    <div id="lista-horarios-modal">${horariosHtml || '<p class="gestao-hint">Nenhum horário cadastrado.</p>'}</div>
+    <button type="button" class="btn-add-small" style="margin-top:6px"
+      onclick="addHorarioModal(${ti})">+ Horário</button>`;
+}
+
+function addHorarioModal(ti) {
+  const turno = RT_TURMAS[ti]?.periodo || "manha";
+  const prefixo = turno === "tarde" ? "t" : "m";
+  RT_TURMAS[ti].horarios.push({ diaSemana: 1, aula: prefixo+"1" });
+  salvarTudo();
+  _renderizarCorpoHorarios();
+  // Atualiza o cronograma em background
+  renderizarConteudo();
+  // Reabre o modal (renderizarConteudo fecha tudo)
+  const modal = document.getElementById("modal-horarios");
+  if (modal) modal.style.display = "flex";
+}
+
 
 function renderizarLinhas(slots) {
   const t      = turmaAtiva;
