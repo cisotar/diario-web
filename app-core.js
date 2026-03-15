@@ -13,6 +13,9 @@ let linhasEventuais = {};
 let dragSrcSlots  = [];
 let dragDestSlot  = null;
 let selConteudos  = new Set();
+let ultimoChkSlot  = null;   // último slotId clicado numa checkbox
+let ultimoChkCampo = null;   // campo da última checkbox clicada
+let ultimoChkValor = null;   // valor aplicado na última checkbox
 let RT_BIMESTRES  = null;
 let RT_TURMAS     = null;
 let RT_CONTEUDOS  = null;
@@ -68,6 +71,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   _atualizarTagline();
   iniciarTooltips();
   _initClickFora();
+  _initPrevenirSelecaoShift();
   if (window.innerWidth <= 860) {
     renderizarHomeMobile();
   } else {
@@ -1241,6 +1245,7 @@ function selecionarTurma(id) {
   turmaAtiva = RT_TURMAS.find(t => t.id === id);
   if (!turmaAtiva) return;
   selConteudos.clear();
+  ultimoChkSlot = null; ultimoChkCampo = null; ultimoChkValor = null;
   document.querySelectorAll(".sidebar-btn, .mob-turma-btn").forEach(b => b.classList.toggle("ativo", b.dataset.id === id));
   const h = hoje();
   const v = RT_BIMESTRES.find(b => h >= b.inicio && h <= b.fim);
@@ -1483,9 +1488,10 @@ function renderizarLinhas(slots) {
     // FIX: passa "this" para toggleCampo para permitir reversão imediata do
     // checkbox caso o visitante não esteja autenticado.
     const mkChk = (campo, val, title) => `
-      <label class="checkbox-wrapper" title="${title}">
+      <label class="checkbox-wrapper" title="${title} · Shift+clique para intervalo">
         <input type="checkbox" ${val?"checked":""}
-          onchange="toggleCampo('${slotId}','${campo}',this.checked,this)">
+          data-slot="${slotId}" data-campo="${campo}"
+          onclick="onChkClick(event,'${slotId}','${campo}',this)">
         <span class="checkmark ${campo==='feita'?'':'checkmark-alt'}"></span>
       </label>`;
 
@@ -1587,6 +1593,75 @@ function salvarAnotacao(slotId, valor) {
 // FIX: recebe o elemento <input> (inputEl) para reverter o checkbox
 // imediatamente no DOM se o visitante não estiver autenticado.
 // Antes, o check ficava visualmente marcado até o modal fechar.
+// Clique numa checkbox: clique simples toggle, shift+clique aplica intervalo
+function onChkClick(e, slotId, campo, inputEl) {
+  // Impede seleção de texto ao usar shift+clique
+  if (e.shiftKey) {
+    e.preventDefault();
+    window.getSelection()?.removeAllRanges();
+  }
+
+  // O browser já togglou checked antes do onclick — lê o valor atual
+  const novoValor = inputEl.checked;
+
+  if (e.shiftKey && ultimoChkSlot && ultimoChkCampo === campo) {
+    // Shift+clique: o loop vai atualizar todos os checkboxes do intervalo
+    // incluindo o destino — não reverter aqui
+
+    const todos = [...document.querySelectorAll(
+      `#tabela-aulas input[data-campo="${campo}"]`
+    )].map(i => i.dataset.slot);
+
+    const iA = todos.indexOf(ultimoChkSlot);
+    const iB = todos.indexOf(slotId);
+    if (iA === -1 || iB === -1) return;
+
+    // Inclui ambos os extremos — slice é exclusivo no fim, por isso ate+1
+    const de  = Math.min(iA, iB);
+    const ate = Math.max(iA, iB);
+    const valor = ultimoChkValor;
+    const slotsDoIntervalo = todos.slice(de, ate + 1);
+
+    for (const sid of slotsDoIntervalo) {
+      const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, sid);
+      if (!estadoAulas[ch]) estadoAulas[ch] = {};
+      estadoAulas[ch][campo] = valor;
+      if (campo === "feita") {
+        estadoAulas[ch].dataFeita = valor
+          ? new Date().toISOString().slice(0, 10)
+          : null;
+      }
+    }
+
+    // Registra nova âncora antes do setTimeout
+    ultimoChkSlot = slotId;
+    salvarTudo();
+
+    // setTimeout: deixa o browser terminar o evento antes de atualizar o DOM
+    setTimeout(() => {
+      for (const sid of slotsDoIntervalo) {
+        const chkEl = document.querySelector(
+          `#tabela-aulas input[data-campo="${campo}"][data-slot="${sid}"]`
+        );
+        if (chkEl) chkEl.checked = valor;
+        const tr = document.querySelector(`tr[data-slot="${sid}"]`);
+        if (tr && campo === "feita") {
+          const pass = getSlotsCompletos(turmaAtiva.id, bimestreAtivo)
+            .find(s => s.slotId === sid)?.data < hoje();
+          tr.className = valor ? "row-feita" : (pass ? "row-pendente" : "row-futura");
+        }
+      }
+    }, 0);
+    return;
+  }
+
+  // Clique simples: toggle normal + registra âncora
+  toggleCampo(slotId, campo, novoValor, inputEl);
+  ultimoChkSlot  = slotId;
+  ultimoChkCampo = campo;
+  ultimoChkValor = novoValor;
+}
+
 // Marca/desmarca todas as aulas visíveis de uma coluna
 function marcarColuna(campo, valor) {
   const t = turmaAtiva;
@@ -1667,6 +1742,15 @@ function onHandleClick(e, slotId) {
 }
 
 // Clique fora da tabela ou em linha (não no handle) limpa a seleção
+function _initPrevenirSelecaoShift() {
+  // Impede seleção de texto na tabela ao usar shift+clique nos checkboxes
+  document.addEventListener("mousedown", e => {
+    if (e.shiftKey && e.target.closest(".tabela-aulas")) {
+      e.preventDefault();
+    }
+  });
+}
+
 function _initClickFora() {
   document.addEventListener("click", e => {
     if (!selConteudos.size) return;
