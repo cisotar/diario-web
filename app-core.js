@@ -1312,10 +1312,28 @@ function renderizarConteudo() {
               <th class="th-numero"   data-tip="${TOOLTIPS_COLUNAS['th-numero']}">#</th>
               <th class="th-conteudo" data-tip="${TOOLTIPS_COLUNAS['th-conteudo']}">Conteúdos / Atividades</th>
               <th class="th-data"     data-tip="${TOOLTIPS_COLUNAS['th-data']}">Data prevista</th>
-              <th class="th-dada"     data-tip="${TOOLTIPS_COLUNAS['th-dada']}">AD</th>
+              <th class="th-dada" data-tip="${TOOLTIPS_COLUNAS['th-dada']}">
+                AD
+                <div class="th-lote">
+                  <button type="button" class="btn-lote" title="Marcar todas" onclick="marcarColuna('feita',true)">✓</button>
+                  <button type="button" class="btn-lote btn-lote-off" title="Desmarcar todas" onclick="marcarColuna('feita',false)">✗</button>
+                </div>
+              </th>
               <th class="th-registro" data-tip="${TOOLTIPS_COLUNAS['th-registro']}">Data</th>
-              <th class="th-chamada"  data-tip="${TOOLTIPS_COLUNAS['th-chamada']}">Chamada</th>
-              <th class="th-entregue" data-tip="${TOOLTIPS_COLUNAS['th-entregue']}">Registro</th>
+              <th class="th-chamada" data-tip="${TOOLTIPS_COLUNAS['th-chamada']}">
+                Chamada
+                <div class="th-lote">
+                  <button type="button" class="btn-lote" title="Marcar todas" onclick="marcarColuna('chamada',true)">✓</button>
+                  <button type="button" class="btn-lote btn-lote-off" title="Desmarcar todas" onclick="marcarColuna('chamada',false)">✗</button>
+                </div>
+              </th>
+              <th class="th-entregue" data-tip="${TOOLTIPS_COLUNAS['th-entregue']}">
+                Registro
+                <div class="th-lote">
+                  <button type="button" class="btn-lote" title="Marcar todas" onclick="marcarColuna('conteudoEntregue',true)">✓</button>
+                  <button type="button" class="btn-lote btn-lote-off" title="Desmarcar todas" onclick="marcarColuna('conteudoEntregue',false)">✗</button>
+                </div>
+              </th>
             </tr></thead>
             <tbody id="tbody-aulas"></tbody>
           </table>`
@@ -1569,6 +1587,28 @@ function salvarAnotacao(slotId, valor) {
 // FIX: recebe o elemento <input> (inputEl) para reverter o checkbox
 // imediatamente no DOM se o visitante não estiver autenticado.
 // Antes, o check ficava visualmente marcado até o modal fechar.
+// Marca/desmarca todas as aulas visíveis de uma coluna
+function marcarColuna(campo, valor) {
+  const t = turmaAtiva;
+  if (!t) return;
+  const slots = getSlotsCompletos(t.id, bimestreAtivo);
+  let alterou = false;
+  for (const s of slots) {
+    const ch = chaveSlot(t.id, bimestreAtivo, s.slotId);
+    if (!estadoAulas[ch]) estadoAulas[ch] = {};
+    // Para AD: ao marcar, pula aulas futuras; ao desmarcar, desmarca todas
+    if (campo === "feita" && valor && s.data && s.data > hoje()) continue;
+    if (estadoAulas[ch][campo] !== valor) {
+      estadoAulas[ch][campo] = valor;
+      if (campo === "feita") {
+        estadoAulas[ch].dataFeita = valor ? new Date().toISOString().slice(0,10) : null;
+      }
+      alterou = true;
+    }
+  }
+  if (alterou) { salvarTudo(); renderizarConteudo(); }
+}
+
 function toggleCampo(slotId, campo, val, inputEl) {
   if (!_autenticado) { inputEl.checked = !val; _abrirModalGoogle(); return; }
   if (_ehCoordenador()) { inputEl.checked = !val; _mostrarIndicadorSync("⛔ Somente leitura"); return; }

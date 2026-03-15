@@ -1445,3 +1445,25 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   background: var(--bg);
   color: var(--text);
 }
+
+/* ── Seleção em lote nos cabeçalhos ─────────────────────────── */
+.th-lote {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  margin-top: 4px;
+}
+.btn-lote {
+  background: var(--green, #2d7a4f);
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: .68rem;
+  cursor: pointer;
+  line-height: 1.4;
+}
+.btn-lote:hover { opacity: .85; }
+.btn-lote-off {
+  background: var(--text-muted, #718096);
+}

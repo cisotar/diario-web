@@ -5,7 +5,7 @@ function _htmlCheckboxMaterias(selecionadas, areaAtual, turmasSelecionadas) {
   const lista = selecionadas ? selecionadas.split(";").map(s => s.trim()).filter(Boolean) : [];
   const turmasIds = Array.isArray(turmasSelecionadas) ? turmasSelecionadas : [];
 
-  // Turmas-base disponíveis (do Firestore via RT_CONFIG, ou seed do aulas.js)
+  // Turmas-base disponíveis (do Firestore via RT_CONFIG, ou seed do turmas_global.js)
   const turmasBase = RT_CONFIG.turmasBase || TURMAS_BASE;
 
   // Se há turmas-base cadastradas, usa o novo fluxo: professor escolhe disciplina+turma
@@ -213,7 +213,6 @@ function htmlGestaoPerfil() {
           <input class="gi" id="${adm ? 'perf-escola-global' : ''}" value="${escolaGlobal.replace(/"/g,'&quot;')}"
             placeholder="Escola Estadual…" ${adm ? "" : "readonly style='opacity:.6'"} />
         </label>
-        ${_htmlCheckboxMaterias(p.disciplinas || "", p.area || "", p.turmasIds || [])}
         <label style="opacity:.6;pointer-events:none;">E-mail (não editável)
           <input class="gi" value="${p.email||''}" readonly />
         </label>
@@ -228,12 +227,8 @@ async function _salvarPerfil() {
   const nome = document.getElementById("perf-nome")?.value.trim();
   if (!nome) { alert("Informe seu nome."); return; }
   if (!_perfilProf) _perfilProf = { uid: _userAtual.uid, email: _userAtual.email, status: "aprovado" };
-  _perfilProf.nome        = nome;
-  _perfilProf.disciplinas = _lerDisciplinasSelecionadas();
-  _perfilProf.area      = document.getElementById("perf-area")?.value || _perfilProf.area || "";
-  _perfilProf.turmasIds = _lerTurmasSelecionadas().length
-    ? _lerTurmasSelecionadas()
-    : (_perfilProf.turmasIds || []);
+  _perfilProf.nome = nome;
+  // disciplinas, area e turmasIds são gerenciados pela aba Minhas Turmas
   // Admin: salva nome da escola
   if (_isAdmin(_userAtual?.email)) {
     const nomeEscola = document.getElementById("perf-escola-global")?.value.trim() || "";
