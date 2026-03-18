@@ -1,4 +1,4 @@
-// ESTADO.JS — Estado das aulas (feita, chamada, AD, CH, RE) — Exportado em 18/03/2026, 08:13:23
+// ESTADO.JS — Estado das aulas (feita, chamada, AD, CH, RE) — Exportado em 18/03/2026, 09:29:58
 
 // Para restaurar: localStorage.setItem("aulaEstado_SEU_UID", JSON.stringify(ESTADO));
 

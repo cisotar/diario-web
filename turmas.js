@@ -1,4 +1,4 @@
-// TURMAS.JS — Entradas do diário (turma + disciplina + horários) — Exportado em 18/03/2026, 08:13:23
+// TURMAS.JS — Entradas do diário (turma + disciplina + horários) — Exportado em 18/03/2026, 09:29:58
 
 const TURMAS = [
   {
@@ -17,7 +17,8 @@ const TURMAS = [
         "diaSemana": 3,
         "aula": "t7"
       }
-    ]
+    ],
+    "periodo": "tarde"
   },
   {
     "id": "1E_GEO",
@@ -25,17 +26,18 @@ const TURMAS = [
     "turma": "E",
     "subtitulo": "",
     "disciplina": "Geografia",
-    "sigla": "GEO-M",
+    "sigla": "GEO-T",
     "horarios": [
       {
         "diaSemana": 3,
-        "aula": "m2"
+        "aula": "t2"
       },
       {
         "diaSemana": 4,
-        "aula": "m3"
+        "aula": "t3"
       }
-    ]
+    ],
+    "periodo": "tarde"
   },
   {
     "id": "2A_GEO",
@@ -47,13 +49,14 @@ const TURMAS = [
     "horarios": [
       {
         "diaSemana": 3,
-        "aula": "m3"
+        "aula": "t3"
       },
       {
         "diaSemana": 4,
-        "aula": "m6"
+        "aula": "t6"
       }
-    ]
+    ],
+    "periodo": "tarde"
   },
   {
     "id": "2B_GEO",
@@ -65,13 +68,14 @@ const TURMAS = [
     "horarios": [
       {
         "diaSemana": 2,
-        "aula": "a4"
+        "aula": "t4"
       },
       {
         "diaSemana": 4,
-        "aula": "a5"
+        "aula": "t5"
       }
-    ]
+    ],
+    "periodo": "tarde"
   },
   {
     "id": "2C_GEO",
@@ -83,13 +87,14 @@ const TURMAS = [
     "horarios": [
       {
         "diaSemana": 2,
-        "aula": "a5"
+        "aula": "t5"
       },
       {
         "diaSemana": 4,
-        "aula": "a2"
+        "aula": "t2"
       }
-    ]
+    ],
+    "periodo": "tarde"
   },
   {
     "id": "2A_SOC",
@@ -101,13 +106,14 @@ const TURMAS = [
     "horarios": [
       {
         "diaSemana": 5,
-        "aula": "m6"
+        "aula": "t6"
       },
       {
         "diaSemana": 5,
-        "aula": "m7"
+        "aula": "t7"
       }
-    ]
+    ],
+    "periodo": "tarde"
   },
   {
     "id": "2B_SOC",
@@ -119,13 +125,14 @@ const TURMAS = [
     "horarios": [
       {
         "diaSemana": 3,
-        "aula": "m4"
+        "aula": "t4"
       },
       {
         "diaSemana": 4,
-        "aula": "m1"
+        "aula": "t1"
       }
-    ]
+    ],
+    "periodo": "tarde"
   },
   {
     "id": "2C_SOC",
@@ -143,7 +150,8 @@ const TURMAS = [
         "diaSemana": 4,
         "aula": "t1"
       }
-    ]
+    ],
+    "periodo": "tarde"
   },
   {
     "id": "3B_ATUAL",
@@ -155,13 +163,14 @@ const TURMAS = [
     "horarios": [
       {
         "diaSemana": 2,
-        "aula": "a6"
+        "aula": "t6"
       },
       {
         "diaSemana": 4,
-        "aula": "a4"
+        "aula": "t4"
       }
-    ]
+    ],
+    "periodo": "tarde"
   },
   {
     "id": "1A_D1_glob",
@@ -222,65 +231,5 @@ const TURMAS = [
     ],
     "profUid": "global",
     "periodo": "tarde"
-  },
-  {
-    "id": "1C_D2_glob",
-    "serie": "1",
-    "turma": "C",
-    "subtitulo": "",
-    "disciplina": "Geografia",
-    "sigla": "GEO-T",
-    "horarios": [
-      {
-        "diaSemana": 2,
-        "aula": "t7"
-      },
-      {
-        "diaSemana": 3,
-        "aula": "t1"
-      }
-    ],
-    "profUid": "global",
-    "periodo": "tarde"
-  },
-  {
-    "id": "1D_D1_glob",
-    "serie": "1",
-    "turma": "D",
-    "subtitulo": "",
-    "disciplina": "Geografia",
-    "sigla": "GEO-T",
-    "horarios": [
-      {
-        "diaSemana": 3,
-        "aula": "m5"
-      },
-      {
-        "diaSemana": 3,
-        "aula": "m7"
-      }
-    ],
-    "profUid": "global",
-    "periodo": "manha"
-  },
-  {
-    "id": "1E_D1_glob",
-    "serie": "1",
-    "turma": "E",
-    "subtitulo": "",
-    "disciplina": "Geografia",
-    "sigla": "GEO-T",
-    "horarios": [
-      {
-        "diaSemana": 3,
-        "aula": "m2"
-      },
-      {
-        "diaSemana": 4,
-        "aula": "m3"
-      }
-    ],
-    "profUid": "global",
-    "periodo": "manha"
   }
 ];
