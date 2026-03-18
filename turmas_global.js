@@ -1,165 +1,165 @@
-// TURMAS_GLOBAL.JS — Turmas-base da escola — Exportado em 18/03/2026, 08:13:23
+// TURMAS_GLOBAL.JS — Turmas-base da escola — Exportado em 18/03/2026, 11:27:08
 
 const TURMAS_BASE = [
   {
     "nivel": "medio",
+    "periodo": "tarde",
     "serie": "1",
-    "subtitulo": "TARDE",
-    "periodo": "tarde",
-    "turma": "A"
-  },
-  {
-    "nivel": "medio",
-    "turma": "B",
-    "periodo": "tarde",
-    "subtitulo": "TARDE",
-    "serie": "1"
-  },
-  {
-    "nivel": "medio",
-    "serie": "1",
-    "subtitulo": "TARDE",
-    "periodo": "tarde",
-    "turma": "C"
-  },
-  {
-    "nivel": "medio",
-    "periodo": "tarde",
-    "turma": "D",
-    "serie": "1",
+    "turma": "A",
     "subtitulo": "TARDE"
   },
   {
     "nivel": "medio",
-    "turma": "E",
     "periodo": "tarde",
-    "subtitulo": "TARDE",
-    "serie": "1"
-  },
-  {
-    "nivel": "fundamental",
-    "serie": "5",
-    "subtitulo": "",
-    "periodo": "manha",
-    "turma": "A"
-  },
-  {
-    "nivel": "fundamental",
-    "periodo": "manha",
+    "serie": "1",
     "turma": "B",
+    "subtitulo": "TARDE"
+  },
+  {
+    "nivel": "medio",
+    "periodo": "tarde",
+    "serie": "1",
+    "turma": "C",
+    "subtitulo": "TARDE"
+  },
+  {
+    "nivel": "medio",
+    "periodo": "tarde",
+    "serie": "1",
+    "turma": "D",
+    "subtitulo": "TARDE"
+  },
+  {
+    "nivel": "medio",
+    "periodo": "tarde",
+    "serie": "1",
+    "turma": "E",
+    "subtitulo": "TARDE"
+  },
+  {
+    "nivel": "medio",
+    "periodo": "tarde",
+    "serie": "2",
+    "turma": "A",
+    "subtitulo": "TARDE"
+  },
+  {
+    "nivel": "medio",
+    "periodo": "tarde",
+    "serie": "2",
+    "turma": "B",
+    "subtitulo": "TARDE"
+  },
+  {
+    "nivel": "medio",
+    "periodo": "tarde",
+    "serie": "2",
+    "turma": "C",
+    "subtitulo": "TARDE"
+  },
+  {
+    "nivel": "medio",
+    "periodo": "tarde",
+    "serie": "3",
+    "turma": "A",
+    "subtitulo": "TARDE"
+  },
+  {
+    "nivel": "medio",
+    "periodo": "tarde",
+    "serie": "3",
+    "turma": "B",
+    "subtitulo": "TARDE"
+  },
+  {
+    "nivel": "fundamental",
+    "periodo": "manha",
     "serie": "5",
+    "turma": "A",
     "subtitulo": ""
   },
   {
     "nivel": "fundamental",
-    "subtitulo": "",
+    "periodo": "manha",
+    "serie": "5",
+    "turma": "B",
+    "subtitulo": ""
+  },
+  {
+    "nivel": "fundamental",
+    "periodo": "manha",
     "serie": "5",
     "turma": "C",
-    "periodo": "manha"
+    "subtitulo": ""
   },
   {
     "nivel": "fundamental",
-    "serie": "6",
-    "subtitulo": "",
     "periodo": "manha",
-    "turma": "A"
-  },
-  {
-    "nivel": "fundamental",
     "serie": "6",
-    "subtitulo": "",
-    "periodo": "manha",
-    "turma": "B"
+    "turma": "A",
+    "subtitulo": ""
   },
   {
     "nivel": "fundamental",
+    "periodo": "manha",
     "serie": "6",
-    "subtitulo": "",
-    "periodo": "manha",
-    "turma": "C"
+    "turma": "B",
+    "subtitulo": ""
   },
   {
     "nivel": "fundamental",
-    "subtitulo": "",
+    "periodo": "manha",
+    "serie": "6",
+    "turma": "C",
+    "subtitulo": ""
+  },
+  {
+    "nivel": "fundamental",
+    "periodo": "manha",
     "serie": "7",
     "turma": "A",
-    "periodo": "manha"
-  },
-  {
-    "nivel": "fundamental",
-    "turma": "B",
-    "periodo": "manha",
-    "subtitulo": "",
-    "serie": "7"
-  },
-  {
-    "nivel": "fundamental",
-    "turma": "C",
-    "periodo": "manha",
-    "subtitulo": "",
-    "serie": "7"
-  },
-  {
-    "nivel": "fundamental",
-    "subtitulo": "",
-    "serie": "8",
-    "turma": "A",
-    "periodo": "manha"
-  },
-  {
-    "nivel": "fundamental",
-    "periodo": "manha",
-    "turma": "B",
-    "serie": "8",
     "subtitulo": ""
   },
   {
     "nivel": "fundamental",
-    "subtitulo": "",
-    "serie": "8",
-    "turma": "C",
-    "periodo": "manha"
+    "periodo": "manha",
+    "serie": "7",
+    "turma": "B",
+    "subtitulo": ""
   },
   {
     "nivel": "fundamental",
-    "turma": "D",
     "periodo": "manha",
-    "subtitulo": "",
-    "serie": "8"
-  },
-  {
-    "nivel": "medio",
-    "turma": "A",
-    "periodo": "tarde",
-    "subtitulo": "TARDE",
-    "serie": "2"
-  },
-  {
-    "nivel": "medio",
-    "periodo": "tarde",
-    "turma": "B",
-    "serie": "2",
-    "subtitulo": "TARDE"
-  },
-  {
-    "nivel": "medio",
-    "subtitulo": "TARDE",
-    "serie": "2",
+    "serie": "7",
     "turma": "C",
-    "periodo": "tarde"
+    "subtitulo": ""
   },
   {
-    "nivel": "medio",
-    "periodo": "tarde",
+    "nivel": "fundamental",
+    "periodo": "manha",
+    "serie": "8",
     "turma": "A",
-    "serie": "3",
-    "subtitulo": "TARDE"
+    "subtitulo": ""
   },
   {
-    "nivel": "medio",
-    "periodo": "tarde",
+    "nivel": "fundamental",
+    "periodo": "manha",
+    "serie": "8",
     "turma": "B",
-    "serie": "3",
-    "subtitulo": "TARDE"
+    "subtitulo": ""
+  },
+  {
+    "nivel": "fundamental",
+    "periodo": "manha",
+    "serie": "8",
+    "turma": "C",
+    "subtitulo": ""
+  },
+  {
+    "nivel": "fundamental",
+    "periodo": "manha",
+    "serie": "8",
+    "turma": "D",
+    "subtitulo": ""
   }
 ];

@@ -878,11 +878,56 @@ async function carregarTudo() {
     RT_TURMAS = RT_TURMAS.filter(t => !t.profUid || t.profUid === uid);
   }
 
+  // Migração automática de RT_TURMAS: corrige periodo e horários legados
+  _migrarTurmas();
+
   // Coordenador: pré-carrega diários dos professores associados (somente leitura)
   if (_ehCoordenador() && Array.isArray(_perfilProf?.professoresAssociados)) {
     await _carregarDiariosAssociados(_perfilProf.professoresAssociados);
   }
   _ativarListenerFirestore();
+}
+
+// ── Migração automática de RT_TURMAS ─────────────────────────
+// Corrige: periodo baseado em turmas_global.js + horários a1-a7 → t1-t7
+function _migrarTurmas() {
+  if (!Array.isArray(RT_TURMAS) || !RT_TURMAS.length) return;
+
+  // Mapa de periodo correto por serie+turma (vindo de TURMAS_BASE)
+  const periodoCorreto = {};
+  for (const tb of (typeof TURMAS_BASE !== "undefined" ? TURMAS_BASE : [])) {
+    periodoCorreto[tb.serie + tb.turma] = tb.periodo || "tarde";
+  }
+
+  let alterou = false;
+  for (const t of RT_TURMAS) {
+    const chave = t.serie + t.turma;
+
+    // 1. Corrige periodo se diferente do turmas_global.js
+    if (periodoCorreto[chave] && t.periodo !== periodoCorreto[chave]) {
+      console.log(`[migração] ${t.id}: periodo ${t.periodo} → ${periodoCorreto[chave]}`);
+      t.periodo = periodoCorreto[chave];
+      alterou = true;
+    }
+
+    // 2. Migra horários a1-a7 → t1-t7 (formato legado)
+    if (Array.isArray(t.horarios)) {
+      for (const h of t.horarios) {
+        if (/^a\d+$/.test(h.aula)) {
+          const num = h.aula.replace("a", "");
+          const turno = (t.periodo || "tarde") === "manha" ? "m" : "t";
+          console.log(`[migração] ${t.id}: horário ${h.aula} → ${turno}${num}`);
+          h.aula = turno + num;
+          alterou = true;
+        }
+      }
+    }
+  }
+
+  if (alterou) {
+    salvarTudo();
+    console.log("[migração] RT_TURMAS atualizado e salvo");
+  }
 }
 
 // Diários dos professores associados ao coordenador (somente leitura)
