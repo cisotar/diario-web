@@ -1,4 +1,4 @@
-// BIMESTRES.JS
+// BIMESTRES.JS — Exportado em 18/03/2026, 08:13:23
 
 const BIMESTRES = [
   {

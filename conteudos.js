@@ -1,4 +1,4 @@
-// CONTEUDOS.JS — Conteúdos e ordem das aulas
+// CONTEUDOS.JS — Conteúdos e ordem das aulas — Exportado em 18/03/2026, 08:13:23
 
 const CONTEUDOS = {
   "1_Geografia": [
@@ -121,10 +121,10 @@ const CONTEUDOS = {
     "Aula 30"
   ],
   "1_Geografia_b1": [
-    "Acolhimento",
-    "Apresentações do professor e dos alunos",
     "Contrato pedadógico e aula inaugural - apresentação do componente curricular.",
+    "Apresentações do professor e dos alunos",
     "Avaliação diagnóstica",
+    "Acolhimento",
     "Aula 1 - Climatologia e meteorologia",
     "Aula 2 - Atmosfera",
     "Aula 3 - Elementos e controles climáticos",
@@ -142,7 +142,9 @@ const CONTEUDOS = {
     "Prova Paulista",
     "Semana de estudos intensivos",
     "Recuperação Contínua",
-    "Conselho de classe e série"
+    "Conselho de classe e série",
+    "",
+    ""
   ],
   "1_Geografia_b2": [
     "Aula 1 - Solos: formação",
@@ -458,4 +460,4 @@ const CONTEUDOS = {
   ]
 };
 
-const ORDEM = {};
+const ORDEM     = {};

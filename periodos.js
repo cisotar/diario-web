@@ -1,4 +1,4 @@
-// PERIODOS.JS — Horários das aulas
+// PERIODOS.JS — Horários das aulas — Exportado em 18/03/2026, 08:13:23
 
 const PERIODOS = [
   {
@@ -18,22 +18,36 @@ const PERIODOS = [
   {
     "aula": "m3",
     "label": "3ª aula (manhã)",
-    "inicio": "08:40",
-    "fim": "09:30",
+    "inicio": "08:50",
+    "fim": "09:40",
     "turno": "manha"
   },
   {
     "aula": "m4",
     "label": "4ª aula (manhã)",
-    "inicio": "09:50",
-    "fim": "10:40",
+    "inicio": "09:40",
+    "fim": "10:30",
     "turno": "manha"
   },
   {
     "aula": "m5",
     "label": "5ª aula (manhã)",
-    "inicio": "10:40",
-    "fim": "11:30",
+    "inicio": "10:30",
+    "fim": "11:20",
+    "turno": "manha"
+  },
+  {
+    "aula": "m6",
+    "label": "6ª aula (manhã)",
+    "inicio": "12:20",
+    "fim": "13:10",
+    "turno": "manha"
+  },
+  {
+    "aula": "m7",
+    "label": "7ª aula (manhã)",
+    "inicio": "13:10",
+    "fim": "14:00",
     "turno": "manha"
   },
   {
@@ -53,36 +67,36 @@ const PERIODOS = [
   {
     "aula": "t3",
     "label": "3ª aula (tarde)",
-    "inicio": "16:10",
-    "fim": "17:00",
+    "inicio": "16:20",
+    "fim": "17:10",
     "turno": "tarde"
   },
   {
     "aula": "t4",
     "label": "4ª aula (tarde)",
-    "inicio": "17:20",
-    "fim": "18:10",
+    "inicio": "17:10",
+    "fim": "18:00",
     "turno": "tarde"
   },
   {
     "aula": "t5",
     "label": "5ª aula (tarde)",
-    "inicio": "18:10",
-    "fim": "19:00",
+    "inicio": "18:00",
+    "fim": "18:50",
     "turno": "tarde"
   },
   {
     "aula": "t6",
     "label": "6ª aula (tarde)",
-    "inicio": "19:00",
-    "fim": "19:50",
+    "inicio": "19:50",
+    "fim": "20:40",
     "turno": "tarde"
   },
   {
     "aula": "t7",
     "label": "7ª aula (tarde)",
-    "inicio": "19:50",
-    "fim": "20:40",
+    "inicio": "20:40",
+    "fim": "21:30",
     "turno": "tarde"
   }
 ];
