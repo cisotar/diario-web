@@ -284,8 +284,62 @@ function htmlEscolaTurmas() {
 
 async function editTurmaBase(i, campo, val) {
   const base = _turmasBaseInit();
-  if (base[i]) base[i][campo] = val;
+  if (!base[i]) return;
+  base[i][campo] = val;
   await _salvarConfigEscola();
+
+  // Propaga subtítulo e período para as entradas do diário correspondentes
+  if (campo === "subtitulo" || campo === "periodo") {
+    const tb = base[i];
+    let alterou = false;
+    for (const t of RT_TURMAS) {
+      if (t.serie === tb.serie && t.turma === tb.turma) {
+        if (campo === "subtitulo" && t.subtitulo !== val) {
+          t.subtitulo = val;
+          alterou = true;
+        }
+        if (campo === "periodo" && t.periodo !== val) {
+          t.periodo = val;
+          alterou = true;
+        }
+      }
+    }
+    if (alterou) {
+      salvarTudo();
+      // Propaga também para diários de outros professores no Firestore
+      _propagarCampoTurmaFirestore(tb.serie, tb.turma, campo, val);
+      _mostrarIndicadorSync(`✓ ${campo === "subtitulo" ? "Subtítulo" : "Período"} propagado para todos os diários`);
+    }
+  }
+}
+
+// Atualiza campo em todas as entradas RT_TURMAS de todos os professores no Firestore
+async function _propagarCampoTurmaFirestore(serie, turma, campo, val) {
+  try {
+    const db = firebase.firestore();
+    const profs = await db.collection("professores").where("status","==","aprovado").get();
+    for (const doc of profs.docs) {
+      if (_isAdmin(doc.data().email)) continue;
+      const uid = doc.id;
+      const diarioRef = db.collection("diario").doc(uid);
+      const diarioSnap = await diarioRef.get();
+      if (!diarioSnap.exists) continue;
+      const d = diarioSnap.data();
+      if (!d.RT_TURMAS) continue;
+      const turmas = JSON.parse(d.RT_TURMAS);
+      let alterou = false;
+      for (const t of turmas) {
+        if (t.serie === serie && t.turma === turma && t[campo] !== val) {
+          t[campo] = val;
+          alterou = true;
+        }
+      }
+      if (alterou) {
+        await diarioRef.update({ RT_TURMAS: JSON.stringify(turmas) });
+        console.log(`[propagação] ${campo}="${val}" aplicado em diario/${uid}`);
+      }
+    }
+  } catch(e) { console.warn("Erro ao propagar campo:", e); }
 }
 
 function delTurmaBase(i) {
