@@ -910,14 +910,23 @@ function _migrarTurmas() {
       alterou = true;
     }
 
-    // 2. Migra horários a1-a7 → t1-t7 (formato legado)
+    // 2. Migra horários com turno errado ou formato legado
+    const turnoCorreto = (t.periodo || "tarde") === "manha" ? "m" : "t";
+    const turnoErrado  = turnoCorreto === "m" ? "t" : "m";
     if (Array.isArray(t.horarios)) {
       for (const h of t.horarios) {
+        // Formato legado: a1–a7 → tN ou mN conforme periodo
         if (/^a\d+$/.test(h.aula)) {
           const num = h.aula.replace("a", "");
-          const turno = (t.periodo || "tarde") === "manha" ? "m" : "t";
-          console.log(`[migração] ${t.id}: horário ${h.aula} → ${turno}${num}`);
-          h.aula = turno + num;
+          console.log(`[migração] ${t.id}: ${h.aula} → ${turnoCorreto}${num}`);
+          h.aula = turnoCorreto + num;
+          alterou = true;
+        }
+        // Turno errado: mX em turma tarde, ou tX em turma manhã
+        else if (new RegExp(`^${turnoErrado}\\d+$`).test(h.aula)) {
+          const num = h.aula.replace(/^[mt]/, "");
+          console.log(`[migração] ${t.id}: ${h.aula} → ${turnoCorreto}${num} (turno corrigido)`);
+          h.aula = turnoCorreto + num;
           alterou = true;
         }
       }
