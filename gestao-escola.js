@@ -143,6 +143,61 @@ function abrirGTab(btn, secId) {
   _trocarAba(btn, secId, abaId);
 }
 
+// Abre o cronograma de um professor específico em modo leitura (somente admin)
+function abrirDiarioProf(uid, turmaId) {
+  const dados = _diariosAssociados[uid];
+  if (!dados) { alert("Diário não carregado. Reabra a aba Diários."); return; }
+
+  // Salva contexto atual do admin para restaurar depois
+  const _rtTurmasAntes    = RT_TURMAS;
+  const _rtConteudosAntes = RT_CONTEUDOS;
+  const _estadoAntes      = estadoAulas;
+  const _ordemAntes       = ordemConteudos;
+
+  // Carrega dados do professor temporariamente
+  RT_TURMAS      = dados.RT_TURMAS;
+  RT_CONTEUDOS   = dados.RT_CONTEUDOS;
+  estadoAulas    = dados.estadoAulas;
+  ordemConteudos = dados.ordemConteudos;
+
+  const t = RT_TURMAS.find(x => x.id === turmaId);
+  if (!t) { alert("Turma não encontrada no diário."); return; }
+
+  turmaAtiva     = t;
+  bimestreAtivo  = RT_BIMESTRES[0]?.bimestre || 1;
+
+  // Renderiza o cronograma em modo leitura
+  renderizarConteudo();
+
+  // Adiciona banner de modo leitura e botão voltar
+  const main = document.getElementById("conteudo-principal");
+  const banner = document.createElement("div");
+  banner.style.cssText = "background:var(--amber-light,#f0a84a);color:#7a4a00;padding:8px 16px;font-size:.82rem;display:flex;align-items:center;gap:12px;";
+  banner.innerHTML = `
+    <span>👁 Modo leitura — diário de <strong>${dados.perfil.nome||uid}</strong></span>
+    <button type="button" onclick="restaurarContextoAdmin()"
+      style="margin-left:auto;background:#fff;border:1px solid #c97d20;border-radius:4px;padding:3px 10px;cursor:pointer;font-size:.8rem;">
+      ← Voltar aos Diários
+    </button>`;
+  main.insertBefore(banner, main.firstChild);
+
+  // Guarda função de restauração
+  window._restaurarCtx = () => {
+    RT_TURMAS      = _rtTurmasAntes;
+    RT_CONTEUDOS   = _rtConteudosAntes;
+    estadoAulas    = _estadoAntes;
+    ordemConteudos = _ordemAntes;
+    turmaAtiva     = null;
+    window._restaurarCtx = null;
+    _abrirPainelEscola("diarios");
+  };
+}
+
+function restaurarContextoAdmin() {
+  if (window._restaurarCtx) window._restaurarCtx();
+  else voltarPrincipal();
+}
+
 function voltarPrincipal() {
   renderizarSidebar();
   if (turmaAtiva) renderizarConteudo(); else renderizarBemVindo();

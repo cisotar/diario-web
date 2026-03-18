@@ -462,23 +462,29 @@ async function _carregarDiariosCoord() {
   lista.innerHTML = Object.entries(_diariosAssociados).map(([uid, dados]) => {
     const p      = dados.perfil;
     const turmas = dados.RT_TURMAS || [];
-    const tags   = turmas.length
-      ? turmas.map(t =>
-          `<span style="display:inline-block;background:var(--amber-pale);color:var(--amber);
-            border-radius:4px;padding:2px 8px;margin:2px;font-weight:600;font-size:.78rem;">
-            ${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""} · ${t.sigla}
-          </span>`).join("")
+    const tags = turmas.length
+      ? turmas.map(t => `
+          <button type="button" onclick="abrirDiarioProf('${uid}','${t.id}')"
+            style="display:inline-flex;align-items:center;gap:5px;
+              background:var(--bg);border:1px solid var(--border);
+              border-radius:4px;padding:3px 10px;margin:2px;cursor:pointer;
+              font-size:.78rem;color:var(--text-mid);">
+            <span style="font-weight:600;color:var(--amber)">${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""}</span>
+            <span>${t.disciplina}</span>
+            <span style="color:var(--text-muted)">· ${t.sigla}</span>
+            <span style="color:var(--green);font-size:.7rem">↗</span>
+          </button>`).join("")
       : `<em style="color:var(--text-muted);font-size:.8rem;">Sem turmas cadastradas</em>`;
     return `
-      <div style="margin-bottom:16px;padding:16px 18px;
+      <div style="margin-bottom:12px;padding:14px 16px;
         background:var(--bg-paper);border:1px solid var(--border);border-radius:var(--radius);">
-        <div style="font-family:'DM Serif Display',serif;font-size:1.05rem;margin-bottom:3px;">
+        <div style="font-family:'DM Serif Display',serif;font-size:1rem;margin-bottom:2px;">
           ${p.nome||uid}
         </div>
-        <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:10px;">
-          ${p.email||""} · ${p.disciplinas||""}
+        <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:8px;">
+          ${p.email||""}${p.disciplinas?" · "+p.disciplinas:""}
         </div>
-        <div>${tags}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:2px">${tags}</div>
       </div>`;
   }).join("");
 }
