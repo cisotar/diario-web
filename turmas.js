@@ -11,11 +11,11 @@ const TURMAS = [
     "horarios": [
       {
         "diaSemana": 1,
-        "aula": "a6"
+        "aula": "t6"
       },
       {
         "diaSemana": 1,
-        "aula": "a7"
+        "aula": "t7"
       }
     ]
   },
@@ -29,11 +29,11 @@ const TURMAS = [
     "horarios": [
       {
         "diaSemana": 1,
-        "aula": "a5"
+        "aula": "t5"
       },
       {
         "diaSemana": 3,
-        "aula": "a6"
+        "aula": "t6"
       }
     ]
   },
@@ -47,11 +47,11 @@ const TURMAS = [
     "horarios": [
       {
         "diaSemana": 3,
-        "aula": "a1"
+        "aula": "t1"
       },
       {
         "diaSemana": 2,
-        "aula": "a7"
+        "aula": "t7"
       }
     ]
   },
@@ -65,11 +65,11 @@ const TURMAS = [
     "horarios": [
       {
         "diaSemana": 3,
-        "aula": "a5"
+        "aula": "t5"
       },
       {
         "diaSemana": 3,
-        "aula": "a7"
+        "aula": "t7"
       }
     ]
   },
@@ -83,11 +83,11 @@ const TURMAS = [
     "horarios": [
       {
         "diaSemana": 3,
-        "aula": "a2"
+        "aula": "t2"
       },
       {
         "diaSemana": 4,
-        "aula": "a3"
+        "aula": "t3"
       }
     ]
   },
@@ -101,11 +101,11 @@ const TURMAS = [
     "horarios": [
       {
         "diaSemana": 3,
-        "aula": "a3"
+        "aula": "t3"
       },
       {
         "diaSemana": 4,
-        "aula": "a6"
+        "aula": "t6"
       }
     ]
   },
@@ -119,11 +119,11 @@ const TURMAS = [
     "horarios": [
       {
         "diaSemana": 2,
-        "aula": "a4"
+        "aula": "t4"
       },
       {
         "diaSemana": 4,
-        "aula": "a5"
+        "aula": "t5"
       }
     ]
   },
@@ -137,11 +137,11 @@ const TURMAS = [
     "horarios": [
       {
         "diaSemana": 2,
-        "aula": "a5"
+        "aula": "t5"
       },
       {
         "diaSemana": 4,
-        "aula": "a2"
+        "aula": "t2"
       }
     ]
   },
@@ -155,11 +155,11 @@ const TURMAS = [
     "horarios": [
       {
         "diaSemana": 5,
-        "aula": "a6"
+        "aula": "t6"
       },
       {
         "diaSemana": 5,
-        "aula": "a7"
+        "aula": "t7"
       }
     ]
   },
@@ -173,11 +173,11 @@ const TURMAS = [
     "horarios": [
       {
         "diaSemana": 3,
-        "aula": "a4"
+        "aula": "t4"
       },
       {
         "diaSemana": 4,
-        "aula": "a1"
+        "aula": "t1"
       }
     ]
   },
@@ -191,11 +191,11 @@ const TURMAS = [
     "horarios": [
       {
         "diaSemana": 2,
-        "aula": "a3"
+        "aula": "t3"
       },
       {
         "diaSemana": 4,
-        "aula": "a7"
+        "aula": "t7"
       }
     ]
   },
@@ -209,11 +209,11 @@ const TURMAS = [
     "horarios": [
       {
         "diaSemana": 2,
-        "aula": "a6"
+        "aula": "t6"
       },
       {
         "diaSemana": 4,
-        "aula": "a4"
+        "aula": "t4"
       }
     ]
   }

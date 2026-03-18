@@ -70,5 +70,19 @@ const PERIODOS = [
     "inicio": "18:10",
     "fim": "19:00",
     "turno": "tarde"
+  },
+  {
+    "aula": "t6",
+    "label": "6ª aula (tarde)",
+    "inicio": "19:00",
+    "fim": "19:50",
+    "turno": "tarde"
+  },
+  {
+    "aula": "t7",
+    "label": "7ª aula (tarde)",
+    "inicio": "19:50",
+    "fim": "20:40",
+    "turno": "tarde"
   }
 ];
