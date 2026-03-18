@@ -434,7 +434,11 @@ async function _carregarDiariosCoord() {
     try {
       const snap = await firebase.firestore().collection("professores")
         .where("status","==","aprovado").get();
-      uids = snap.docs.map(d => d.id).filter(uid => uid !== _userAtual.uid);
+      // Exclui o próprio usuário e outros admins
+      uids = snap.docs
+        .filter(d => !_isAdmin(d.data().email))
+        .map(d => d.id)
+        .filter(uid => uid !== _userAtual.uid);
     } catch(e) { console.warn("Erro ao buscar professores:", e); }
   } else {
     // Coordenador: só os associados

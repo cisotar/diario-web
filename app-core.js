@@ -953,13 +953,16 @@ async function _carregarDiariosAssociados(uids) {
       ]);
       if (!dSnap.exists) continue;
       const d = dSnap.data();
+      const todasTurmas = d.RT_TURMAS ? JSON.parse(d.RT_TURMAS) : [];
+      // Filtra só as turmas do próprio professor (exclui turmas "global" herdadas do admin)
+      const turmasProf = todasTurmas.filter(t => t.profUid === uid);
       _diariosAssociados[uid] = {
         perfil:          pSnap.exists ? pSnap.data() : { uid },
         estadoAulas:     d.aulaEstado    ? JSON.parse(d.aulaEstado)    : {},
         ordemConteudos:  d.aulaOrdem     ? JSON.parse(d.aulaOrdem)     : {},
         linhasEventuais: d.aulaEventuais ? JSON.parse(d.aulaEventuais) : {},
         RT_CONTEUDOS:    d.RT_CONTEUDOS  ? JSON.parse(d.RT_CONTEUDOS)  : {},
-        RT_TURMAS:       d.RT_TURMAS     ? JSON.parse(d.RT_TURMAS)     : [],
+        RT_TURMAS:       turmasProf,
       };
     } catch(e) { console.warn(`Erro ao carregar diário ${uid}:`, e); }
   }
