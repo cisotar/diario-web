@@ -427,11 +427,23 @@ function htmlGestaoDiarios() {
 async function _carregarDiariosCoord() {
   const lista = document.getElementById("diarios-lista");
   const count = document.getElementById("diarios-count");
-  const uids  = _perfilProf?.professoresAssociados || [];
+
+  let uids = [];
+  if (_isAdmin(_userAtual?.email)) {
+    // Admin: carrega todos os professores aprovados do Firestore
+    try {
+      const snap = await firebase.firestore().collection("professores")
+        .where("status","==","aprovado").get();
+      uids = snap.docs.map(d => d.id).filter(uid => uid !== _userAtual.uid);
+    } catch(e) { console.warn("Erro ao buscar professores:", e); }
+  } else {
+    // Coordenador: só os associados
+    uids = _perfilProf?.professoresAssociados || [];
+  }
+
   if (!uids.length) {
     if (lista) lista.innerHTML = `<div style="padding:30px;text-align:center;color:var(--text-muted)">
-      Nenhum professor associado a você ainda.<br>
-      Peça ao administrador para fazer a associação.</div>`;
+      Nenhum professor aprovado encontrado.</div>`;
     if (count) count.textContent = "0 professor(es)";
     return;
   }
