@@ -1,4 +1,4 @@
-// PERIODOS.JS — Horários das aulas — Exportado em 18/03/2026, 09:29:58
+// PERIODOS.JS — Horários das aulas — Exportado em 19/03/2026, 09:57:17
 
 const PERIODOS = [
   {

@@ -1,4 +1,4 @@
-// TURMAS.JS — Entradas do diário (turma + disciplina + horários) — Exportado em 18/03/2026, 09:29:58
+// TURMAS.JS — Entradas do diário (turma + disciplina + horários) — Exportado em 19/03/2026, 09:57:17
 
 const TURMAS = [
   {
@@ -7,7 +7,7 @@ const TURMAS = [
     "turma": "D",
     "subtitulo": "",
     "disciplina": "Geografia",
-    "sigla": "GEO-M",
+    "sigla": "GEO",
     "horarios": [
       {
         "diaSemana": 3,
@@ -26,7 +26,7 @@ const TURMAS = [
     "turma": "E",
     "subtitulo": "",
     "disciplina": "Geografia",
-    "sigla": "GEO-T",
+    "sigla": "GEO",
     "horarios": [
       {
         "diaSemana": 3,
@@ -144,11 +144,11 @@ const TURMAS = [
     "horarios": [
       {
         "diaSemana": 2,
-        "aula": "t5"
+        "aula": "t3"
       },
       {
         "diaSemana": 4,
-        "aula": "t1"
+        "aula": "t7"
       }
     ],
     "periodo": "tarde"
@@ -178,7 +178,7 @@ const TURMAS = [
     "turma": "A",
     "subtitulo": "",
     "disciplina": "Geografia",
-    "sigla": "GEO-EM",
+    "sigla": "GEO",
     "horarios": [
       {
         "diaSemana": 1,
@@ -198,7 +198,7 @@ const TURMAS = [
     "turma": "B",
     "subtitulo": "",
     "disciplina": "Geografia",
-    "sigla": "GEO1",
+    "sigla": "GEO",
     "horarios": [
       {
         "diaSemana": 1,
@@ -218,7 +218,7 @@ const TURMAS = [
     "turma": "C",
     "subtitulo": "",
     "disciplina": "Geografia",
-    "sigla": "GEO-EM",
+    "sigla": "GEO",
     "horarios": [
       {
         "diaSemana": 2,

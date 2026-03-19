@@ -1,4 +1,4 @@
-// ESTADO.JS — Estado das aulas (feita, chamada, AD, CH, RE) — Exportado em 18/03/2026, 09:29:58
+// ESTADO.JS — Estado das aulas (feita, chamada, AD, CH, RE) — Exportado em 19/03/2026, 09:57:17
 
 // Para restaurar: localStorage.setItem("aulaEstado_SEU_UID", JSON.stringify(ESTADO));
 
@@ -387,10 +387,10 @@ const ESTADO = {
   },
   "1E_GEO_b1_sr9": {
     "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": false,
-    "dataFeita": null,
-    "chamada": false,
-    "conteudoEntregue": false
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
   },
   "1C_GEO_b1_sr9": {
     "feita": true,
@@ -399,8 +399,8 @@ const ESTADO = {
     "conteudoEntregue": true
   },
   "1E_GEO_b1_sr10": {
-    "feita": false,
-    "dataFeita": null,
+    "feita": true,
+    "dataFeita": "2026-03-18",
     "chamada": true,
     "conteudoEntregue": true
   },
@@ -414,38 +414,38 @@ const ESTADO = {
   "2B_SOC_b1_sr9": {
     "feita": false,
     "dataFeita": null,
-    "chamada": false,
-    "conteudoEntregue": false
+    "chamada": true,
+    "conteudoEntregue": true
   },
   "2C_GEO_b1_sr9": {
     "feita": false,
     "dataFeita": null,
-    "chamada": false,
-    "conteudoEntregue": false
+    "chamada": true,
+    "conteudoEntregue": true
   },
   "3B_ATUAL_b1_sr9": {
     "feita": false,
     "dataFeita": null,
-    "chamada": false,
-    "conteudoEntregue": false
+    "chamada": true,
+    "conteudoEntregue": true
   },
   "2B_GEO_b1_sr9": {
     "feita": false,
     "dataFeita": null,
-    "chamada": false,
-    "conteudoEntregue": false
+    "chamada": true,
+    "conteudoEntregue": true
   },
   "2A_GEO_b1_sr9": {
     "feita": false,
     "dataFeita": null,
-    "chamada": false,
-    "conteudoEntregue": false
+    "chamada": true,
+    "conteudoEntregue": true
   },
   "2C_SOC_b1_sr9": {
     "feita": false,
     "dataFeita": null,
-    "chamada": false,
-    "conteudoEntregue": false
+    "chamada": true,
+    "conteudoEntregue": true
   },
   "2C_GEO_b1_sr11": {
     "feita": false,
@@ -837,7 +837,9 @@ const ESTADO = {
   },
   "1D_GEO_b1_sr10": {
     "chamada": true,
-    "conteudoEntregue": true
+    "conteudoEntregue": true,
+    "feita": true,
+    "dataFeita": "2026-03-18"
   },
   "1B_GEO_b1_sr11": {
     "chamada": true,
@@ -880,72 +882,109 @@ const ESTADO = {
     "conteudoEntregue": true
   },
   "1A_D1_glob_b1_sr0": {
-    "feita": false,
-    "dataFeita": null
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
   },
   "1A_D1_glob_b1_sr2": {
-    "feita": false,
-    "dataFeita": null
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
   },
   "1A_D1_glob_b1_sr1": {
-    "feita": false,
-    "dataFeita": null
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
   },
   "1A_D1_glob_b1_sr3": {
-    "feita": false,
-    "dataFeita": null
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
   },
   "1A_D1_glob_b1_sr4": {
-    "feita": false,
-    "dataFeita": null
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true,
+    "detalhe": "Aula 1 - Climatologia e meteorologia"
   },
   "1A_D1_glob_b1_sr5": {
-    "feita": false,
-    "dataFeita": null
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true,
+    "detalhe": "Aula 2 - Atmosfera"
   },
   "1A_D1_glob_b1_sr6": {
-    "feita": false,
-    "dataFeita": null
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true,
+    "detalhe": "Aula 3 - Elementos e controles climáticos"
   },
   "1A_D1_glob_b1_sr7": {
-    "feita": false,
-    "dataFeita": null
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
   },
   "1A_D1_glob_b1_sr8": {
-    "feita": false,
-    "dataFeita": null
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
   },
   "1A_D1_glob_b1_sr9": {
-    "feita": false,
-    "dataFeita": null
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
   },
   "1A_D1_glob_b1_sr10": {
-    "feita": false,
-    "dataFeita": null
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
   },
   "1A_D1_glob_b1_sr11": {
     "feita": false,
-    "dataFeita": null
+    "dataFeita": null,
+    "chamada": true,
+    "conteudoEntregue": true
   },
   "1A_D1_glob_b1_sr12": {
     "feita": false,
-    "dataFeita": null
+    "dataFeita": null,
+    "chamada": true,
+    "conteudoEntregue": true
   },
   "1A_D1_glob_b1_sr13": {
     "feita": false,
-    "dataFeita": null
+    "dataFeita": null,
+    "chamada": true,
+    "conteudoEntregue": true
   },
   "1A_D1_glob_b1_sr14": {
     "feita": false,
-    "dataFeita": null
+    "dataFeita": null,
+    "chamada": false,
+    "conteudoEntregue": false
   },
   "1A_D1_glob_b1_sr15": {
     "feita": false,
-    "dataFeita": null
+    "dataFeita": null,
+    "chamada": false,
+    "conteudoEntregue": false
   },
   "1A_D1_glob_b1_sr16": {
     "feita": false,
-    "dataFeita": null
+    "dataFeita": null,
+    "chamada": false,
+    "conteudoEntregue": false
   },
   "1A_D1_glob_b1_sr17": {
     "feita": false,
@@ -974,5 +1013,191 @@ const ESTADO = {
   "1A_D1_glob_b1_sr23": {
     "feita": false,
     "dataFeita": null
+  },
+  "1B_D1_glob_b1_sr0": {
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1B_D1_glob_b1_sr1": {
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1B_D1_glob_b1_sr2": {
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1B_D1_glob_b1_sr3": {
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1B_D1_glob_b1_sr4": {
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1B_D1_glob_b1_sr5": {
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1B_D1_glob_b1_sr6": {
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1B_D1_glob_b1_sr7": {
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1B_D1_glob_b1_sr8": {
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1B_D1_glob_b1_sr9": {
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1B_D1_glob_b1_sr10": {
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1B_D1_glob_b1_sr12": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1B_D1_glob_b1_sr11": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1C_D1_glob_b1_sr0": {
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1C_D1_glob_b1_sr1": {
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1C_D1_glob_b1_sr2": {
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1C_D1_glob_b1_sr3": {
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1C_D1_glob_b1_sr4": {
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1C_D1_glob_b1_sr5": {
+    "feita": true,
+    "dataFeita": "2026-03-18",
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1C_D1_glob_b1_sr12": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1C_D1_glob_b1_sr6": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1C_D1_glob_b1_sr7": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1C_D1_glob_b1_sr8": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1C_D1_glob_b1_sr9": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1C_D1_glob_b1_sr10": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1C_D1_glob_b1_sr11": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2B_SOC_b1_sr13": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1C_D1_glob_b1_sr13": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1B_D1_glob_b1_sr13": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1D_GEO_b1_sr12": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1D_GEO_b1_sr13": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "1E_GEO_b1_sr12": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2A_GEO_b1_sr12": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2B_GEO_b1_sr12": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2B_SOC_b1_sr12": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2C_GEO_b1_sr12": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "2C_SOC_b1_sr12": {
+    "chamada": true,
+    "conteudoEntregue": true
+  },
+  "3B_ATUAL_b1_sr12": {
+    "chamada": true,
+    "conteudoEntregue": true
   }
 };
