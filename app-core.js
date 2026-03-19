@@ -635,6 +635,7 @@ async function _salvarFirestore() {
   const doc = _initFirebase();
   if (!doc) return;
   if (!_autenticado) { _abrirModalGoogle(); return; }
+  _ultimoAtualizado = new Date(); // marca timestamp do save local
   const payload = {
     aulaEstado:    JSON.stringify(estadoAulas),
     aulaOrdem:     JSON.stringify(ordemConteudos),
@@ -976,13 +977,15 @@ function _ativarListenerFirestore() {
   const doc = _initFirebase();
   if (!doc) return;
   _listenerAtivo = true;
-  let _primeiroSnap = true;
+  let _ultimoAtualizado = null; // timestamp do último save LOCAL
   doc.onSnapshot(snap => {
-    if (_primeiroSnap) { _primeiroSnap = false; return; }
     if (!snap.exists) return;
     const d = snap.data();
     const atualizado = d._atualizado ? new Date(d._atualizado) : null;
-    if (atualizado && (new Date() - atualizado) < 2000) return;
+    // Ignora snapshot que veio do próprio save local (menos de 3s atrás)
+    // mas só se foi este dispositivo que salvou
+    if (_ultimoAtualizado && atualizado &&
+        Math.abs(atualizado - _ultimoAtualizado) < 500) return;
     try { estadoAulas     = JSON.parse(d.aulaEstado)    || estadoAulas;    } catch {}
     try { ordemConteudos  = JSON.parse(d.aulaOrdem)     || ordemConteudos; } catch {}
     try { linhasEventuais = JSON.parse(d.aulaEventuais) || linhasEventuais;} catch {}
