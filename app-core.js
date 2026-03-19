@@ -7,6 +7,7 @@
 
 let turmaAtiva    = null;
 let bimestreAtivo = null;
+let visaoDetalhada = false; // false = padrão, true = detalhada
 let estadoAulas = {};
 let ordemConteudos = {};
 let linhasEventuais = {};
@@ -1345,6 +1346,11 @@ function renderizarConteudo() {
       <div style="display:flex;gap:8px;align-items:center">
         <button type="button" class="btn-editar-horarios" onclick="abrirModalHorarios()"
           title="Editar horários desta turma">🕐 Horários</button>
+        <button type="button" class="btn-visao-det" id="btn-visao-det"
+          onclick="alternarVisao()"
+          title="Alternar entre visão padrão e detalhada">
+          ${visaoDetalhada ? "📋 Visão Padrão" : "📋 Visão Detalhada"}
+        </button>
       </div>
       <div class="stat-circulo">
         <svg viewBox="0 0 36 36" class="stat-svg">
@@ -1436,6 +1442,20 @@ function renderizarConteudo() {
       </div>
     </div>`;
   if (total > 0) renderizarLinhas(slots);
+}
+
+// ── Visão detalhada ──────────────────────────────────────────
+function alternarVisao() {
+  visaoDetalhada = !visaoDetalhada;
+  renderizarConteudo();
+}
+
+// Salva detalhe selecionado no dropdown de uma linha
+function salvarDetalhe(slotId, valor) {
+  const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
+  if (!estadoAulas[ch]) estadoAulas[ch] = {};
+  estadoAulas[ch].detalhe = valor;
+  salvarTudo();
 }
 
 // ── Modal de horários da turma ativa ─────────────────────────
@@ -1572,6 +1592,21 @@ function renderizarLinhas(slots) {
           onchange="salvarAnotacao('${slotId}', this.value)"
           title="Anotação livre sobre esta aula"
         />
+        ${visaoDetalhada ? (() => {
+          const chaveBase = `${turmaAtiva.serie}_${turmaAtiva.disciplina}_b${bimestreAtivo}`;
+          const lista = RT_CONTEUDOS[chaveBase] || RT_CONTEUDOS[`${turmaAtiva.serie}_${turmaAtiva.disciplina}`] || [];
+          const detalheAtual = est.detalhe || "";
+          const opts = lista.map(c =>
+            `<option value="${c.replace(/"/g,'&quot;')}" ${detalheAtual===c?"selected":""}>${c}</option>`
+          ).join("");
+          return `<select class="detalhe-select"
+            onchange="salvarDetalhe('${slotId}',this.value)"
+            title="Detalhe / sub-item desta aula">
+            <option value="">— detalhe —</option>
+            ${opts}
+          </select>
+          ${detalheAtual ? `<span class="detalhe-exibido">${detalheAtual}</span>` : ""}`;
+        })() : ""}
       </td>
       <td class="td-data">${fmtSlotData(slot)}</td>
       <td class="td-check">${mkChk("feita",   feita, "Aula dada?")}</td>

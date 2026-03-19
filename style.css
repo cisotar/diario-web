@@ -1467,3 +1467,35 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .btn-lote-off {
   background: var(--text-muted, #718096);
 }
+
+/* ── Visão detalhada ─────────────────────────────────────────── */
+.btn-visao-det {
+  background: var(--bg-paper);
+  border: 1px solid var(--border, #dde3ec);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: .8rem;
+  color: var(--text-mid);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-visao-det:hover { background: var(--bg); color: var(--text); }
+
+.detalhe-select {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  font-size: .78rem;
+  color: var(--text-mid);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+.detalhe-exibido {
+  display: block;
+  margin-top: 3px;
+  font-size: .75rem;
+  color: var(--teal, #0d7478);
+  font-style: italic;
+}
