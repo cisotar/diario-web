@@ -11,6 +11,7 @@ const _DEV_USERS = {
 };
 
 
+let _offlineAtivo = false;
 async function _ativarOffline() {
   if (_DEV) return;
   if (_offlineAtivo) return;
