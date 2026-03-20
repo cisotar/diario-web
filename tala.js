@@ -7,7 +7,7 @@ async function renderizarTala() {
   const secao = document.getElementById("secao-tala");
   if (!secao) return;
   secao.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted)">⏳ Carregando…</div>';
-  const turmaKey = t.serie + t.turma; // ex: "1A"
+  const turmaKey = t.serie + t.turma;
   const alunos   = await _carregarAlunos(turmaKey);
   const adm      = _isAdmin(_userAtual?.email);
   const SITUACOES = ["","AB","NC","TR","RM","RC"];
@@ -15,11 +15,8 @@ async function renderizarTala() {
 
   const rows = alunos.map((a, idx) => {
     const sitOpts = SITUACOES.map(s =>
-      `<option value="${s}" ${(a.situacao||"")=== s?"selected":""}>${s||"—"} ${SITUACAO_LABEL[s]||""}</option>`
+      `<option value="${s}" ${(a.situacao||"") === s?"selected":""}>${s||"—"} ${SITUACAO_LABEL[s]||""}</option>`
     ).join("");
-    const sitBadge = a.situacao
-      ? `<span class="badge-situacao badge-sit-${a.situacao.toLowerCase()}">${a.situacao}</span>`
-      : `<span class="badge-situacao badge-sit-ok">✓</span>`;
     return `<tr class="${a.situacao?"aluno-inativo":""}">
       <td class="td-numero">${a.num}</td>
       <td>${adm
@@ -37,11 +34,17 @@ async function renderizarTala() {
           ${sitOpts}
         </select>
       </td>
+      <td style="font-size:.75rem;color:var(--text-muted);white-space:nowrap">
+        ${adm
+          ? `<input type="date" class="gi gi-sm" value="${a.situacaoData||''}"
+               onchange="editarAluno('${turmaKey}',${idx},'situacaoData',this.value)" />`
+          : (a.situacaoData ? fmtData(a.situacaoData) : '—')
+        }
+      </td>
       ${adm ? `<td><button type="button" class="btn-icon-del" onclick="removerAluno('${turmaKey}',${idx})" title="Remover aluno">×</button></td>` : "<td></td>"}
     </tr>`;
   }).join("");
 
-  // Botão add/remove só para admin
   const btnAdd = adm
     ? `<button type="button" class="btn-add" onclick="adicionarAluno('${turmaKey}')">+ Aluno</button>`
     : "";
@@ -60,6 +63,7 @@ async function renderizarTala() {
             <th>Nome</th>
             <th style="width:120px">Matrícula</th>
             <th style="width:160px">Situação</th>
+            <th style="width:110px">Data</th>
             ${adm ? "<th style='width:32px'></th>" : "<th></th>"}
           </tr></thead>
           <tbody>${rows || '<tr><td colspan="4" class="td-vazio">Nenhum aluno cadastrado.</td></tr>'}</tbody>
@@ -72,6 +76,11 @@ async function editarAluno(turmaKey, idx, campo, valor) {
   const lista = await _carregarAlunos(turmaKey);
   if (!lista[idx]) return;
   lista[idx][campo] = valor;
+  // Registra a data em que a situação foi alterada — usada pela chamada
+  // para parar de computar C/F a partir desse dia
+  if (campo === "situacao") {
+    lista[idx].situacaoData = valor ? hoje() : null;
+  }
   await _salvarAlunos(turmaKey);
   _mostrarIndicadorSync("✓ Aluno atualizado");
 }
@@ -81,7 +90,6 @@ async function removerAluno(turmaKey, idx) {
   if (!lista[idx]) return;
   if (!confirm(`Remover "${lista[idx].nome || "este aluno"}"?`)) return;
   lista.splice(idx, 1);
-  // Renumera
   lista.forEach((a, i) => a.num = i + 1);
   await _salvarAlunos(turmaKey);
   renderizarTala();
@@ -94,4 +102,3 @@ async function adicionarAluno(turmaKey) {
   await _salvarAlunos(turmaKey);
   renderizarTala();
 }
-
