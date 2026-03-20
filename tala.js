@@ -11,7 +11,7 @@ async function renderizarTala() {
   const alunos   = await _carregarAlunos(turmaKey);
   const adm      = _isAdmin(_userAtual?.email);
   const SITUACOES = ["","AB","NC","TR","RM","RC"];
-  const SITUACAO_LABEL = { "":"Matriculado","AB":"Abandonou","NC":"Não compareceu","TR":"TR","RM":"Remanejado","RC":"RC" };
+  const SITUACAO_LABEL = { "":"Matriculado","AB":"Abandonou","NC":"Não compareceu","TR":"Transferido","RM":"Remanejado","RC":"Reclassificado" };
 
   const rows = alunos.map((a, idx) => {
     const sitOpts = SITUACOES.map(s =>

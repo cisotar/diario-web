@@ -11,11 +11,11 @@ const _DEV_USERS = {
 };
 
 
-let _offline = false;
+let _offlineAtivo = false;
 async function _ativarOffline() {
   if (_DEV) return;
-  if (_offline) return;
-  _offline = true;
+  if (_offlineAtivo) return;
+  _offlineAtivo = true;
   try {
     // Usa a API moderna (evita aviso de depreciação do enablePersistence)
     firebase.firestore().settings({
@@ -274,13 +274,13 @@ async function _carregarDiariosAssociados(uids) {
   }
 }
 
-let _listener = false;
-let _listenerBim = false;
+let _listenerAtivo = false;
+let _listenerBimAtivo = false;
 function _ativarListenerFirestore() {
-  if (_listener) return;
+  if (_listenerAtivo) return;
   const doc = _initFirebase();
   if (!doc) return;
-  _listener = true;
+  _listenerAtivo = true;
   let _ultimoAtualizado = null; // timestamp do último save LOCAL
   doc.onSnapshot(snap => {
     if (!snap.exists) return;
@@ -311,8 +311,8 @@ function _ativarListenerFirestore() {
   }, err => console.warn("onSnapshot erro:", err));
 
   // Listener separado para bimestres globais (atualiza em tempo real para todos)
-  if (!_listenerBim) {
-    _listenerBim = true;
+  if (!_listenerBimAtivo) {
+    _listenerBimAtivo = true;
     const cfg = _dbConfig();
     if (!cfg) return;
     let _primeiroBimSnap = true;

@@ -37,7 +37,7 @@ function calAulasNoDia(isoDate) {
   return lista;
 }
 
-// ── Toggle — NÃO depende de turmaAtiva/bimestre ──────────
+// ── Toggle — NÃO depende de turmaAtiva/bimestreAtivo ──────────
 function calToggle(turmaId, bimestre, slotId, campo, novoVal, inputEl) {
   if (!_autenticado) {
     if (inputEl) inputEl.checked = !novoVal;

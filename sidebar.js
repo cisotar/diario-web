@@ -115,7 +115,7 @@ function selecionarTurma(id) {
   document.querySelectorAll(".sidebar-btn, .mob-turma-btn").forEach(b => b.classList.toggle("ativo", b.dataset.id === id));
   const h = hoje();
   const v = RT_BIMESTRES.find(b => h >= b.inicio && h <= b.fim);
-  bimestre = v ? v.bimestre : 1;
+  bimestreAtivo = v ? v.bimestre : 1;
   renderizarConteudo();
 }
 

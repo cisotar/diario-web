@@ -32,7 +32,7 @@ async function _salvarChamadas(turmaKey) {
 
 // Data selecionada para chamada (padrão: hoje se for dia de aula, senão último passado)
 let _dataChamadaSel = null;
-// Bimestre selecionado na aba de chamada (independente do bimestre do cronograma)
+// Bimestre selecionado na aba de chamada (independente do bimestreAtivo do cronograma)
 let _bimestreChamadaSel = null;
 
 function _diasDeAulaNoBimestre(turmaId, bim) {
@@ -43,7 +43,7 @@ function _diasDeAulaNoBimestre(turmaId, bim) {
 // Retorna true se o aluno deve receber chamada numa data específica.
 // Alunos com situação inativa (TR, AB, etc.) param de receber chamada
 // a partir de situacaoData (data em que a situação foi registrada na tala).
-function _alunoNaData(aluno, data) {
+function _alunoAtivoNaData(aluno, data) {
   if (!_SITS_INATIVAS.includes(aluno.situacao)) return true;
   // Se não temos a data de mudança, considera inativo em todas as datas
   if (!aluno.situacaoData) return false;
@@ -62,7 +62,7 @@ async function renderizarChamadaFrequencia() {
   const hoje_str = hoje();
 
   // Inicializa bimestre da chamada com o bimestre ativo do cronograma
-  if (!_bimestreChamadaSel) _bimestreChamadaSel = bimestre;
+  if (!_bimestreChamadaSel) _bimestreChamadaSel = bimestreAtivo;
   const bimObj = RT_BIMESTRES.find(b => b.bimestre === _bimestreChamadaSel) || RT_BIMESTRES[0];
 
   // Todos os dias de aula do bimestre selecionado
@@ -117,7 +117,7 @@ async function renderizarChamadaFrequencia() {
   // ── Linhas de alunos ──
   const SITUACAO_LABEL = {
     "":"Matriculado","AB":"Abandonou","NC":"Não compareceu",
-    "TR":"TR","RM":"Remanejado","RC":"RC"
+    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado"
   };
 
   const rows = alunos.map(a => {
@@ -126,7 +126,7 @@ async function renderizarChamadaFrequencia() {
 
     const tds = datasVisiveis.map(d => {
       const isPast  = d <= hoje_str;
-      const ativo   = _alunoNaData(a, d);
+      const ativo   = _alunoAtivoNaData(a, d);
 
       // Aluno inativo nesta data: célula vazia com traço
       if (!ativo) {
@@ -242,7 +242,7 @@ async function chamadaTodosData(turmaKey, data, valor) {
   if (!chamadas[data]) chamadas[data] = {};
   // Marca apenas alunos que estavam ativos nessa data
   for (const a of alunos) {
-    if (_alunoNaData(a, data)) chamadas[data][a.num] = valor;
+    if (_alunoAtivoNaData(a, data)) chamadas[data][a.num] = valor;
   }
   await _salvarChamadas(turmaKey);
   renderizarChamadaFrequencia();

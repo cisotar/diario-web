@@ -3,7 +3,7 @@
 // ============================================================
 
 let turmaAtiva    = null;
-let bimestre = null;
+let bimestreAtivo = null;
 let estadoAulas = {};
 let ordemConteudos = {};
 let linhasEventuais = {};
@@ -141,11 +141,11 @@ const _ehProfessor   = () => _papel() === "professor";
 const _podeEscrever  = () => _papel() === "admin" || _papel() === "professor";
 
 // Persistência offline inicializada uma única vez
-let _offline = false;
+let _offlineAtivo = false;
 async function _ativarOffline() {
   if (_DEV) return;
-  if (_offline) return;
-  _offline = true;
+  if (_offlineAtivo) return;
+  _offlineAtivo = true;
   try {
     await firebase.firestore().enablePersistence({ synchronizeTabs: true });
     console.info("Firestore: persistência offline ativa");
@@ -876,13 +876,13 @@ async function _carregarDiariosAssociados(uids) {
   }
 }
 
-let _listener = false;
-let _listenerBim = false;
+let _listenerAtivo = false;
+let _listenerBimAtivo = false;
 function _ativarListenerFirestore() {
-  if (_listener) return;
+  if (_listenerAtivo) return;
   const doc = _initFirebase();
   if (!doc) return;
-  _listener = true;
+  _listenerAtivo = true;
   let _primeiroSnap = true;
   doc.onSnapshot(snap => {
     if (_primeiroSnap) { _primeiroSnap = false; return; }
@@ -911,8 +911,8 @@ function _ativarListenerFirestore() {
   }, err => console.warn("onSnapshot erro:", err));
 
   // Listener separado para bimestres globais (atualiza em tempo real para todos)
-  if (!_listenerBim) {
-    _listenerBim = true;
+  if (!_listenerBimAtivo) {
+    _listenerBimAtivo = true;
     const cfg = _dbConfig();
     if (!cfg) return;
     let _primeiroBimSnap = true;
@@ -942,7 +942,7 @@ function getOrdem(turmaId, bim, total) {
 }
 
 function salvarOrdem(ordem) {
-  ordemConteudos[chaveOrdem(turmaAtiva.id, bimestre)] = ordem;
+  ordemConteudos[chaveOrdem(turmaAtiva.id, bimestreAtivo)] = ordem;
   salvarTudo();
 }
 
@@ -951,7 +951,7 @@ function getEventuais(turmaId, bim) {
 }
 
 function salvarEventuais(lista) {
-  linhasEventuais[chaveEventuais(turmaAtiva.id, bimestre)] = lista;
+  linhasEventuais[chaveEventuais(turmaAtiva.id, bimestreAtivo)] = lista;
   salvarTudo();
 }
 
@@ -1213,7 +1213,7 @@ function selecionarTurma(id) {
   document.querySelectorAll(".sidebar-btn, .mob-turma-btn").forEach(b => b.classList.toggle("ativo", b.dataset.id === id));
   const h = hoje();
   const v = RT_BIMESTRES.find(b => h >= b.inicio && h <= b.fim);
-  bimestre = v ? v.bimestre : 1;
+  bimestreAtivo = v ? v.bimestre : 1;
   renderizarConteudo();
 }
 
@@ -1229,17 +1229,17 @@ function renderizarBemVindo() {
 function renderizarConteudo() {
   const t = turmaAtiva;
   const main = document.getElementById("conteudo-principal");
-  const bimObj = RT_BIMESTRES.find(b => b.bimestre === bimestre);
-  const slots  = getSlotsCompletos(t.id, bimestre);
+  const bimObj = RT_BIMESTRES.find(b => b.bimestre === bimestreAtivo);
+  const slots  = getSlotsCompletos(t.id, bimestreAtivo);
   const total  = slots.length;
   const labelTurma = t.subtitulo ? `${t.serie}ª Série ${t.turma} — ${t.subtitulo}` : `${t.serie}ª Série ${t.turma}`;
   let feitas = 0, totalReg = 0;
   for (const s of slots) {
-    if (!s.eventual) { totalReg++; if (estadoAulas[chaveSlot(t.id,bimestre,s.slotId)]?.feita) feitas++; }
+    if (!s.eventual) { totalReg++; if (estadoAulas[chaveSlot(t.id,bimestreAtivo,s.slotId)]?.feita) feitas++; }
   }
   const pct = totalReg > 0 ? Math.round(feitas/totalReg*100) : 0;
   const tabsBim = RT_BIMESTRES.map(b => `
-    <button class="tab-bim ${b.bimestre===bimestre?"ativo":""}" onclick="mudarBimestre(${b.bimestre})">${b.label}</button>`).join("");
+    <button class="tab-bim ${b.bimestre===bimestreAtivo?"ativo":""}" onclick="mudarBimestre(${b.bimestre})">${b.label}</button>`).join("");
   main.innerHTML = `
     <div class="header-turma">
       <div class="header-turma-info">
@@ -1320,16 +1320,16 @@ function renderizarLinhas(slots) {
   if (!tbody) return;
   tbody.innerHTML = "";
   // Chave específica por bimestre; fallback para chave sem bimestre (migração)
-  const chaveC = `${t.serie}_${t.disciplina}_b${bimestre}`;
+  const chaveC = `${t.serie}_${t.disciplina}_b${bimestreAtivo}`;
   const conts  = RT_CONTEUDOS[chaveC] || RT_CONTEUDOS[`${t.serie}_${t.disciplina}`] || [];
   const slotsReg = slots.filter(s => !s.eventual);
-  const ordem    = getOrdem(t.id, bimestre, slotsReg.length);
+  const ordem    = getOrdem(t.id, bimestreAtivo, slotsReg.length);
   let regIdx = 0;
   let lineNum = 0;
   for (const slot of slots) {
     lineNum++;
     const slotId = slot.slotId;
-    const ch     = chaveSlot(t.id, bimestre, slotId);
+    const ch     = chaveSlot(t.id, bimestreAtivo, slotId);
     const est    = estadoAulas[ch] || {};
     const feita  = !!est.feita;
     let conteudoBase = "", conteudoExibido = "", editado = false;
@@ -1415,11 +1415,11 @@ function iniciarEdicao(spanEl, slotId, base) {
   ta.focus(); ta.select();
   function salvar() {
     const novo = ta.value.trim();
-    const ch   = chaveSlot(turmaAtiva.id, bimestre, slotId);
+    const ch   = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
     if (!estadoAulas[ch]) estadoAulas[ch] = {};
-    const chaveC = `${turmaAtiva.serie}_${turmaAtiva.disciplina}_b${bimestre}`;
-    const slotsReg = getSlotsCompletos(turmaAtiva.id, bimestre).filter(s => !s.eventual);
-    const ordem    = getOrdem(turmaAtiva.id, bimestre, slotsReg.length);
+    const chaveC = `${turmaAtiva.serie}_${turmaAtiva.disciplina}_b${bimestreAtivo}`;
+    const slotsReg = getSlotsCompletos(turmaAtiva.id, bimestreAtivo).filter(s => !s.eventual);
+    const ordem    = getOrdem(turmaAtiva.id, bimestreAtivo, slotsReg.length);
     const regIdx   = slotsReg.findIndex(s => s.slotId === slotId);
     if (regIdx >= 0 && ordem[regIdx] != null) {
       if (!RT_CONTEUDOS[chaveC]) RT_CONTEUDOS[chaveC] = [];
@@ -1449,7 +1449,7 @@ function iniciarEdicao(spanEl, slotId, base) {
 function salvarAnotacao(slotId, valor) {
   if (!_autenticado) { _abrirModalGoogle(); return; }
   if (_ehCoordenador()) { return; }
-  const ch = chaveSlot(turmaAtiva.id, bimestre, slotId);
+  const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
   if (!estadoAulas[ch]) estadoAulas[ch] = {};
   if (valor.trim() === "") delete estadoAulas[ch].anotacao;
   else estadoAulas[ch].anotacao = valor.trim();
@@ -1462,7 +1462,7 @@ function salvarAnotacao(slotId, valor) {
 function toggleCampo(slotId, campo, val, inputEl) {
   if (!_autenticado) { inputEl.checked = !val; _abrirModalGoogle(); return; }
   if (_ehCoordenador()) { inputEl.checked = !val; _mostrarIndicadorSync("⛔ Somente leitura"); return; }
-  const ch = chaveSlot(turmaAtiva.id, bimestre, slotId);
+  const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
   if (!estadoAulas[ch]) estadoAulas[ch] = {};
   estadoAulas[ch][campo] = val;
   if (campo === "feita") {
@@ -1470,7 +1470,7 @@ function toggleCampo(slotId, campo, val, inputEl) {
     const tr  = document.querySelector(`tr[data-slot="${slotId}"]`);
     const reg = document.getElementById(`reg-${slotId}`);
     if (tr) {
-      const slot  = getSlotsCompletos(turmaAtiva.id, bimestre).find(s => s.slotId===slotId);
+      const slot  = getSlotsCompletos(turmaAtiva.id, bimestreAtivo).find(s => s.slotId===slotId);
       const pass  = slot && slot.data < hoje();
       const ev    = slot?.eventual;
       tr.className = `${ev?"row-eventual":(val?"row-feita":(pass?"row-pendente":"row-futura"))}${selConteudos.has(slotId)?" row-sel-cont":""}`;
@@ -1482,10 +1482,10 @@ function toggleCampo(slotId, campo, val, inputEl) {
 }
 
 function atualizarStats() {
-  const slots = getSlotsCompletos(turmaAtiva.id, bimestre).filter(s=>!s.eventual);
+  const slots = getSlotsCompletos(turmaAtiva.id, bimestreAtivo).filter(s=>!s.eventual);
   const total = slots.length;
   let feitas  = 0;
-  for (const s of slots) if (estadoAulas[chaveSlot(turmaAtiva.id,bimestre,s.slotId)]?.feita) feitas++;
+  for (const s of slots) if (estadoAulas[chaveSlot(turmaAtiva.id,bimestreAtivo,s.slotId)]?.feita) feitas++;
   const pct = total>0 ? Math.round(feitas/total*100) : 0;
   document.querySelector(".stat-num")?.textContent && (document.querySelector(".stat-num").textContent = `${feitas}/${total}`);
   document.querySelector(".stat-prog")?.setAttribute("stroke-dasharray",`${pct},100`);
@@ -1576,9 +1576,9 @@ function onDrop(e, destSlotId) {
   document.querySelector(`td.td-conteudo[data-slot="${destSlotId}"]`)?.classList.remove("content-drag-over");
   if (!dragSrcSlots.length || dragSrcSlots.includes(destSlotId)) return;
   const t = turmaAtiva;
-  const slots = getSlotsCompletos(t.id, bimestre);
+  const slots = getSlotsCompletos(t.id, bimestreAtivo);
   const slotsReg = slots.filter(s => !s.eventual);
-  const ordem = getOrdem(t.id, bimestre, slotsReg.length);
+  const ordem = getOrdem(t.id, bimestreAtivo, slotsReg.length);
   function slotIdxReg(slotId) { return slotsReg.findIndex(s => s.slotId === slotId); }
   const srcIdxs = dragSrcSlots.map(slotIdxReg).filter(i => i >= 0);
   const destIdx = slotIdxReg(destSlotId);
@@ -1587,7 +1587,7 @@ function onDrop(e, destSlotId) {
   const novaOrdem = [...ordem];
   const srcContents = srcIdxs.map(i => ({
     contIdx: novaOrdem[i],
-    editado: estadoAulas[chaveSlot(t.id, bimestre, slotsReg[i].slotId)]?.conteudoEditado
+    editado: estadoAulas[chaveSlot(t.id, bimestreAtivo, slotsReg[i].slotId)]?.conteudoEditado
   }));
   const srcSet = new Set(srcIdxs);
   const restantes = novaOrdem.filter((_, i) => !srcSet.has(i));
@@ -1595,7 +1595,7 @@ function onDrop(e, destSlotId) {
   const insPos = destPosEmRestantes >= 0 ? destPosEmRestantes : restantes.length;
   restantes.splice(insPos, 0, ...srcContents.map(s => s.contIdx));
   srcIdxs.forEach(i => {
-    const ch = chaveSlot(t.id, bimestre, slotsReg[i].slotId);
+    const ch = chaveSlot(t.id, bimestreAtivo, slotsReg[i].slotId);
     if (estadoAulas[ch]) delete estadoAulas[ch].conteudoEditado;
   });
   let srcPtr = 0;
@@ -1604,32 +1604,32 @@ function onDrop(e, destSlotId) {
     if (!slotId) continue;
     const origSrcIdx = srcContents.findIndex((s,j) => s.contIdx === restantes[i] && j === srcPtr);
     if (origSrcIdx >= 0 && srcContents[origSrcIdx].editado != null) {
-      const ch = chaveSlot(t.id, bimestre, slotId);
+      const ch = chaveSlot(t.id, bimestreAtivo, slotId);
       if (!estadoAulas[ch]) estadoAulas[ch] = {};
       estadoAulas[ch].conteudoEditado = srcContents[origSrcIdx].editado;
       srcPtr++;
     }
   }
-  const chaveC2 = `${t.serie}_${t.disciplina}_b${bimestre}`;
+  const chaveC2 = `${t.serie}_${t.disciplina}_b${bimestreAtivo}`;
   const contsList = RT_CONTEUDOS[chaveC2] || RT_CONTEUDOS[`${t.serie}_${t.disciplina}`] || [];
   RT_CONTEUDOS[chaveC2] = restantes.map(ci => contsList[ci] ?? "");
-  delete ordemConteudos[chaveOrdem(t.id, bimestre)];
+  delete ordemConteudos[chaveOrdem(t.id, bimestreAtivo)];
   slotsReg.forEach((s) => {
-    const ch = chaveSlot(t.id, bimestre, s.slotId);
+    const ch = chaveSlot(t.id, bimestreAtivo, s.slotId);
     if (estadoAulas[ch]) delete estadoAulas[ch].conteudoEditado;
   });
   salvarTudo();
   selConteudos.clear();
-  renderizarLinhas(getSlotsCompletos(t.id, bimestre));
+  renderizarLinhas(getSlotsCompletos(t.id, bimestreAtivo));
 }
 
-function mudarBimestre(num) { bimestre = num; selConteudos.clear(); renderizarConteudo(); }
+function mudarBimestre(num) { bimestreAtivo = num; selConteudos.clear(); renderizarConteudo(); }
 
 function resetarOrdem() {
   if (!_autenticado) { _abrirModalGoogle(); return; }
   if (_ehCoordenador()) { _mostrarIndicadorSync("⛔ Somente leitura"); return; }
   if (!confirm("Restaurar ordem original dos conteúdos?")) return;
-  delete ordemConteudos[chaveOrdem(turmaAtiva.id, bimestre)];
+  delete ordemConteudos[chaveOrdem(turmaAtiva.id, bimestreAtivo)];
   salvarTudo(); renderizarConteudo();
 }
 
@@ -1647,7 +1647,7 @@ function confirmarEventual() {
   const hora = document.getElementById("ev-hora").value || "07:00";
   const desc = document.getElementById("ev-desc").value.trim();
   if (!data) { alert("Informe a data."); return; }
-  const lista = getEventuais(turmaAtiva.id, bimestre);
+  const lista = getEventuais(turmaAtiva.id, bimestreAtivo);
   lista.push({ id: Date.now(), data, hora, descricao: desc });
   salvarEventuais(lista); fecharModalEventual(); renderizarConteudo();
 }
@@ -1655,34 +1655,34 @@ function confirmarEventual() {
 function removerEventual(slotId) {
   if (!_autenticado) { _abrirModalGoogle(); return; }
   const eId = parseInt(slotId.replace("e",""), 10);
-  const lista = getEventuais(turmaAtiva.id, bimestre).filter(e => e.id !== eId);
+  const lista = getEventuais(turmaAtiva.id, bimestreAtivo).filter(e => e.id !== eId);
   salvarEventuais(lista);
-  delete estadoAulas[chaveSlot(turmaAtiva.id, bimestre, slotId)];
+  delete estadoAulas[chaveSlot(turmaAtiva.id, bimestreAtivo, slotId)];
   salvarTudo(); renderizarConteudo();
 }
 
 function confirmarLimpar() {
   if (!_autenticado) { _abrirModalGoogle(); return; }
   if (_ehCoordenador()) { _mostrarIndicadorSync("⛔ Somente leitura"); return; }
-  const lbl = RT_BIMESTRES.find(b=>b.bimestre===bimestre)?.label;
+  const lbl = RT_BIMESTRES.find(b=>b.bimestre===bimestreAtivo)?.label;
   if (!confirm(`Apagar todos os registros do ${lbl} desta turma?`)) return;
-  getSlotsCompletos(turmaAtiva.id, bimestre).forEach(s => {
-    delete estadoAulas[chaveSlot(turmaAtiva.id, bimestre, s.slotId)];
+  getSlotsCompletos(turmaAtiva.id, bimestreAtivo).forEach(s => {
+    delete estadoAulas[chaveSlot(turmaAtiva.id, bimestreAtivo, s.slotId)];
   });
   salvarTudo(); selConteudos.clear(); renderizarConteudo();
 }
 
 function exportarCSV() {
   const t = turmaAtiva;
-  const slots = getSlotsCompletos(t.id, bimestre);
-  const chaveC = `${t.serie}_${t.disciplina}_b${bimestre}`;
+  const slots = getSlotsCompletos(t.id, bimestreAtivo);
+  const chaveC = `${t.serie}_${t.disciplina}_b${bimestreAtivo}`;
   const conts = RT_CONTEUDOS[chaveC] || RT_CONTEUDOS[`${t.serie}_${t.disciplina}`] || [];
   const slotsReg = slots.filter(s=>!s.eventual);
-  const ordem = getOrdem(t.id, bimestre, slotsReg.length);
+  const ordem = getOrdem(t.id, bimestreAtivo, slotsReg.length);
   let rIdx = 0;
   const linhas = [["#","Data","Horário","Conteúdos/Atividades","Chamada","Entregue","Dada?","Registro"]];
   slots.forEach((slot, i) => {
-    const ch  = chaveSlot(t.id, bimestre, slot.slotId);
+    const ch  = chaveSlot(t.id, bimestreAtivo, slot.slotId);
     const est = estadoAulas[ch] || {};
     let cont  = slot.eventual ? (slot.descricao||"") : (est.conteudoEditado ?? (conts[ordem[rIdx]]||""));
     if (!slot.eventual) rIdx++;
@@ -1695,7 +1695,7 @@ function exportarCSV() {
   const csv  = linhas.map(l=>l.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob = new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
   const lbl  = t.subtitulo?`${t.serie}${t.turma}_${t.subtitulo}`:`${t.serie}${t.turma}`;
-  baixarArquivo(blob,`aulas_${lbl}_${t.sigla}_bim${bimestre}.csv`);
+  baixarArquivo(blob,`aulas_${lbl}_${t.sigla}_bim${bimestreAtivo}.csv`);
 }
 
 function exportarJS() {
