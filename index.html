@@ -20,7 +20,7 @@
     }
     #auth-btn {
       flex-shrink: 0;
-      background: TRansparent;
+      background: transparent;
       border: 1.5px solid rgba(255,255,255,0.25);
       color: #c0cad6;
       font-family: 'DM Sans', sans-serif;
@@ -30,7 +30,7 @@
       padding: 6px 14px;
       border-radius: 6px;
       cursor: pointer;
-      TRansition: background .15s, color .15s, border-color .15s;
+      transition: background .15s, color .15s, border-color .15s;
       position: relative;
       z-index: 9995;
     }
@@ -53,7 +53,7 @@
     <button class="mob-nav-acao mob-nav-cal" onclick="abrirCalendario(); fecharMobileNav()" id="mob-btn-cal">
       📅 Calendário
     </button>
-    <div id="mob-nav-tuRMas"></div>
+    <div id="mob-nav-turmas"></div>
     <button class="mob-nav-acao mob-nav-gestao" onclick="abrirPainelGestao(); fecharMobileNav()">
       ⚙ Gestão
     </button>
@@ -63,8 +63,8 @@
   <div class="app-layout">
     <aside class="sidebar" id="sidebar">
       <button class="btn-cal-sidebar" id="btn-calendario" onclick="abrirCalendario()">📅 Calendário</button>
-      <div class="sidebar-titulo">TuRMas</div>
-      <div id="sidebar-tuRMas"></div>
+      <div class="sidebar-titulo">Turmas</div>
+      <div id="sidebar-turmas"></div>
       <button class="btn-gestao-sidebar" id="btn-gestao">⚙ Painel de Gestão</button>
     </aside>
     <main class="main-content">
@@ -73,9 +73,9 @@
   </div>
 
   <!-- Firebase SDK -->
-  <script sRC="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script sRC="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script sRC="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script>
     firebase.initializeApp({
       apiKey:            "AIzaSyAqdTVWYfROLnFfrBm4xLIVp5w1noUo2xk",
@@ -88,64 +88,64 @@
   </script>
 
   <!-- ── Dados estáticos ── -->
-  <script sRC="bimesTRes.js"></script>
-  <script sRC="tuRMas_global.js"></script>
-  <script sRC="tuRMas.js"></script>
-  <script sRC="conteudos.js"></script>
-  <script sRC="periodos.js"></script>
-  <script sRC="estado.js"></script>
+  <script src="bimestres.js"></script>
+  <script src="turmas_global.js"></script>
+  <script src="turmas.js"></script>
+  <script src="conteudos.js"></script>
+  <script src="periodos.js"></script>
+  <script src="estado.js"></script>
 
   <!-- ── Módulos do sistema ── -->
-  <script sRC="globals.js"></script>
-  <script sRC="db.js"></script>
-  <script sRC="auth.js"></script>
-  <script sRC="sidebar.js"></script>
-  <script sRC="cronograma.js"></script>
-  <script sRC="chamada.js"></script>
-  <script sRC="tala.js"></script>
+  <script src="globals.js"></script>
+  <script src="db.js"></script>
+  <script src="auth.js"></script>
+  <script src="sidebar.js"></script>
+  <script src="cronograma.js"></script>
+  <script src="chamada.js"></script>
+  <script src="tala.js"></script>
 
   <!-- ── Painéis de gestão ── -->
-  <script sRC="gestao-escola.js"></script>
-  <script sRC="gestao-professor.js"></script>
-  <script sRC="gestao-usuarios.js"></script>
+  <script src="gestao-escola.js"></script>
+  <script src="gestao-professor.js"></script>
+  <script src="gestao-usuarios.js"></script>
 
   <!-- ── Calendário ── -->
-  <script sRC="calendario.js"></script>
+  <script src="calendario.js"></script>
 
-  <!-- ── Listas de alunos por tuRMa (pasta talas/) ── -->
+  <!-- ── Listas de alunos por turma (pasta talas/) ── -->
   <!-- Ensino Médio — 1ª série -->
-  <script sRC="talas/talas1a.js"></script>
-  <script sRC="talas/talas1b.js"></script>
-  <script sRC="talas/talas1c.js"></script>
-  <script sRC="talas/talas1d.js"></script>
-  <script sRC="talas/talas1e.js"></script>
+  <script src="talas/talas1a.js"></script>
+  <script src="talas/talas1b.js"></script>
+  <script src="talas/talas1c.js"></script>
+  <script src="talas/talas1d.js"></script>
+  <script src="talas/talas1e.js"></script>
   <!-- Ensino Médio — 2ª série -->
-  <script sRC="talas/talas2a.js"></script>
-  <script sRC="talas/talas2b.js"></script>
-  <script sRC="talas/talas2c.js"></script>
+  <script src="talas/talas2a.js"></script>
+  <script src="talas/talas2b.js"></script>
+  <script src="talas/talas2c.js"></script>
   <!-- Ensino Médio — 3ª série -->
-  <script sRC="talas/talas3a.js"></script>
-  <script sRC="talas/talas3b.js"></script>
+  <script src="talas/talas3a.js"></script>
+  <script src="talas/talas3b.js"></script>
   <!-- Ensino Fundamental — 5º ano -->
-  <script sRC="talas/talas5a.js"></script>
-  <script sRC="talas/talas5b.js"></script>
-  <script sRC="talas/talas5c.js"></script>
+  <script src="talas/talas5a.js"></script>
+  <script src="talas/talas5b.js"></script>
+  <script src="talas/talas5c.js"></script>
   <!-- Ensino Fundamental — 6º ano -->
-  <script sRC="talas/talas6a.js"></script>
-  <script sRC="talas/talas6b.js"></script>
-  <script sRC="talas/talas6c.js"></script>
+  <script src="talas/talas6a.js"></script>
+  <script src="talas/talas6b.js"></script>
+  <script src="talas/talas6c.js"></script>
   <!-- Ensino Fundamental — 7º ano -->
-  <script sRC="talas/talas7a.js"></script>
-  <script sRC="talas/talas7b.js"></script>
-  <script sRC="talas/talas7c.js"></script>
+  <script src="talas/talas7a.js"></script>
+  <script src="talas/talas7b.js"></script>
+  <script src="talas/talas7c.js"></script>
   <!-- Ensino Fundamental — 8º ano -->
-  <script sRC="talas/talas8a.js"></script>
-  <script sRC="talas/talas8b.js"></script>
-  <script sRC="talas/talas8c.js"></script>
-  <script sRC="talas/talas8d.js"></script>
+  <script src="talas/talas8a.js"></script>
+  <script src="talas/talas8b.js"></script>
+  <script src="talas/talas8c.js"></script>
+  <script src="talas/talas8d.js"></script>
 
-  <!-- ── Boot (deve ser o último — regisTRa DOMContentLoaded) ── -->
-  <script sRC="boot.js"></script>
+  <!-- ── Boot (deve ser o último — registra DOMContentLoaded) ── -->
+  <script src="boot.js"></script>
 
 </body>
 </html>

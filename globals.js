@@ -1,61 +1,61 @@
-// GLOBALS.JS — Variáveis globais, constantes, regisTRy de alunos, utilitários puros
+// GLOBALS.JS — Variáveis globais, constantes, registry de alunos, utilitários puros
 // Dependências: nenhuma (carrega antes de tudo)
 
 // APP-CORE.JS — Boot, autenticação, Firebase, salvar/carregar, sidebar, cronograma
-// Dependências: bimesTRes.js, tuRMas_global.js, tuRMas.js, conteudos.js, periodos.js, estado.js
+// Dependências: bimestres.js, turmas_global.js, turmas.js, conteudos.js, periodos.js, estado.js
 
 // ============================================================
-//  APP.JS — ConTRole de Aulas v6 · Perfis admin/coordenador/professor
+//  APP.JS — Controle de Aulas v6 · Perfis admin/coordenador/professor
 // ============================================================
 
-let tuRMaAtiva    = null;
-let bimesTRe = null;
+let turmaAtiva    = null;
+let bimestreAtivo = null;
 let visaoDetalhada = false;
-let RT_ALUNOS = {};  // { "1A": [{num,nome,maTRicula,situacao},...], ... }
+let RT_ALUNOS = {};  // { "1A": [{num,nome,matricula,situacao},...], ... }
 
-// RegisTRy de alunos: os arquivos alunos_*.js regisTRam aqui via _regisTRarAlunos()
+// Registry de alunos: os arquivos alunos_*.js registram aqui via _registrarAlunos()
 const _ALUNOS_REGISTRY = {};
-function _regisTRarAlunos(tuRMaKey, lista) {
-  _ALUNOS_REGISTRY[tuRMaKey.toUpperCase()] = lista;
+function _registrarAlunos(turmaKey, lista) {
+  _ALUNOS_REGISTRY[turmaKey.toUpperCase()] = lista;
 }
-function _seedAlunos(tuRMaKey) {
-  const k = tuRMaKey.replace(/[^A-Z0-9]/gi,"").toUpperCase();
-  // Tenta regisTRy primeiro, depois window como fallback
+function _seedAlunos(turmaKey) {
+  const k = turmaKey.replace(/[^A-Z0-9]/gi,"").toUpperCase();
+  // Tenta registry primeiro, depois window como fallback
   if (_ALUNOS_REGISTRY[k]) return _ALUNOS_REGISTRY[k];
   const nome = "ALUNOS_" + k;
   return (typeof window !== "undefined" && window[nome]) ? window[nome] : [];
 }
 
-// Carrega alunos de uma tuRMa: Firestore > seed
-async function _carregarAlunos(tuRMaKey) {
-  if (RT_ALUNOS[tuRMaKey]) return RT_ALUNOS[tuRMaKey];
+// Carrega alunos de uma turma: Firestore > seed
+async function _carregarAlunos(turmaKey) {
+  if (RT_ALUNOS[turmaKey]) return RT_ALUNOS[turmaKey];
   // DEV mode: usa só o seed
   if (!_DEV) {
-    TRy {
-      const snap = await firebase.firestore().collection("alunos").doc(tuRMaKey).get();
+    try {
+      const snap = await firebase.firestore().collection("alunos").doc(turmaKey).get();
       if (snap.exists && Array.isArray(snap.data().lista)) {
-        RT_ALUNOS[tuRMaKey] = snap.data().lista;
-        return RT_ALUNOS[tuRMaKey];
+        RT_ALUNOS[turmaKey] = snap.data().lista;
+        return RT_ALUNOS[turmaKey];
       }
     } catch(e) { console.warn("Erro ao carregar alunos:", e); }
   }
   // Fallback para seed
-  RT_ALUNOS[tuRMaKey] = JSON.parse(JSON.sTRingify(_seedAlunos(tuRMaKey)));
-  return RT_ALUNOS[tuRMaKey];
+  RT_ALUNOS[turmaKey] = JSON.parse(JSON.stringify(_seedAlunos(turmaKey)));
+  return RT_ALUNOS[turmaKey];
 }
 
-// Salva alunos de uma tuRMa no Firestore
-async function _salvarAlunos(tuRMaKey) {
+// Salva alunos de uma turma no Firestore
+async function _salvarAlunos(turmaKey) {
   if (_DEV) { console.log("[DEV] _salvarAlunos — apenas memória"); return; }
-  TRy {
-    await firebase.firestore().collection("alunos").doc(tuRMaKey)
-      .set({ lista: RT_ALUNOS[tuRMaKey], _atualizado: new Date().toISOSTRing() });
+  try {
+    await firebase.firestore().collection("alunos").doc(turmaKey)
+      .set({ lista: RT_ALUNOS[turmaKey], _atualizado: new Date().toISOString() });
   } catch(e) { console.warn("Erro ao salvar alunos:", e); }
-} // false = padrão, TRue = detalhada
+} // false = padrão, true = detalhada
 let estadoAulas = {};
 let ordemConteudos = {};
 let linhasEventuais = {};
-let dragSRCSlots  = [];
+let dragSrcSlots  = [];
 let dragDestSlot  = null;
 let selConteudos  = new Set();
 let ultimoChkSlot  = null;   // último slotId clicado numa checkbox
@@ -71,7 +71,7 @@ let RT_CONFIG     = { nomeEscola: "", disciplinasPorSerie: {} };  // config glob
 // Áreas do conhecimento (BNCC) e mapeamento para as disciplinas globais
 const AREAS_CONHECIMENTO = [
   { id: "linguagens",   label: "Linguagens",           palavras: ["português","língua","inglês","espanhol","arte","artes","educação física","literatura","redação"] },
-  { id: "matematica",   label: "Matemática",            palavras: ["matemática","geomeTRia","estatística","álgebra"] },
+  { id: "matematica",   label: "Matemática",            palavras: ["matemática","geometria","estatística","álgebra"] },
   { id: "humanas",      label: "Ciências Humanas",      palavras: ["história","geografia","filosofia","sociologia","ensino religioso"] },
   { id: "natureza",     label: "Ciências da Natureza",  palavras: ["ciências","biologia","física","química"] },
 ];
@@ -88,7 +88,7 @@ function _disciplinasDaArea(areaId) {
   return [...todas].sort();
 }
 
-// Todas as disciplinas cadasTRadas (todas séries, todas áreas)
+// Todas as disciplinas cadastradas (todas séries, todas áreas)
 function _todasDisciplinas() {
   const dps = RT_CONFIG.disciplinasPorSerie || {};
   const todas = new Set();
@@ -102,27 +102,27 @@ function _todasDisciplinas() {
 
 // Perfil do professor logado (carregado do Firestore)
 
-function chaveSlot(tuRMaId, bim, slotId) { return `${tuRMaId}_b${bim}_s${slotId}`; }
-function chaveOrdem(tuRMaId, bim)         { return `${tuRMaId}_b${bim}`; }
-function chaveEventuais(tuRMaId, bim)     { return `${tuRMaId}_b${bim}`; }
+function chaveSlot(turmaId, bim, slotId) { return `${turmaId}_b${bim}_s${slotId}`; }
+function chaveOrdem(turmaId, bim)         { return `${turmaId}_b${bim}`; }
+function chaveEventuais(turmaId, bim)     { return `${turmaId}_b${bim}`; }
 
-function getOrdem(tuRMaId, bim, total) {
-  const k = chaveOrdem(tuRMaId, bim);
+function getOrdem(turmaId, bim, total) {
+  const k = chaveOrdem(turmaId, bim);
   if (ordemConteudos[k]?.length === total) return [...ordemConteudos[k]];
   return Array.from({length: total}, (_, i) => i);
 }
 
 function salvarOrdem(ordem) {
-  ordemConteudos[chaveOrdem(tuRMaAtiva.id, bimesTRe)] = ordem;
+  ordemConteudos[chaveOrdem(turmaAtiva.id, bimestreAtivo)] = ordem;
   salvarTudo();
 }
 
-function getEventuais(tuRMaId, bim) {
-  return linhasEventuais[chaveEventuais(tuRMaId, bim)] || [];
+function getEventuais(turmaId, bim) {
+  return linhasEventuais[chaveEventuais(turmaId, bim)] || [];
 }
 
 function salvarEventuais(lista) {
-  linhasEventuais[chaveEventuais(tuRMaAtiva.id, bimesTRe)] = lista;
+  linhasEventuais[chaveEventuais(turmaAtiva.id, bimestreAtivo)] = lista;
   salvarTudo();
 }
 
@@ -147,7 +147,7 @@ function gerarSlots(horarios, bimObj) {
       if (cur.getDay() === h.diaSemana) {
         const periodo = resolverPeriodo(h.aula);
         slots.push({
-          data: cur.toISOSTRing().split("T")[0],
+          data: cur.toISOString().split("T")[0],
           aula: h.aula,
           inicio: periodo.inicio,
           fim: periodo.fim,
@@ -162,14 +162,14 @@ function gerarSlots(horarios, bimObj) {
   return slots;
 }
 
-function getSlotsCompletos(tuRMaId, bim) {
-  const t      = RT_TURMAS.find(x => x.id === tuRMaId);
-  const bimObj = RT_BIMESTRES.find(b => b.bimesTRe === bim);
+function getSlotsCompletos(turmaId, bim) {
+  const t      = RT_TURMAS.find(x => x.id === turmaId);
+  const bimObj = RT_BIMESTRES.find(b => b.bimestre === bim);
   if (!t || !bimObj) return [];
   const regulares = gerarSlots(t.horarios, bimObj).map((s, i) => ({ ...s, slotId: `r${i}` }));
-  const eventuais = getEventuais(tuRMaId, bim).map(e => ({
+  const eventuais = getEventuais(turmaId, bim).map(e => ({
     data: e.data, aula: null, inicio: e.hora, fim: "", label: e.hora,
-    eventual: TRue, descricao: e.descricao, slotId: `e${e.id}`
+    eventual: true, descricao: e.descricao, slotId: `e${e.id}`
   }));
   return [...regulares, ...eventuais]
     .sort((a,b) => (a.data||"").localeCompare(b.data||"") || (a.inicio||"").localeCompare(b.inicio||""));
@@ -195,23 +195,23 @@ function fmtSlotData(slot) {
   return `<span class="data-linha1">${linha1}</span><span class="data-linha2">${linha2}</span>`;
 }
 
-function hoje() { return new Date().toISOSTRing().split("T")[0]; }
+function hoje() { return new Date().toISOString().split("T")[0]; }
 
 const TOOLTIPS_COLUNAS = {
-  "th-numero":    "Número sequencial da aula no bimesTRe.",
-  "th-data":      "Data e horário previstos para a aula, confoRMe calendário.",
-  "th-conteudo":  "Conteúdo ou atividade prevista. Clique para editar. Arraste o ícone ⠿ para reorganizar. Selecione múltiplos com CTRl+clique no ícone.",
+  "th-numero":    "Número sequencial da aula no bimestre.",
+  "th-data":      "Data e horário previstos para a aula, conforme calendário.",
+  "th-conteudo":  "Conteúdo ou atividade prevista. Clique para editar. Arraste o ícone ⠿ para reorganizar. Selecione múltiplos com Ctrl+clique no ícone.",
   "th-chamada":   "Marque quando a chamada for realizada nesta aula.",
-  "th-enTRegue":  "Marque quando o material ou atividade tiver sido enTRegue/disTRibuído aos alunos.",
-  "th-dada":      "Marque quando a aula tiver sido efetivamente minisTRada.",
-  "th-regisTRo":  "Data em que a aula foi maRCada como dada.",
+  "th-entregue":  "Marque quando o material ou atividade tiver sido entregue/distribuído aos alunos.",
+  "th-dada":      "Marque quando a aula tiver sido efetivamente ministrada.",
+  "th-registro":  "Data em que a aula foi marcada como dada.",
 };
 
 function iniciarTooltips() {
   document.body.addEventListener("mouseover", e => {
     const th = e.target.closest("th[data-tip]");
     if (!th) return;
-    mosTRarTooltip(th, th.dataset.tip);
+    mostrarTooltip(th, th.dataset.tip);
   });
   document.body.addEventListener("mouseout", e => {
     if (e.target.closest("th[data-tip]")) esconderTooltip();
@@ -219,7 +219,7 @@ function iniciarTooltips() {
 }
 
 let tooltipEl = null;
-function mosTRarTooltip(anchor, texto) {
+function mostrarTooltip(anchor, texto) {
   esconderTooltip();
   tooltipEl = document.createElement("div");
   tooltipEl.className = "col-tooltip";
@@ -245,7 +245,7 @@ function _atualizarTagline() {
   const prefix = papel === "coordenador" ? "Coord." : "Prof.";
   const nomeFmt  = nome ? `${prefix} ${nome}` : "";
   const ano      = new Date().getFullYear();
-  // Coordenador: mosTRa área/papel; professor: mosTRa disciplinas
+  // Coordenador: mostra área/papel; professor: mostra disciplinas
   const disciplinas = papel === "coordenador"
     ? "Coordenador(a)"
     : (_perfilProf?.disciplinas || "");
@@ -253,21 +253,21 @@ function _atualizarTagline() {
     .filter(Boolean).map(l => `<span>${l}</span>`).join("");
 }
 
-function _tuRMasVisiveis() {
+function _turmasVisiveis() {
   if (_isAdmin(_userAtual?.email)) return RT_TURMAS;
   const uid = _userAtual?.uid;
-  // TuRMas explicitamente do professor
+  // Turmas explicitamente do professor
   const proprias = RT_TURMAS.filter(t => t.profUid === uid);
   if (proprias.length) return proprias;
-  // TuRMas legado (global ou sem profUid) — visíveis se disciplina bate com o perfil
+  // Turmas legado (global ou sem profUid) — visíveis se disciplina bate com o perfil
   const discProf = (_perfilProf?.disciplinas || "")
-    .split(";").map(s => s.TRim().toLowerCase()).filter(Boolean);
+    .split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
   const legado = RT_TURMAS.filter(t =>
     (!t.profUid || t.profUid === "global") &&
     discProf.some(d => (t.disciplina || "").toLowerCase().includes(d) || d.includes((t.disciplina || "").toLowerCase()))
   );
   if (legado.length) return legado;
-  // Último recurso: tuRMas sem dono definido
+  // Último recurso: turmas sem dono definido
   return RT_TURMAS.filter(t => !t.profUid || t.profUid === "global");
 }
 

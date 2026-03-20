@@ -3,7 +3,7 @@
 
 name: Deploy to Firebase Hosting on PR
 on: pull_request
-peRMissions:
+permissions:
   checks: write
   contents: read
   pull-requests: write

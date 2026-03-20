@@ -5,7 +5,7 @@
 let _perfilProf = null;  // { nome, email, escola, status, uid }
 
 
-function _mosTRarCarregando(sim) {
+function _mostrarCarregando(sim) {
   let el = document.getElementById("loading-overlay");
   if (sim) {
     if (el) return;
@@ -20,7 +20,7 @@ function _mosTRarCarregando(sim) {
     el.innerHTML = `
       <div style="width:32px;height:32px;border:3px solid #334155;border-top-color:#0d9488;border-radius:50%;animation:spin 0.7s linear infinite"></div>
       <span>Carregando dados…</span>
-      <style>@keyframes spin{to{TRansfoRM:rotate(360deg)}}</style>
+      <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
     `;
     document.body.appendChild(el);
   } else {
@@ -28,15 +28,15 @@ function _mosTRarCarregando(sim) {
   }
 }
 
-// E-mails com privilégio de adminisTRador
+// E-mails com privilégio de administrador
 const _ADMINS = [
-  "protaRCiso@gmail.com",
-  "contato.taRCiso@gmail.com",
-  "taRCiso@prof.educacao.sp.gov.br",
+  "protarciso@gmail.com",
+  "contato.tarciso@gmail.com",
+  "tarciso@prof.educacao.sp.gov.br",
 ];
 
-// Retorna tuRMas globais (TURMAS do tuRMas.js) que correspondem a uma lista de disciplinas
-function _tuRMasParaDiscs(discs) {
+// Retorna turmas globais (TURMAS do turmas.js) que correspondem a uma lista de disciplinas
+function _turmasParaDiscs(discs) {
   if (!discs || !discs.length) return [];
   const lower = discs.map(d => d.toLowerCase());
   return TURMAS.filter(t =>
@@ -69,18 +69,18 @@ const _podeEscrever  = () => _papel() === "admin" || _papel() === "professor";
 async function _verificarSessao() {
   if (_DEV && _DEV_USERS[_DEV]) {
     _userAtual   = _DEV_USERS[_DEV];
-    _autenticado = TRue;
+    _autenticado = true;
     _dbDoc       = null;
     console.warn(`[DEV MODE] Logado como ${_DEV}: ${_userAtual.email}`);
     _atualizarBotaoAuth();
     return;
   }
   return new Promise(resolve => {
-    TRy {
+    try {
       firebase.auth().onAuthStateChanged(user => {
         _userAtual   = user;
         _autenticado = !!user;
-        _dbDoc       = null; // resetar cache do doc ao TRocar usuário
+        _dbDoc       = null; // resetar cache do doc ao trocar usuário
         _atualizarBotaoAuth();
         resolve();
       });
@@ -91,7 +91,7 @@ async function _verificarSessao() {
 }
 
 // Verifica se o professor tem acesso aprovado (ou é admin).
-// Retorna TRue se pode enTRar, false se deve esperar/solicitar acesso.
+// Retorna true se pode entrar, false se deve esperar/solicitar acesso.
 async function _verificarAcessoProfessor() {
   if (_DEV && _DEV_USERS[_DEV]) {
     _perfilProf = {
@@ -104,9 +104,9 @@ async function _verificarAcessoProfessor() {
       area:        _DEV === "professor" ? "humanas" : "",
       escola:      "Escola Dev Local",
     };
-    return TRue;
+    return true;
   }
-  // Não logado: mosTRa tela de login e retorna false
+  // Não logado: mostra tela de login e retorna false
   if (!_userAtual) {
     _renderizarTelaLogin();
     return false;
@@ -121,16 +121,16 @@ async function _verificarAcessoProfessor() {
       status: "aprovado", papel: "admin",
     };
     await _salvarPerfilFirestore(_perfilProf);
-    return TRue;
+    return true;
   }
   // Professor comum: checar status no Firestore
-  TRy {
+  try {
     const snap = await firebase.firestore()
       .collection("professores").doc(_userAtual.uid).get();
     if (snap.exists) {
       const d = snap.data();
       _perfilProf = { uid: _userAtual.uid, ...d };
-      if (d.status === "aprovado") return TRue;
+      if (d.status === "aprovado") return true;
       if (d.status === "rejeitado") {
         _renderizarTelaRejeitado(d);
         return false;
@@ -139,25 +139,25 @@ async function _verificarAcessoProfessor() {
       _renderizarTelaAguardando(d);
       return false;
     } else {
-      // Primeiro acesso: carrega config da escola antes de mosTRar foRMulário
-      TRy {
+      // Primeiro acesso: carrega config da escola antes de mostrar formulário
+      try {
         const cfgSnap = await firebase.firestore().collection("config").doc("escola").get();
         if (cfgSnap.exists) {
-          RT_CONFIG = { nomeEscola: "", disciplinasPorSerie: {}, tuRMasBase: null, configPeriodos: null, ...cfgSnap.data() };
-      // Migra tuRMasBase sem nivel (legado)
-      if (Array.isArray(RT_CONFIG.tuRMasBase)) RT_CONFIG.tuRMasBase = RT_CONFIG.tuRMasBase.map(t => ({ nivel: t.nivel||"medio", ...t }));
-          if (typeof RT_CONFIG.disciplinasPorSerie === "sTRing") {
-            TRy { RT_CONFIG.disciplinasPorSerie = JSON.parse(RT_CONFIG.disciplinasPorSerie); } catch { RT_CONFIG.disciplinasPorSerie = {}; }
+          RT_CONFIG = { nomeEscola: "", disciplinasPorSerie: {}, turmasBase: null, configPeriodos: null, ...cfgSnap.data() };
+      // Migra turmasBase sem nivel (legado)
+      if (Array.isArray(RT_CONFIG.turmasBase)) RT_CONFIG.turmasBase = RT_CONFIG.turmasBase.map(t => ({ nivel: t.nivel||"medio", ...t }));
+          if (typeof RT_CONFIG.disciplinasPorSerie === "string") {
+            try { RT_CONFIG.disciplinasPorSerie = JSON.parse(RT_CONFIG.disciplinasPorSerie); } catch { RT_CONFIG.disciplinasPorSerie = {}; }
           }
         }
-      } catch(e) { console.warn("Config escola indisponível no cadasTRo:", e); }
-      _renderizarFoRMularioCadasTRo();
+      } catch(e) { console.warn("Config escola indisponível no cadastro:", e); }
+      _renderizarFormularioCadastro();
       return false;
     }
   } catch (e) {
     console.warn("Erro ao verificar acesso:", e);
-    // Fallback: peRMite acesso se é e-mail peRMitido
-    if (_ADMINS.includes(email)) return TRue;
+    // Fallback: permite acesso se é e-mail permitido
+    if (_ADMINS.includes(email)) return true;
     _renderizarTelaErroAcesso();
     return false;
   }
@@ -165,10 +165,10 @@ async function _verificarAcessoProfessor() {
 
 async function _salvarPerfilFirestore(perfil) {
   if (_DEV) return;
-  TRy {
+  try {
     await firebase.firestore()
       .collection("professores").doc(perfil.uid)
-      .set(perfil, { merge: TRue });
+      .set(perfil, { merge: true });
   } catch (e) { console.warn("Erro ao salvar perfil:", e); }
 }
 
@@ -180,15 +180,15 @@ function _renderizarTelaLogin() {
   setTimeout(_abrirModalGoogle, 300);
 }
 
-function _renderizarFoRMularioCadasTRo() {
+function _renderizarFormularioCadastro() {
   const main = document.getElementById("conteudo-principal");
   main.innerHTML = `
     <div class="acesso-tela">
       <div class="acesso-box">
         <div class="acesso-ico">👋</div>
         <h2 class="acesso-titulo">Bem-vindo ao Diário de Classe</h2>
-        <p class="acesso-sub">Preencha seus dados para solicitar acesso. Um adminisTRador aprovará seu cadasTRo em breve.</p>
-        <div class="acesso-foRM">
+        <p class="acesso-sub">Preencha seus dados para solicitar acesso. Um administrador aprovará seu cadastro em breve.</p>
+        <div class="acesso-form">
           <label>Seu nome completo
             <input type="text" id="cad-nome" placeholder="Prof. João Silva"
               value="${_userAtual.displayName || ''}" />
@@ -206,13 +206,13 @@ function _renderizarFoRMularioCadasTRo() {
 }
 
 async function _enviarPedidoAcesso() {
-  const nome = document.getElementById("cad-nome")?.value.TRim();
-  if (!nome) { alert("InfoRMe seu nome."); return; }
+  const nome = document.getElementById("cad-nome")?.value.trim();
+  if (!nome) { alert("Informe seu nome."); return; }
   const area      = document.getElementById("perf-area")?.value || "";
-  const tuRMasSel = _lerTuRMasSelecionadas(); // array de objetos {tuRMaKey,serie,tuRMa,disciplina,sigla,...}
-  // ExTRai lista de disciplinas das tuRMas selecionadas (compatibilidade)
-  const disc = [...new Set(tuRMasSel.map(t => t.disciplina))].join("; ");
-  if (!tuRMasSel.length) { alert("Selecione pelo menos uma tuRMa e infoRMe a disciplina."); return; }
+  const turmasSel = _lerTurmasSelecionadas(); // array de objetos {turmaKey,serie,turma,disciplina,sigla,...}
+  // Extrai lista de disciplinas das turmas selecionadas (compatibilidade)
+  const disc = [...new Set(turmasSel.map(t => t.disciplina))].join("; ");
+  if (!turmasSel.length) { alert("Selecione pelo menos uma turma e informe a disciplina."); return; }
   const perfil = {
     uid: _userAtual.uid,
     email: _userAtual.email,
@@ -220,12 +220,12 @@ async function _enviarPedidoAcesso() {
     escola: RT_CONFIG?.nomeEscola || "",
     disciplinas: disc,
     area,
-    tuRMasIds: tuRMasSel,  // agora objetos completos
+    turmasIds: turmasSel,  // agora objetos completos
     status: "pendente",
     papel: "professor",
-    solicitadoEm: new Date().toISOSTRing(),
+    solicitadoEm: new Date().toISOString(),
   };
-  TRy {
+  try {
     await firebase.firestore()
       .collection("professores").doc(_userAtual.uid).set(perfil);
     _perfilProf = perfil;
@@ -242,7 +242,7 @@ function _renderizarTelaAguardando(perfil) {
       <div class="acesso-box">
         <div class="acesso-ico">⏳</div>
         <h2 class="acesso-titulo">Aguardando aprovação</h2>
-        <p class="acesso-sub">Olá, <sTRong>${perfil.nome || perfil.email}</sTRong>! Seu pedido de acesso foi recebido e está aguardando aprovação de um adminisTRador.</p>
+        <p class="acesso-sub">Olá, <strong>${perfil.nome || perfil.email}</strong>! Seu pedido de acesso foi recebido e está aguardando aprovação de um administrador.</p>
         <div class="acesso-email">📧 ${perfil.email}</div>
         <button class="acesso-btn-sair" onclick="_logout()">Sair</button>
       </div>
@@ -255,7 +255,7 @@ function _renderizarTelaRejeitado(perfil) {
       <div class="acesso-box">
         <div class="acesso-ico">❌</div>
         <h2 class="acesso-titulo">Acesso não autorizado</h2>
-        <p class="acesso-sub">Seu pedido de acesso foi recusado. EnTRe em contato com o adminisTRador do sistema.</p>
+        <p class="acesso-sub">Seu pedido de acesso foi recusado. Entre em contato com o administrador do sistema.</p>
         <div class="acesso-email">📧 ${perfil.email}</div>
         <button class="acesso-btn-sair" onclick="_logout()">Sair</button>
       </div>
@@ -276,21 +276,21 @@ function _renderizarTelaErroAcesso() {
 }
 
 async function _loginGoogle() {
-  TRy {
+  try {
     const provider = new firebase.auth.GoogleAuthProvider();
     const result   = await firebase.auth().signInWithPopup(provider);
     _userAtual   = result.user;
-    _autenticado = TRue;
+    _autenticado = true;
     _dbDoc       = null;
     _atualizarBotaoAuth();
     document.getElementById("google-modal")?.remove();
-    _mosTRarIndicadorSync("🔓 Autenticado");
+    _mostrarIndicadorSync("🔓 Autenticado");
     // Verifica acesso e carrega o sistema
-    _mosTRarCarregando(TRue);
+    _mostrarCarregando(true);
     const ok = await _verificarAcessoProfessor();
     if (ok) {
       await carregarTudo();
-      _mosTRarCarregando(false);
+      _mostrarCarregando(false);
       renderizarSidebar();
       _atualizarTagline();
       iniciarTooltips();
@@ -298,7 +298,7 @@ async function _loginGoogle() {
       if (window.innerWidth <= 860) renderizarHomeMobile();
       else abrirCalendario();
     } else {
-      _mosTRarCarregando(false);
+      _mostrarCarregando(false);
     }
   } catch (e) {
     console.error("Erro no login Google:", e);
@@ -307,7 +307,7 @@ async function _loginGoogle() {
       btn.textContent = "Tente novamente";
       btn.style.background = "#7f1d1d";
       setTimeout(() => {
-        btn.textContent = "EnTRar com Google";
+        btn.textContent = "Entrar com Google";
         btn.style.background = "#fff";
       }, 2000);
     }
@@ -315,13 +315,13 @@ async function _loginGoogle() {
 }
 
 async function _logout() {
-  TRy { await firebase.auth().signOut(); } catch {}
+  try { await firebase.auth().signOut(); } catch {}
   _autenticado = false;
   _userAtual   = null;
   _dbDoc       = null;
   _perfilProf  = null;
   _atualizarBotaoAuth();
-  _mosTRarIndicadorSync("🔒 Sessão encerrada");
+  _mostrarIndicadorSync("🔒 Sessão encerrada");
   setTimeout(() => location.reload(), 800);
 }
 
@@ -340,7 +340,7 @@ function _atualizarBotaoAuth() {
     const papelBadge  = papelLabels[_papel()] ? ` [${papelLabels[_papel()]}]` : "";
     btn.textContent = nome + papelBadge + " · Sair";
     btn.classList.add("logado");
-    btn.onclick = () => { if (confiRM("Encerrar sessão?")) _logout(); };
+    btn.onclick = () => { if (confirm("Encerrar sessão?")) _logout(); };
   } else {
     btn.textContent = "Login";
     btn.classList.remove("logado");
@@ -370,9 +370,9 @@ function _abrirModalGoogle() {
     ">
       <button onclick="document.getElementById('google-modal').remove()" style="
         position:absolute; top:12px; right:14px;
-        background:TRansparent; border:none; color:#475569;
+        background:transparent; border:none; color:#475569;
         font-size:18px; cursor:pointer; line-height:1; padding:4px;
-        TRansition:color .15s;
+        transition:color .15s;
       " onmouseenter="this.style.color='#94a3b8'" onmouseleave="this.style.color='#475569'"
       title="Fechar">✕</button>
       <div style="font-size:36px">📋</div>
@@ -387,7 +387,7 @@ function _abrirModalGoogle() {
         background:#fff; color:#1e293b; border:none; border-radius:8px;
         padding:12px 20px; font-size:14px; font-weight:600;
         cursor:pointer; width:100%; justify-content:center;
-        box-shadow:0 2px 8px rgba(0,0,0,0.3); TRansition:opacity 0.15s;
+        box-shadow:0 2px 8px rgba(0,0,0,0.3); transition:opacity 0.15s;
         font-family:inherit;
       "
       onmouseenter="this.style.opacity='0.9'"
@@ -399,7 +399,7 @@ function _abrirModalGoogle() {
           <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
           <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
         </svg>
-        EnTRar com Google
+        Entrar com Google
       </button>
     </div>
   `;

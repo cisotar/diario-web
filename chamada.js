@@ -5,79 +5,79 @@ const _SITS_INATIVAS = ["AB","TR","RM","RC","NC"];
 
 let RT_CHAMADAS = {};
 
-async function _carregarChamadas(tuRMaKey) {
-  if (RT_CHAMADAS[tuRMaKey]) return RT_CHAMADAS[tuRMaKey];
+async function _carregarChamadas(turmaKey) {
+  if (RT_CHAMADAS[turmaKey]) return RT_CHAMADAS[turmaKey];
   if (!_DEV) {
-    TRy {
+    try {
       const snap = await firebase.firestore()
-        .collection("chamadas").doc(tuRMaKey).get();
+        .collection("chamadas").doc(turmaKey).get();
       if (snap.exists) {
-        RT_CHAMADAS[tuRMaKey] = snap.data().regisTRos || {};
-        return RT_CHAMADAS[tuRMaKey];
+        RT_CHAMADAS[turmaKey] = snap.data().registros || {};
+        return RT_CHAMADAS[turmaKey];
       }
     } catch(e) { console.warn("Erro ao carregar chamadas:", e); }
   }
-  RT_CHAMADAS[tuRMaKey] = {};
-  return RT_CHAMADAS[tuRMaKey];
+  RT_CHAMADAS[turmaKey] = {};
+  return RT_CHAMADAS[turmaKey];
 }
 
-async function _salvarChamadas(tuRMaKey) {
+async function _salvarChamadas(turmaKey) {
   if (_DEV) { console.log("[DEV] _salvarChamadas — apenas memória"); return; }
-  TRy {
-    await firebase.firestore().collection("chamadas").doc(tuRMaKey)
-      .set({ regisTRos: RT_CHAMADAS[tuRMaKey], _atualizado: new Date().toISOSTRing() },
-           { merge: TRue });
+  try {
+    await firebase.firestore().collection("chamadas").doc(turmaKey)
+      .set({ registros: RT_CHAMADAS[turmaKey], _atualizado: new Date().toISOString() },
+           { merge: true });
   } catch(e) { console.warn("Erro ao salvar chamadas:", e); }
 }
 
 // Data selecionada para chamada (padrão: hoje se for dia de aula, senão último passado)
 let _dataChamadaSel = null;
-// BimesTRe selecionado na aba de chamada (independente do bimesTRe do cronograma)
-let _bimesTReChamadaSel = null;
+// Bimestre selecionado na aba de chamada (independente do bimestreAtivo do cronograma)
+let _bimestreChamadaSel = null;
 
-function _diasDeAulaNoBimesTRe(tuRMaId, bim) {
-  const slots = getSlotsCompletos(tuRMaId, bim).filter(s => !s.eventual);
+function _diasDeAulaNoBimestre(turmaId, bim) {
+  const slots = getSlotsCompletos(turmaId, bim).filter(s => !s.eventual);
   return [...new Set(slots.map(s => s.data))].sort();
 }
 
-// Retorna TRue se o aluno deve receber chamada numa data específica.
+// Retorna true se o aluno deve receber chamada numa data específica.
 // Alunos com situação inativa (TR, AB, etc.) param de receber chamada
-// a partir de situacaoData (data em que a situação foi regisTRada na tala).
-function _alunoNaData(aluno, data) {
-  if (!_SITS_INATIVAS.includes(aluno.situacao)) return TRue;
-  // Se não temos a data de mudança, considera in em todas as datas
+// a partir de situacaoData (data em que a situação foi registrada na tala).
+function _alunoAtivoNaData(aluno, data) {
+  if (!_SITS_INATIVAS.includes(aluno.situacao)) return true;
+  // Se não temos a data de mudança, considera inativo em todas as datas
   if (!aluno.situacaoData) return false;
   return data < aluno.situacaoData;
 }
 
 async function renderizarChamadaFrequencia() {
-  const t      = tuRMaAtiva;
+  const t      = turmaAtiva;
   if (!t) return;
   const secao  = document.getElementById("secao-chamada");
   if (!secao) return;
 
-  const tuRMaKey = t.serie + t.tuRMa;
-  const alunos   = await _carregarAlunos(tuRMaKey);
-  const chamadas = await _carregarChamadas(tuRMaKey);
-  const hoje_sTR = hoje();
+  const turmaKey = t.serie + t.turma;
+  const alunos   = await _carregarAlunos(turmaKey);
+  const chamadas = await _carregarChamadas(turmaKey);
+  const hoje_str = hoje();
 
-  // Inicializa bimesTRe da chamada com o bimesTRe  do cronograma
-  if (!_bimesTReChamadaSel) _bimesTReChamadaSel = bimesTRe;
-  const bimObj = RT_BIMESTRES.find(b => b.bimesTRe === _bimesTReChamadaSel) || RT_BIMESTRES[0];
+  // Inicializa bimestre da chamada com o bimestre ativo do cronograma
+  if (!_bimestreChamadaSel) _bimestreChamadaSel = bimestreAtivo;
+  const bimObj = RT_BIMESTRES.find(b => b.bimestre === _bimestreChamadaSel) || RT_BIMESTRES[0];
 
-  // Todos os dias de aula do bimesTRe selecionado
-  const datas = _diasDeAulaNoBimesTRe(t.id, _bimesTReChamadaSel);
+  // Todos os dias de aula do bimestre selecionado
+  const datas = _diasDeAulaNoBimestre(t.id, _bimestreChamadaSel);
 
-  // Data selecionada para maRCar chamada em lote
+  // Data selecionada para marcar chamada em lote
   if (!_dataChamadaSel || !datas.includes(_dataChamadaSel)) {
-    _dataChamadaSel = datas.includes(hoje_sTR)
-      ? hoje_sTR
-      : [...datas].reverse().find(d => d <= hoje_sTR) || datas[0] || hoje_sTR;
+    _dataChamadaSel = datas.includes(hoje_str)
+      ? hoje_str
+      : [...datas].reverse().find(d => d <= hoje_str) || datas[0] || hoje_str;
   }
 
-  // Datas visíveis: denTRo do bimesTRe, até hoje + próximas 2
-  const datasPassadas = datas.filter(d => d >= bimObj.inicio && d <= bimObj.fim && d <= hoje_sTR);
-  const datasFuturas  = datas.filter(d => d >= bimObj.inicio && d <= bimObj.fim && d > hoje_sTR).slice(0, 2);
+  // Datas visíveis: dentro do bimestre, até hoje + próximas 2
+  const datasPassadas = datas.filter(d => d >= bimObj.inicio && d <= bimObj.fim && d <= hoje_str);
+  const datasFuturas  = datas.filter(d => d >= bimObj.inicio && d <= bimObj.fim && d > hoje_str).slice(0, 2);
   const datasVisiveis = [...datasPassadas, ...datasFuturas];
 
   // ── Cabeçalho linha 1: meses agrupados com colspan ──
@@ -100,36 +100,36 @@ async function renderizarChamadaFrequencia() {
   // ── Cabeçalho linha 2: número do dia ──
   const thDias = datasVisiveis.map(d => {
     const isSel  = d === _dataChamadaSel;
-    const isPast = d <= hoje_sTR;
+    const isPast = d <= hoje_str;
     const dia    = d.split("-")[2];
     return `<th class="th-data-chamada${isSel ? " th-data-sel" : ""}"
       style="min-width:36px;font-size:.75rem;padding:2px 3px;text-align:center">
       ${dia}
       ${isPast ? `<div style="display:flex;gap:1px;justify-content:center;margin-top:2px">
         <button type="button" class="btn-lote" style="font-size:.55rem;padding:1px 2px"
-          onclick="chamadaTodosData('${tuRMaKey}','${d}','C')">C</button>
+          onclick="chamadaTodosData('${turmaKey}','${d}','C')">C</button>
         <button type="button" class="btn-lote btn-lote-off" style="font-size:.55rem;padding:1px 2px"
-          onclick="chamadaTodosData('${tuRMaKey}','${d}','F')">F</button>
+          onclick="chamadaTodosData('${turmaKey}','${d}','F')">F</button>
       </div>` : ""}
     </th>`;
   }).join("");
 
   // ── Linhas de alunos ──
   const SITUACAO_LABEL = {
-    "":"MaTRiculado","AB":"Abandonou","NC":"Não compareceu",
-    "TR":"TR","RM":"Remanejado","RC":"RC"
+    "":"Matriculado","AB":"Abandonou","NC":"Não compareceu",
+    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado"
   };
 
   const rows = alunos.map(a => {
-    let totalAulas = 0;  // datas passadas em que o aluno estava 
+    let totalAulas = 0;  // datas passadas em que o aluno estava ativo
     let totalFaltas = 0;
 
     const tds = datasVisiveis.map(d => {
-      const isPast  = d <= hoje_sTR;
-      const    = _alunoNaData(a, d);
+      const isPast  = d <= hoje_str;
+      const ativo   = _alunoAtivoNaData(a, d);
 
-      // Aluno in nesta data: célula vazia com TRaço
-      if (!) {
+      // Aluno inativo nesta data: célula vazia com traço
+      if (!ativo) {
         return `<td style="text-align:center;color:var(--text-muted);font-size:.7rem">—</td>`;
       }
 
@@ -144,7 +144,7 @@ async function renderizarChamadaFrequencia() {
       const cls = val === "F" ? "chk-falta" : "chk-comp";
       return `<td style="text-align:center">
         <button type="button" class="btn-cf ${cls}"
-          onclick="toggleChamada('${tuRMaKey}','${d}',${a.num})">${val}</button>
+          onclick="toggleChamada('${turmaKey}','${d}',${a.num})">${val}</button>
       </td>`;
     }).join("");
 
@@ -167,84 +167,84 @@ async function renderizarChamadaFrequencia() {
 
     const rowClass = altaFalta ? "row-alta-falta" : "";
 
-    return `<TR class="${rowClass}">
+    return `<tr class="${rowClass}">
       <td class="td-numero">${a.num}</td>
       <td style="font-size:.82rem">${a.nome||"—"}</td>
       ${tdSit}
       ${tds}
       ${tdTF}
       ${tdPct}
-    </TR>`;
+    </tr>`;
   }).join("");
 
-  // Seletor de data para maRCar em lote
+  // Seletor de data para marcar em lote
   const datasOpts = datasPassadas.map(d =>
     `<option value="${d}" ${d===_dataChamadaSel?"selected":""}>${fmtData(d)}</option>`
   ).join("");
 
-  // Abas de bimesTRe
+  // Abas de bimestre
   const tabsBimChamada = RT_BIMESTRES.map(b =>
-    `<button type="button" class="tab-bim ${b.bimesTRe === _bimesTReChamadaSel ? "" : ""}"
-      onclick="_bimesTReChamadaSel=${b.bimesTRe};_dataChamadaSel=null;renderizarChamadaFrequencia()">${b.label}</button>`
+    `<button type="button" class="tab-bim ${b.bimestre === _bimestreChamadaSel ? "ativo" : ""}"
+      onclick="_bimestreChamadaSel=${b.bimestre};_dataChamadaSel=null;renderizarChamadaFrequencia()">${b.label}</button>`
   ).join("");
 
   secao.innerHTML = `
     <div class="gestao-bloco">
       <div class="gestao-bloco-header" style="flex-wrap:wrap;gap:8px">
-        <h3>Chamada — ${t.serie}ª ${t.tuRMa}${t.subtitulo?" "+t.subtitulo:""}</h3>
+        <h3>Chamada — ${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""}</h3>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <label style="font-size:.8rem">MaRCar data:
+          <label style="font-size:.8rem">Marcar data:
             <select class="gi gi-sm" onchange="_dataChamadaSel=this.value;renderizarChamadaFrequencia()">
               ${datasOpts}
             </select>
           </label>
           <button type="button" class="btn-add"
-            onclick="chamadaTodosData('${tuRMaKey}','${_dataChamadaSel}','C')">✓ Todos C</button>
+            onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','C')">✓ Todos C</button>
           <button type="button" class="btn-add" style="background:var(--text-muted)"
-            onclick="chamadaTodosData('${tuRMaKey}','${_dataChamadaSel}','F')">✗ Todos F</button>
+            onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','F')">✗ Todos F</button>
         </div>
       </div>
-      <div class="tabs-bimesTRe" style="margin-bottom:8px">${tabsBimChamada}</div>
+      <div class="tabs-bimestre" style="margin-bottom:8px">${tabsBimChamada}</div>
       <div style="overflow-x:auto">
         <table class="tabela-gestao" style="min-width:0">
           <thead>
-            <TR>
+            <tr>
               <th style="width:36px" rowspan="2">Nº</th>
               <th rowspan="2">Nome</th>
               <th rowspan="2" style="width:48px;text-align:center" title="Situação">Sit.</th>
               ${thMeses}
-              <th rowspan="2" class="th-freq" title="Total de faltas no bimesTRe">TF</th>
+              <th rowspan="2" class="th-freq" title="Total de faltas no bimestre">TF</th>
               <th rowspan="2" class="th-freq" title="% de faltas — limite: 20%">%F</th>
-            </TR>
-            <TR>
+            </tr>
+            <tr>
               ${thDias}
-            </TR>
+            </tr>
           </thead>
-          <tbody>${rows || '<TR><td colspan="10" class="td-vazio">Nenhum aluno cadasTRado.</td></TR>'}</tbody>
+          <tbody>${rows || '<tr><td colspan="10" class="td-vazio">Nenhum aluno cadastrado.</td></tr>'}</tbody>
         </table>
       </div>
     </div>`;
 }
 
-async function toggleChamada(tuRMaKey, data, numAluno) {
-  const chamadas = await _carregarChamadas(tuRMaKey);
+async function toggleChamada(turmaKey, data, numAluno) {
+  const chamadas = await _carregarChamadas(turmaKey);
   if (!chamadas[data]) chamadas[data] = {};
   chamadas[data][numAluno] = (chamadas[data][numAluno] === "F") ? "C" : "F";
-  await _salvarChamadas(tuRMaKey);
+  await _salvarChamadas(turmaKey);
   renderizarChamadaFrequencia();
 }
 
-async function chamadaTodosData(tuRMaKey, data, valor) {
+async function chamadaTodosData(turmaKey, data, valor) {
   const [alunos, chamadas] = await Promise.all([
-    _carregarAlunos(tuRMaKey),
-    _carregarChamadas(tuRMaKey),
+    _carregarAlunos(turmaKey),
+    _carregarChamadas(turmaKey),
   ]);
   if (!chamadas[data]) chamadas[data] = {};
-  // MaRCa apenas alunos que estavam s nessa data
+  // Marca apenas alunos que estavam ativos nessa data
   for (const a of alunos) {
-    if (_alunoNaData(a, data)) chamadas[data][a.num] = valor;
+    if (_alunoAtivoNaData(a, data)) chamadas[data][a.num] = valor;
   }
-  await _salvarChamadas(tuRMaKey);
+  await _salvarChamadas(turmaKey);
   renderizarChamadaFrequencia();
 }
 

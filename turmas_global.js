@@ -1,9 +1,9 @@
-// TURMAS_GLOBAL.JS — TuRMas-base da escola — Exportado em 19/03/2026, 09:57:17
+// TURMAS_GLOBAL.JS — Turmas-base da escola — Exportado em 19/03/2026, 09:57:17
 
 const TURMAS_BASE = [
   {
     "nivel": "medio",
-    "tuRMa": "A",
+    "turma": "A",
     "serie": "1",
     "periodo": "tarde",
     "subtitulo": "TARDE"
@@ -13,18 +13,18 @@ const TURMAS_BASE = [
     "periodo": "tarde",
     "subtitulo": "TARDE",
     "serie": "1",
-    "tuRMa": "B"
+    "turma": "B"
   },
   {
     "nivel": "medio",
     "periodo": "tarde",
     "subtitulo": "TARDE",
     "serie": "1",
-    "tuRMa": "C"
+    "turma": "C"
   },
   {
     "nivel": "medio",
-    "tuRMa": "D",
+    "turma": "D",
     "serie": "1",
     "subtitulo": "TARDE",
     "periodo": "tarde"
@@ -34,25 +34,25 @@ const TURMAS_BASE = [
     "serie": "1",
     "periodo": "tarde",
     "subtitulo": "TARDE",
-    "tuRMa": "E"
+    "turma": "E"
   },
   {
     "nivel": "fundamental",
     "periodo": "manha",
     "subtitulo": "",
     "serie": "5",
-    "tuRMa": "A"
+    "turma": "A"
   },
   {
     "nivel": "fundamental",
     "periodo": "manha",
     "subtitulo": "",
     "serie": "5",
-    "tuRMa": "B"
+    "turma": "B"
   },
   {
     "nivel": "fundamental",
-    "tuRMa": "C",
+    "turma": "C",
     "serie": "5",
     "periodo": "manha",
     "subtitulo": ""
@@ -62,18 +62,18 @@ const TURMAS_BASE = [
     "subtitulo": "",
     "periodo": "manha",
     "serie": "6",
-    "tuRMa": "A"
+    "turma": "A"
   },
   {
     "nivel": "fundamental",
-    "tuRMa": "B",
+    "turma": "B",
     "periodo": "manha",
     "subtitulo": "",
     "serie": "6"
   },
   {
     "nivel": "fundamental",
-    "tuRMa": "C",
+    "turma": "C",
     "serie": "6",
     "periodo": "manha",
     "subtitulo": ""
@@ -83,18 +83,18 @@ const TURMAS_BASE = [
     "serie": "7",
     "periodo": "manha",
     "subtitulo": "",
-    "tuRMa": "A"
+    "turma": "A"
   },
   {
     "nivel": "fundamental",
     "subtitulo": "",
     "periodo": "manha",
     "serie": "7",
-    "tuRMa": "B"
+    "turma": "B"
   },
   {
     "nivel": "fundamental",
-    "tuRMa": "C",
+    "turma": "C",
     "subtitulo": "",
     "periodo": "manha",
     "serie": "7"
@@ -104,32 +104,32 @@ const TURMAS_BASE = [
     "periodo": "manha",
     "subtitulo": "",
     "serie": "8",
-    "tuRMa": "A"
+    "turma": "A"
   },
   {
     "nivel": "fundamental",
     "subtitulo": "",
     "periodo": "manha",
     "serie": "8",
-    "tuRMa": "B"
+    "turma": "B"
   },
   {
     "nivel": "fundamental",
     "subtitulo": "",
     "periodo": "manha",
     "serie": "8",
-    "tuRMa": "C"
+    "turma": "C"
   },
   {
     "nivel": "fundamental",
     "serie": "8",
     "periodo": "manha",
     "subtitulo": "",
-    "tuRMa": "D"
+    "turma": "D"
   },
   {
     "nivel": "medio",
-    "tuRMa": "A",
+    "turma": "A",
     "subtitulo": "TARDE",
     "periodo": "tarde",
     "serie": "2"
@@ -139,18 +139,18 @@ const TURMAS_BASE = [
     "periodo": "tarde",
     "subtitulo": "TARDE",
     "serie": "2",
-    "tuRMa": "B"
+    "turma": "B"
   },
   {
     "nivel": "medio",
     "periodo": "tarde",
     "subtitulo": "TARDE",
     "serie": "2",
-    "tuRMa": "C"
+    "turma": "C"
   },
   {
     "nivel": "medio",
-    "tuRMa": "A",
+    "turma": "A",
     "periodo": "tarde",
     "subtitulo": "TARDE",
     "serie": "3"
@@ -160,25 +160,25 @@ const TURMAS_BASE = [
     "periodo": "tarde",
     "subtitulo": "TARDE",
     "serie": "3",
-    "tuRMa": "B"
+    "turma": "B"
   },
   {
     "nivel": "fundamental",
-    "tuRMa": "A",
+    "turma": "A",
     "serie": "9",
     "periodo": "manha",
     "subtitulo": ""
   },
   {
     "nivel": "fundamental",
-    "tuRMa": "B",
+    "turma": "B",
     "serie": "9",
     "subtitulo": "",
     "periodo": "manha"
   },
   {
     "nivel": "fundamental",
-    "tuRMa": "C",
+    "turma": "C",
     "periodo": "manha",
     "subtitulo": "",
     "serie": "9"
@@ -188,6 +188,6 @@ const TURMAS_BASE = [
     "serie": "9",
     "subtitulo": "",
     "periodo": "manha",
-    "tuRMa": "D"
+    "turma": "D"
   }
 ];

@@ -6,47 +6,47 @@ function renderizarBemVindo() {
     <div class="bem-vindo">
       <div class="bem-vindo-icon">📋</div>
       <h2>Diário de Classe</h2>
-      <p>Selecione uma tuRMa na barra lateral para visualizar<br>o planejamento e regisTRar as aulas dadas.</p>
+      <p>Selecione uma turma na barra lateral para visualizar<br>o planejamento e registrar as aulas dadas.</p>
     </div>`;
 }
 
 function renderizarConteudo() {
-  const t = tuRMaAtiva;
+  const t = turmaAtiva;
   const main = document.getElementById("conteudo-principal");
-  const bimObj = RT_BIMESTRES.find(b => b.bimesTRe === bimesTRe);
-  const slots  = getSlotsCompletos(t.id, bimesTRe);
+  const bimObj = RT_BIMESTRES.find(b => b.bimestre === bimestreAtivo);
+  const slots  = getSlotsCompletos(t.id, bimestreAtivo);
   const total  = slots.length;
-  const labelTuRMa = t.subtitulo ? `${t.serie}ª Série ${t.tuRMa} — ${t.subtitulo}` : `${t.serie}ª Série ${t.tuRMa}`;
+  const labelTurma = t.subtitulo ? `${t.serie}ª Série ${t.turma} — ${t.subtitulo}` : `${t.serie}ª Série ${t.turma}`;
   let feitas = 0, totalReg = 0;
   for (const s of slots) {
-    if (!s.eventual) { totalReg++; if (estadoAulas[chaveSlot(t.id,bimesTRe,s.slotId)]?.feita) feitas++; }
+    if (!s.eventual) { totalReg++; if (estadoAulas[chaveSlot(t.id,bimestreAtivo,s.slotId)]?.feita) feitas++; }
   }
   const pct = totalReg > 0 ? Math.round(feitas/totalReg*100) : 0;
   const tabsBim = RT_BIMESTRES.map(b => `
-    <button class="tab-bim ${b.bimesTRe===bimesTRe?"":""}" onclick="mudarBimesTRe(${b.bimesTRe})">${b.label}</button>`).join("");
+    <button class="tab-bim ${b.bimestre===bimestreAtivo?"ativo":""}" onclick="mudarBimestre(${b.bimestre})">${b.label}</button>`).join("");
   const abaAtiva = window._abaCronograma || "cronograma";
   main.innerHTML = `
-    <div class="header-tuRMa">
-      <div class="header-tuRMa-info">
-        <div class="header-tuRMa-badge">${t.sigla}</div>
+    <div class="header-turma">
+      <div class="header-turma-info">
+        <div class="header-turma-badge">${t.sigla}</div>
         <div>
-          <h1 class="header-tuRMa-nome">Cronograma — ${labelTuRMa}</h1>
-          <p class="header-tuRMa-disc">${t.disciplina}</p>
+          <h1 class="header-turma-nome">Cronograma — ${labelTurma}</h1>
+          <p class="header-turma-disc">${t.disciplina}</p>
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
         <button type="button" class="btn-editar-horarios" onclick="abrirModalHorarios()"
-          title="Editar horários desta tuRMa">🕐 Horários</button>
+          title="Editar horários desta turma">🕐 Horários</button>
         <button type="button" class="btn-visao-det" id="btn-visao-det"
           onclick="alternarVisao()"
-          title="Alternar enTRe visão padrão e detalhada">
+          title="Alternar entre visão padrão e detalhada">
           ${visaoDetalhada ? "📋 Visão Padrão" : "📋 Visão Detalhada"}
         </button>
       </div>
-      <div class="stat-ciRCulo">
+      <div class="stat-circulo">
         <svg viewBox="0 0 36 36" class="stat-svg">
           <path class="stat-bg"   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-          <path class="stat-prog" sTRoke-dasharray="${pct},100"
+          <path class="stat-prog" stroke-dasharray="${pct},100"
             d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
         </svg>
         <div class="stat-texto">
@@ -56,17 +56,17 @@ function renderizarConteudo() {
       </div>
     </div>
     <div class="tabs-cronograma-aba">
-      <button type="button" class="tab-aba ${abaAtiva==="cronograma"?"":""}"
-        onclick="TRocarAbaCronograma('cronograma')">📅 Cronograma</button>
-      <button type="button" class="tab-aba ${abaAtiva==="tala"?"":""}"
-        onclick="TRocarAbaCronograma('tala')">👥 Tala</button>
-      <button type="button" class="tab-aba ${abaAtiva==="chamada"?"":""}"
-        onclick="TRocarAbaCronograma('chamada')">✅ Chamada</button>
+      <button type="button" class="tab-aba ${abaAtiva==="cronograma"?"ativo":""}"
+        onclick="trocarAbaCronograma('cronograma')">📅 Cronograma</button>
+      <button type="button" class="tab-aba ${abaAtiva==="tala"?"ativo":""}"
+        onclick="trocarAbaCronograma('tala')">👥 Tala</button>
+      <button type="button" class="tab-aba ${abaAtiva==="chamada"?"ativo":""}"
+        onclick="trocarAbaCronograma('chamada')">✅ Chamada</button>
     </div>
-    <div class="tabs-bimesTRe" style="${(abaAtiva==="chamada"||abaAtiva==="tala")?"display:none":""}">${tabsBim}</div>
-    <div class="bimesTRe-info">
+    <div class="tabs-bimestre" style="${(abaAtiva==="chamada"||abaAtiva==="tala")?"display:none":""}">${tabsBim}</div>
+    <div class="bimestre-info">
       <span>📅 ${bimObj.label}: ${fmtData(bimObj.inicio)} → ${fmtData(bimObj.fim)}</span>
-      <div class="bimesTRe-info-right">
+      <div class="bimestre-info-right">
         <span class="hint-drag">✎ Clique no conteúdo para editar &nbsp;·&nbsp; ⠿ Clique para selecionar · Shift+⠿ seleciona intervalo · Arraste para reorganizar</span>
         <span class="pct-badge">${pct}% concluído</span>
       </div>
@@ -82,35 +82,35 @@ function renderizarConteudo() {
     <div id="secao-cronograma" style="${abaAtiva==="chamada"?"display:none":""}">
     <div class="tabela-wrapper">
       ${total === 0
-        ? `<div class="sem-aulas">Nenhuma aula prevista neste bimesTRe.</div>`
+        ? `<div class="sem-aulas">Nenhuma aula prevista neste bimestre.</div>`
         : `<table class="tabela-aulas" id="tabela-aulas">
-            <thead><TR>
+            <thead><tr>
               <th class="th-numero"   data-tip="${TOOLTIPS_COLUNAS['th-numero']}">#</th>
               <th class="th-conteudo" data-tip="${TOOLTIPS_COLUNAS['th-conteudo']}">Conteúdos / Atividades</th>
               <th class="th-data"     data-tip="${TOOLTIPS_COLUNAS['th-data']}">Data prevista</th>
               <th class="th-dada" data-tip="${TOOLTIPS_COLUNAS['th-dada']}">
                 AD
                 <div class="th-lote">
-                  <button type="button" class="btn-lote" title="MaRCar todas" onclick="maRCarColuna('feita',TRue)">✓</button>
-                  <button type="button" class="btn-lote btn-lote-off" title="DesmaRCar todas" onclick="maRCarColuna('feita',false)">✗</button>
+                  <button type="button" class="btn-lote" title="Marcar todas" onclick="marcarColuna('feita',true)">✓</button>
+                  <button type="button" class="btn-lote btn-lote-off" title="Desmarcar todas" onclick="marcarColuna('feita',false)">✗</button>
                 </div>
               </th>
-              <th class="th-regisTRo" data-tip="${TOOLTIPS_COLUNAS['th-regisTRo']}">Data</th>
+              <th class="th-registro" data-tip="${TOOLTIPS_COLUNAS['th-registro']}">Data</th>
               <th class="th-chamada" data-tip="${TOOLTIPS_COLUNAS['th-chamada']}">
                 Chamada
                 <div class="th-lote">
-                  <button type="button" class="btn-lote" title="MaRCar todas" onclick="maRCarColuna('chamada',TRue)">✓</button>
-                  <button type="button" class="btn-lote btn-lote-off" title="DesmaRCar todas" onclick="maRCarColuna('chamada',false)">✗</button>
+                  <button type="button" class="btn-lote" title="Marcar todas" onclick="marcarColuna('chamada',true)">✓</button>
+                  <button type="button" class="btn-lote btn-lote-off" title="Desmarcar todas" onclick="marcarColuna('chamada',false)">✗</button>
                 </div>
               </th>
-              <th class="th-enTRegue" data-tip="${TOOLTIPS_COLUNAS['th-enTRegue']}">
-                RegisTRo
+              <th class="th-entregue" data-tip="${TOOLTIPS_COLUNAS['th-entregue']}">
+                Registro
                 <div class="th-lote">
-                  <button type="button" class="btn-lote" title="MaRCar todas" onclick="maRCarColuna('conteudoEnTRegue',TRue)">✓</button>
-                  <button type="button" class="btn-lote btn-lote-off" title="DesmaRCar todas" onclick="maRCarColuna('conteudoEnTRegue',false)">✗</button>
+                  <button type="button" class="btn-lote" title="Marcar todas" onclick="marcarColuna('conteudoEntregue',true)">✓</button>
+                  <button type="button" class="btn-lote btn-lote-off" title="Desmarcar todas" onclick="marcarColuna('conteudoEntregue',false)">✗</button>
                 </div>
               </th>
-            </TR></thead>
+            </tr></thead>
             <tbody id="tbody-aulas"></tbody>
           </table>`
       }
@@ -124,12 +124,12 @@ function renderizarConteudo() {
       <div class="rodape-grupo">
         <button class="btn-exportar-csv" onclick="exportarCSV()">⬇ CSV</button>
         <button class="btn-exportar-js"  onclick="exportarJS()">⬇ aulas.js</button>
-        <button class="btn-limpar"       onclick="confiRMarLimpar()">🗑 Limpar</button>
+        <button class="btn-limpar"       onclick="confirmarLimpar()">🗑 Limpar</button>
       </div>
     </div>
     <div id="modal-horarios" class="modal-overlay" style="display:none">
       <div class="modal-box" style="max-width:480px">
-        <h3 class="modal-titulo">🕐 Horários — ${t.serie}ª ${t.tuRMa} ${t.disciplina}</h3>
+        <h3 class="modal-titulo">🕐 Horários — ${t.serie}ª ${t.turma} ${t.disciplina}</h3>
         <div id="modal-horarios-corpo"></div>
         <div class="modal-actions">
           <button type="button" class="btn-modal-cancel" onclick="fecharModalHorarios()">Fechar</button>
@@ -139,14 +139,14 @@ function renderizarConteudo() {
     <div id="modal-eventual" class="modal-overlay" style="display:none">
       <div class="modal-box">
         <h3 class="modal-titulo">Inserir Aula Eventual</h3>
-        <div class="modal-foRM">
+        <div class="modal-form">
           <label>Data <input type="date" id="ev-data" /></label>
           <label>Horário <input type="time" id="ev-hora" value="07:00" /></label>
           <label>Descrição / Conteúdo <textarea id="ev-desc" rows="2" placeholder="Ex: Reposição — Biomas"></textarea></label>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn-modal-cancel" onclick="fecharModalEventual()">Cancelar</button>
-          <button type="button" class="btn-modal-ok"     onclick="confiRMarEventual()">Inserir</button>
+          <button type="button" class="btn-modal-ok"     onclick="confirmarEventual()">Inserir</button>
         </div>
       </div>
     </div>`;
@@ -154,17 +154,17 @@ function renderizarConteudo() {
 }
 
 // ── Sistema de Chamadas ───────────────────────────────────────
-// EsTRutura: RT_CHAMADAS[tuRMaKey][data][numAluno] = "C"|"F"
+// Estrutura: RT_CHAMADAS[turmaKey][data][numAluno] = "C"|"F"
 
-function TRocarAbaCronograma(aba) {
+function trocarAbaCronograma(aba) {
   window._abaCronograma = aba;
   const secCron = document.getElementById("secao-cronograma");
   const secTala = document.getElementById("secao-tala");
   const secCham = document.getElementById("secao-chamada");
-  const tabsBim = document.querySelector(".tabs-bimesTRe");
+  const tabsBim = document.querySelector(".tabs-bimestre");
   const btns    = document.querySelectorAll(".tab-aba");
-  btns.forEach(b => b.classList.remove(""));
-  document.querySelector(`.tab-aba[onclick*="'${aba}'"]`)?.classList.add("");
+  btns.forEach(b => b.classList.remove("ativo"));
+  document.querySelector(`.tab-aba[onclick*="'${aba}'"]`)?.classList.add("ativo");
 
   if (secCron) secCron.style.display = aba === "cronograma" ? "" : "none";
   if (secTala) secTala.style.display = aba === "tala"       ? "" : "none";
@@ -183,15 +183,15 @@ function alternarVisao() {
 
 // Salva detalhe selecionado no dropdown de uma linha
 function salvarDetalhe(slotId, valor) {
-  const ch = chaveSlot(tuRMaAtiva.id, bimesTRe, slotId);
+  const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
   if (!estadoAulas[ch]) estadoAulas[ch] = {};
   estadoAulas[ch].detalhe = valor;
   salvarTudo();
 }
 
-// ── Modal de horários da tuRMa ativa ─────────────────────────
+// ── Modal de horários da turma ativa ─────────────────────────
 function abrirModalHorarios() {
-  const t = tuRMaAtiva;
+  const t = turmaAtiva;
   if (!t) return;
   const modal = document.getElementById("modal-horarios");
   if (!modal) return;
@@ -205,7 +205,7 @@ function fecharModalHorarios() {
 }
 
 function _renderizarCorpoHorarios() {
-  const t = tuRMaAtiva;
+  const t = turmaAtiva;
   if (!t) return;
   const corpo = document.getElementById("modal-horarios-corpo");
   if (!corpo) return;
@@ -213,7 +213,7 @@ function _renderizarCorpoHorarios() {
   const diasNomes = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
   const turno = t.periodo || "manha";
   const periodos = RT_PERIODOS.filter(p => (p.turno||"manha") === turno);
-  // Fallback: se nenhum período bate com o turno, mosTRa todos
+  // Fallback: se nenhum período bate com o turno, mostra todos
   const opcoesPerido = (periodos.length ? periodos : RT_PERIODOS)
     .map(p => `<option value="${p.aula}">${p.label} (${p.inicio}–${p.fim})</option>`)
     .join("");
@@ -234,9 +234,9 @@ function _renderizarCorpoHorarios() {
 
   corpo.innerHTML = `
     <p class="gestao-hint" style="margin-bottom:10px">
-      Dias e períodos em que esta disciplina ocorre nesta tuRMa.
+      Dias e períodos em que esta disciplina ocorre nesta turma.
     </p>
-    <div id="lista-horarios-modal">${horariosHtml || '<p class="gestao-hint">Nenhum horário cadasTRado.</p>'}</div>
+    <div id="lista-horarios-modal">${horariosHtml || '<p class="gestao-hint">Nenhum horário cadastrado.</p>'}</div>
     <button type="button" class="btn-add-small" style="margin-top:6px"
       onclick="addHorarioModal(${ti})">+ Horário</button>`;
 }
@@ -256,21 +256,21 @@ function addHorarioModal(ti) {
 
 
 function renderizarLinhas(slots) {
-  const t      = tuRMaAtiva;
+  const t      = turmaAtiva;
   const tbody  = document.getElementById("tbody-aulas");
   if (!tbody) return;
   tbody.innerHTML = "";
-  // Chave específica por bimesTRe; fallback para chave sem bimesTRe (migração)
-  const chaveC = `${t.serie}_${t.disciplina}_b${bimesTRe}`;
+  // Chave específica por bimestre; fallback para chave sem bimestre (migração)
+  const chaveC = `${t.serie}_${t.disciplina}_b${bimestreAtivo}`;
   const conts  = RT_CONTEUDOS[chaveC] || RT_CONTEUDOS[`${t.serie}_${t.disciplina}`] || [];
   const slotsReg = slots.filter(s => !s.eventual);
-  const ordem    = getOrdem(t.id, bimesTRe, slotsReg.length);
+  const ordem    = getOrdem(t.id, bimestreAtivo, slotsReg.length);
   let regIdx = 0;
   let lineNum = 0;
   for (const slot of slots) {
     lineNum++;
     const slotId = slot.slotId;
-    const ch     = chaveSlot(t.id, bimesTRe, slotId);
+    const ch     = chaveSlot(t.id, bimestreAtivo, slotId);
     const est    = estadoAulas[ch] || {};
     const feita  = !!est.feita;
     let conteudoBase = "", conteudoExibido = "", editado = false;
@@ -289,11 +289,11 @@ function renderizarLinhas(slots) {
     const passada     = slot.data < hoje();
     const rowBase     = slot.eventual ? "row-eventual" : (feita ? "row-feita" : (passada ? "row-pendente" : "row-futura"));
     const rowClass    = `${rowBase}${selecionado ? " row-sel-cont" : ""}`;
-    const TR = document.createElement("TR");
-    TR.className    = rowClass;
-    TR.dataset.slot = slotId;
+    const tr = document.createElement("tr");
+    tr.className    = rowClass;
+    tr.dataset.slot = slotId;
 
-    // FIX: passa "this" para toggleCampo para peRMitir reversão imediata do
+    // FIX: passa "this" para toggleCampo para permitir reversão imediata do
     // checkbox caso o visitante não esteja autenticado.
     const mkChk = (campo, val, title) => `
       <label class="checkbox-wrapper" title="${title} · Shift+clique para intervalo">
@@ -303,12 +303,12 @@ function renderizarLinhas(slots) {
         <span class="checkmark ${campo==='feita'?'':'checkmark-alt'}"></span>
       </label>`;
 
-    TR.innerHTML = `
+    tr.innerHTML = `
       <td class="td-numero">${slot.eventual ? `<span class="tag-eventual" title="Aula eventual">E</span>` : lineNum}</td>
       <td class="td-conteudo" data-slot="${slotId}">
         <div class="conteudo-cell">
           <span class="drag-handle-cont ${selecionado?"handle-sel":""}"
-            data-slot="${slotId}" draggable="TRue"
+            data-slot="${slotId}" draggable="true"
             title="Clique para selecionar · Shift+clique para intervalo · Arrastar para reorganizar">⠿</span>
           <span class="conteudo-texto ${editado?"editado":""}"
             data-slot="${slotId}"
@@ -318,8 +318,8 @@ function renderizarLinhas(slots) {
           ${slot.eventual?`<button class="btn-del-eventual" onclick="removerEventual('${slotId}')" title="Remover esta aula eventual">×</button>`:""}
         </div>
         ${visaoDetalhada ? (() => {
-          const chaveBase = `${tuRMaAtiva.serie}_${tuRMaAtiva.disciplina}_b${bimesTRe}`;
-          const lista = RT_CONTEUDOS[chaveBase] || RT_CONTEUDOS[`${tuRMaAtiva.serie}_${tuRMaAtiva.disciplina}`] || [];
+          const chaveBase = `${turmaAtiva.serie}_${turmaAtiva.disciplina}_b${bimestreAtivo}`;
+          const lista = RT_CONTEUDOS[chaveBase] || RT_CONTEUDOS[`${turmaAtiva.serie}_${turmaAtiva.disciplina}`] || [];
           const detalheAtual = est.detalhe || "";
           const opts = lista.map(c =>
             `<option value="${c.replace(/"/g,'&quot;')}" ${detalheAtual===c?"selected":""}>${c}</option>`
@@ -341,29 +341,29 @@ function renderizarLinhas(slots) {
       </td>
       <td class="td-data">${fmtSlotData(slot)}</td>
       <td class="td-check">${mkChk("feita",   feita, "Aula dada?")}</td>
-      <td class="td-regisTRo" id="reg-${slotId}">${feita?fmtData(est.dataFeita):"—"}</td>
+      <td class="td-registro" id="reg-${slotId}">${feita?fmtData(est.dataFeita):"—"}</td>
       <td class="td-check">${mkChk("chamada", !!est.chamada,   "Chamada realizada?")}</td>
-      <td class="td-check">${mkChk("conteudoEnTRegue", !!est.conteudoEnTRegue, "Material enTRegue?")}</td>`;
-    const spanTxt = TR.querySelector(".conteudo-texto");
+      <td class="td-check">${mkChk("conteudoEntregue", !!est.conteudoEntregue, "Material entregue?")}</td>`;
+    const spanTxt = tr.querySelector(".conteudo-texto");
     spanTxt.addEventListener("click", () => iniciarEdicao(spanTxt, slotId, conteudoBase));
-    const handle = TR.querySelector(".drag-handle-cont");
+    const handle = tr.querySelector(".drag-handle-cont");
     handle.addEventListener("click",      e => onHandleClick(e, slotId));
     handle.addEventListener("dragstart",  e => onDragStart(e, slotId));
     handle.addEventListener("dragend",    onDragEnd);
-    const tdC = TR.querySelector(".td-conteudo");
+    const tdC = tr.querySelector(".td-conteudo");
     tdC.addEventListener("dragover",  e => { e.preventDefault(); e.dataTransfer.dropEffect="move"; });
     tdC.addEventListener("dragenter", e => onDragEnter(e, slotId));
     tdC.addEventListener("dragleave", e => onDragLeave(e));
     tdC.addEventListener("drop",      e => onDrop(e, slotId));
-    tbody.appendChild(TR);
+    tbody.appendChild(tr);
   }
 }
 
 function iniciarEdicao(spanEl, slotId, base) {
   if (!_autenticado) { _abrirModalGoogle(); return; }
-  if (_ehCoordenador()) { _mosTRarIndicadorSync("⛔ Somente leitura"); return; }
+  if (_ehCoordenador()) { _mostrarIndicadorSync("⛔ Somente leitura"); return; }
   if (spanEl.querySelector("textarea")) return;
-  const cur = spanEl.innerText.replace("—","").TRim();
+  const cur = spanEl.innerText.replace("—","").trim();
   const ta  = document.createElement("textarea");
   ta.className = "input-edicao";
   ta.value = cur; ta.rows = 2;
@@ -371,12 +371,12 @@ function iniciarEdicao(spanEl, slotId, base) {
   spanEl.classList.add("editando");
   ta.focus(); ta.select();
   function salvar() {
-    const novo = ta.value.TRim();
-    const ch   = chaveSlot(tuRMaAtiva.id, bimesTRe, slotId);
+    const novo = ta.value.trim();
+    const ch   = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
     if (!estadoAulas[ch]) estadoAulas[ch] = {};
-    const chaveC = `${tuRMaAtiva.serie}_${tuRMaAtiva.disciplina}_b${bimesTRe}`;
-    const slotsReg = getSlotsCompletos(tuRMaAtiva.id, bimesTRe).filter(s => !s.eventual);
-    const ordem    = getOrdem(tuRMaAtiva.id, bimesTRe, slotsReg.length);
+    const chaveC = `${turmaAtiva.serie}_${turmaAtiva.disciplina}_b${bimestreAtivo}`;
+    const slotsReg = getSlotsCompletos(turmaAtiva.id, bimestreAtivo).filter(s => !s.eventual);
+    const ordem    = getOrdem(turmaAtiva.id, bimestreAtivo, slotsReg.length);
     const regIdx   = slotsReg.findIndex(s => s.slotId === slotId);
     if (regIdx >= 0 && ordem[regIdx] != null) {
       if (!RT_CONTEUDOS[chaveC]) RT_CONTEUDOS[chaveC] = [];
@@ -406,16 +406,16 @@ function iniciarEdicao(spanEl, slotId, base) {
 function salvarAnotacao(slotId, valor) {
   if (!_autenticado) { _abrirModalGoogle(); return; }
   if (_ehCoordenador()) { return; }
-  const ch = chaveSlot(tuRMaAtiva.id, bimesTRe, slotId);
+  const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
   if (!estadoAulas[ch]) estadoAulas[ch] = {};
-  if (valor.TRim() === "") delete estadoAulas[ch].anotacao;
-  else estadoAulas[ch].anotacao = valor.TRim();
+  if (valor.trim() === "") delete estadoAulas[ch].anotacao;
+  else estadoAulas[ch].anotacao = valor.trim();
   salvarTudo();
 }
 
 // FIX: recebe o elemento <input> (inputEl) para reverter o checkbox
 // imediatamente no DOM se o visitante não estiver autenticado.
-// Antes, o check ficava visualmente maRCado até o modal fechar.
+// Antes, o check ficava visualmente marcado até o modal fechar.
 // Clique numa checkbox: clique simples toggle, shift+clique aplica intervalo
 function onChkClick(e, slotId, campo, inputEl) {
   // Impede seleção de texto ao usar shift+clique
@@ -439,69 +439,69 @@ function onChkClick(e, slotId, campo, inputEl) {
     const iB = todos.indexOf(slotId);
     if (iA === -1 || iB === -1) return;
 
-    // Inclui ambos os exTRemos — slice é exclusivo no fim, por isso ate+1
+    // Inclui ambos os extremos — slice é exclusivo no fim, por isso ate+1
     const de  = Math.min(iA, iB);
     const ate = Math.max(iA, iB);
     const valor = ultimoChkValor;
     const slotsDoIntervalo = todos.slice(de, ate + 1);
 
     for (const sid of slotsDoIntervalo) {
-      const ch = chaveSlot(tuRMaAtiva.id, bimesTRe, sid);
+      const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, sid);
       if (!estadoAulas[ch]) estadoAulas[ch] = {};
       estadoAulas[ch][campo] = valor;
       if (campo === "feita") {
         estadoAulas[ch].dataFeita = valor
-          ? new Date().toISOSTRing().slice(0, 10)
+          ? new Date().toISOString().slice(0, 10)
           : null;
       }
     }
 
-    // RegisTRa nova âncora antes do setTimeout
+    // Registra nova âncora antes do setTimeout
     ultimoChkSlot = slotId;
     salvarTudo();
 
-    // setTimeout: deixa o browser teRMinar o evento antes de atualizar o DOM
+    // setTimeout: deixa o browser terminar o evento antes de atualizar o DOM
     setTimeout(() => {
       for (const sid of slotsDoIntervalo) {
         const chkEl = document.querySelector(
           `#tabela-aulas input[data-campo="${campo}"][data-slot="${sid}"]`
         );
         if (chkEl) chkEl.checked = valor;
-        const TR = document.querySelector(`TR[data-slot="${sid}"]`);
-        if (TR && campo === "feita") {
-          const pass = getSlotsCompletos(tuRMaAtiva.id, bimesTRe)
+        const tr = document.querySelector(`tr[data-slot="${sid}"]`);
+        if (tr && campo === "feita") {
+          const pass = getSlotsCompletos(turmaAtiva.id, bimestreAtivo)
             .find(s => s.slotId === sid)?.data < hoje();
-          TR.className = valor ? "row-feita" : (pass ? "row-pendente" : "row-futura");
+          tr.className = valor ? "row-feita" : (pass ? "row-pendente" : "row-futura");
         }
       }
     }, 0);
     return;
   }
 
-  // Clique simples: toggle noRMal + regisTRa âncora
+  // Clique simples: toggle normal + registra âncora
   toggleCampo(slotId, campo, novoValor, inputEl);
   ultimoChkSlot  = slotId;
   ultimoChkCampo = campo;
   ultimoChkValor = novoValor;
 }
 
-// MaRCa/desmaRCa todas as aulas visíveis de uma coluna
-function maRCarColuna(campo, valor) {
-  const t = tuRMaAtiva;
+// Marca/desmarca todas as aulas visíveis de uma coluna
+function marcarColuna(campo, valor) {
+  const t = turmaAtiva;
   if (!t) return;
-  const slots = getSlotsCompletos(t.id, bimesTRe);
+  const slots = getSlotsCompletos(t.id, bimestreAtivo);
   let alterou = false;
   for (const s of slots) {
-    const ch = chaveSlot(t.id, bimesTRe, s.slotId);
+    const ch = chaveSlot(t.id, bimestreAtivo, s.slotId);
     if (!estadoAulas[ch]) estadoAulas[ch] = {};
-    // Para AD: ao maRCar, pula aulas futuras; ao desmaRCar, desmaRCa todas
+    // Para AD: ao marcar, pula aulas futuras; ao desmarcar, desmarca todas
     if (campo === "feita" && valor && s.data && s.data > hoje()) continue;
     if (estadoAulas[ch][campo] !== valor) {
       estadoAulas[ch][campo] = valor;
       if (campo === "feita") {
-        estadoAulas[ch].dataFeita = valor ? new Date().toISOSTRing().slice(0,10) : null;
+        estadoAulas[ch].dataFeita = valor ? new Date().toISOString().slice(0,10) : null;
       }
-      alterou = TRue;
+      alterou = true;
     }
   }
   if (alterou) { salvarTudo(); renderizarConteudo(); }
@@ -509,19 +509,19 @@ function maRCarColuna(campo, valor) {
 
 function toggleCampo(slotId, campo, val, inputEl) {
   if (!_autenticado) { inputEl.checked = !val; _abrirModalGoogle(); return; }
-  if (_ehCoordenador()) { inputEl.checked = !val; _mosTRarIndicadorSync("⛔ Somente leitura"); return; }
-  const ch = chaveSlot(tuRMaAtiva.id, bimesTRe, slotId);
+  if (_ehCoordenador()) { inputEl.checked = !val; _mostrarIndicadorSync("⛔ Somente leitura"); return; }
+  const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
   if (!estadoAulas[ch]) estadoAulas[ch] = {};
   estadoAulas[ch][campo] = val;
   if (campo === "feita") {
     estadoAulas[ch].dataFeita = val ? hoje() : null;
-    const TR  = document.querySelector(`TR[data-slot="${slotId}"]`);
+    const tr  = document.querySelector(`tr[data-slot="${slotId}"]`);
     const reg = document.getElementById(`reg-${slotId}`);
-    if (TR) {
-      const slot  = getSlotsCompletos(tuRMaAtiva.id, bimesTRe).find(s => s.slotId===slotId);
+    if (tr) {
+      const slot  = getSlotsCompletos(turmaAtiva.id, bimestreAtivo).find(s => s.slotId===slotId);
       const pass  = slot && slot.data < hoje();
       const ev    = slot?.eventual;
-      TR.className = `${ev?"row-eventual":(val?"row-feita":(pass?"row-pendente":"row-futura"))}${selConteudos.has(slotId)?" row-sel-cont":""}`;
+      tr.className = `${ev?"row-eventual":(val?"row-feita":(pass?"row-pendente":"row-futura"))}${selConteudos.has(slotId)?" row-sel-cont":""}`;
     }
     if (reg) reg.textContent = val ? fmtData(hoje()) : "—";
     atualizarStats();
@@ -530,13 +530,13 @@ function toggleCampo(slotId, campo, val, inputEl) {
 }
 
 function atualizarStats() {
-  const slots = getSlotsCompletos(tuRMaAtiva.id, bimesTRe).filter(s=>!s.eventual);
+  const slots = getSlotsCompletos(turmaAtiva.id, bimestreAtivo).filter(s=>!s.eventual);
   const total = slots.length;
   let feitas  = 0;
-  for (const s of slots) if (estadoAulas[chaveSlot(tuRMaAtiva.id,bimesTRe,s.slotId)]?.feita) feitas++;
+  for (const s of slots) if (estadoAulas[chaveSlot(turmaAtiva.id,bimestreAtivo,s.slotId)]?.feita) feitas++;
   const pct = total>0 ? Math.round(feitas/total*100) : 0;
   document.querySelector(".stat-num")?.textContent && (document.querySelector(".stat-num").textContent = `${feitas}/${total}`);
-  document.querySelector(".stat-prog")?.setAtTRibute("sTRoke-dasharray",`${pct},100`);
+  document.querySelector(".stat-prog")?.setAttribute("stroke-dasharray",`${pct},100`);
   if (document.querySelector(".pct-badge")) document.querySelector(".pct-badge").textContent = `${pct}% concluído`;
 }
 
@@ -577,35 +577,35 @@ function _initPrevenirSelecaoShift() {
 function _initClickFora() {
   document.addEventListener("click", e => {
     if (!selConteudos.size) return;
-    const denTRoTabela = e.target.closest(".tabela-aulas");
+    const dentroTabela = e.target.closest(".tabela-aulas");
     const noHandle     = e.target.closest(".drag-handle-cont");
-    if (denTRoTabela && !noHandle) {
+    if (dentroTabela && !noHandle) {
       selConteudos.clear();
       ultimoSelecionado = null;
       atualizarVisualizacaoSel();
-    } else if (!denTRoTabela) {
+    } else if (!dentroTabela) {
       selConteudos.clear();
       ultimoSelecionado = null;
       atualizarVisualizacaoSel();
     }
-  }, TRue);
+  }, true);
 }
 
 function atualizarVisualizacaoSel() {
   document.querySelectorAll(".drag-handle-cont").forEach(h => {
     h.classList.toggle("handle-sel", selConteudos.has(h.dataset.slot));
   });
-  document.querySelectorAll("TR[data-slot]").forEach(TR => {
-    TR.classList.toggle("row-sel-cont", selConteudos.has(TR.dataset.slot));
+  document.querySelectorAll("tr[data-slot]").forEach(tr => {
+    tr.classList.toggle("row-sel-cont", selConteudos.has(tr.dataset.slot));
   });
 }
 
 function onDragStart(e, slotId) {
   if (!selConteudos.has(slotId)) { selConteudos.clear(); selConteudos.add(slotId); atualizarVisualizacaoSel(); }
-  dragSRCSlots = [...selConteudos];
+  dragSrcSlots = [...selConteudos];
   e.dataTransfer.effectAllowed = "move";
   e.dataTransfer.setData("text/plain", slotId);
-  dragSRCSlots.forEach(sid => {
+  dragSrcSlots.forEach(sid => {
     document.querySelector(`td.td-conteudo[data-slot="${sid}"]`)?.classList.add("content-dragging");
   });
 }
@@ -614,11 +614,11 @@ function onDragEnd() {
   document.querySelectorAll(".content-dragging,.content-drag-over").forEach(el =>
     el.classList.remove("content-dragging","content-drag-over")
   );
-  dragSRCSlots = []; dragDestSlot = null;
+  dragSrcSlots = []; dragDestSlot = null;
 }
 
 function onDragEnter(e, slotId) {
-  if (dragSRCSlots.includes(slotId)) return;
+  if (dragSrcSlots.includes(slotId)) return;
   dragDestSlot = slotId;
   document.querySelector(`td.td-conteudo[data-slot="${slotId}"]`)?.classList.add("content-drag-over");
 }
@@ -631,80 +631,80 @@ function onDragLeave(e) {
 function onDrop(e, destSlotId) {
   e.preventDefault(); e.stopPropagation();
   document.querySelector(`td.td-conteudo[data-slot="${destSlotId}"]`)?.classList.remove("content-drag-over");
-  if (!dragSRCSlots.length || dragSRCSlots.includes(destSlotId)) return;
-  const t = tuRMaAtiva;
-  const slots = getSlotsCompletos(t.id, bimesTRe);
+  if (!dragSrcSlots.length || dragSrcSlots.includes(destSlotId)) return;
+  const t = turmaAtiva;
+  const slots = getSlotsCompletos(t.id, bimestreAtivo);
   const slotsReg = slots.filter(s => !s.eventual);
-  const ordem = getOrdem(t.id, bimesTRe, slotsReg.length);
+  const ordem = getOrdem(t.id, bimestreAtivo, slotsReg.length);
   function slotIdxReg(slotId) { return slotsReg.findIndex(s => s.slotId === slotId); }
-  const sRCIdxs = dragSRCSlots.map(slotIdxReg).filter(i => i >= 0);
+  const srcIdxs = dragSrcSlots.map(slotIdxReg).filter(i => i >= 0);
   const destIdx = slotIdxReg(destSlotId);
   if (destIdx < 0 && !slots.find(s=>s.slotId===destSlotId)?.eventual) return;
   if (destIdx < 0) return;
   const novaOrdem = [...ordem];
-  const sRCContents = sRCIdxs.map(i => ({
+  const srcContents = srcIdxs.map(i => ({
     contIdx: novaOrdem[i],
-    editado: estadoAulas[chaveSlot(t.id, bimesTRe, slotsReg[i].slotId)]?.conteudoEditado
+    editado: estadoAulas[chaveSlot(t.id, bimestreAtivo, slotsReg[i].slotId)]?.conteudoEditado
   }));
-  const sRCSet = new Set(sRCIdxs);
-  const restantes = novaOrdem.filter((_, i) => !sRCSet.has(i));
+  const srcSet = new Set(srcIdxs);
+  const restantes = novaOrdem.filter((_, i) => !srcSet.has(i));
   const destPosEmRestantes = restantes.indexOf(novaOrdem[destIdx]);
   const insPos = destPosEmRestantes >= 0 ? destPosEmRestantes : restantes.length;
-  restantes.splice(insPos, 0, ...sRCContents.map(s => s.contIdx));
-  sRCIdxs.forEach(i => {
-    const ch = chaveSlot(t.id, bimesTRe, slotsReg[i].slotId);
+  restantes.splice(insPos, 0, ...srcContents.map(s => s.contIdx));
+  srcIdxs.forEach(i => {
+    const ch = chaveSlot(t.id, bimestreAtivo, slotsReg[i].slotId);
     if (estadoAulas[ch]) delete estadoAulas[ch].conteudoEditado;
   });
-  let sRCPTR = 0;
+  let srcPtr = 0;
   for (let i = 0; i < restantes.length; i++) {
     const slotId = slotsReg[i]?.slotId;
     if (!slotId) continue;
-    const origSRCIdx = sRCContents.findIndex((s,j) => s.contIdx === restantes[i] && j === sRCPTR);
-    if (origSRCIdx >= 0 && sRCContents[origSRCIdx].editado != null) {
-      const ch = chaveSlot(t.id, bimesTRe, slotId);
+    const origSrcIdx = srcContents.findIndex((s,j) => s.contIdx === restantes[i] && j === srcPtr);
+    if (origSrcIdx >= 0 && srcContents[origSrcIdx].editado != null) {
+      const ch = chaveSlot(t.id, bimestreAtivo, slotId);
       if (!estadoAulas[ch]) estadoAulas[ch] = {};
-      estadoAulas[ch].conteudoEditado = sRCContents[origSRCIdx].editado;
-      sRCPTR++;
+      estadoAulas[ch].conteudoEditado = srcContents[origSrcIdx].editado;
+      srcPtr++;
     }
   }
-  const chaveC2 = `${t.serie}_${t.disciplina}_b${bimesTRe}`;
+  const chaveC2 = `${t.serie}_${t.disciplina}_b${bimestreAtivo}`;
   const contsList = RT_CONTEUDOS[chaveC2] || RT_CONTEUDOS[`${t.serie}_${t.disciplina}`] || [];
   RT_CONTEUDOS[chaveC2] = restantes.map(ci => contsList[ci] ?? "");
-  delete ordemConteudos[chaveOrdem(t.id, bimesTRe)];
+  delete ordemConteudos[chaveOrdem(t.id, bimestreAtivo)];
   slotsReg.forEach((s) => {
-    const ch = chaveSlot(t.id, bimesTRe, s.slotId);
+    const ch = chaveSlot(t.id, bimestreAtivo, s.slotId);
     if (estadoAulas[ch]) delete estadoAulas[ch].conteudoEditado;
   });
   salvarTudo();
   selConteudos.clear();
-  renderizarLinhas(getSlotsCompletos(t.id, bimesTRe));
+  renderizarLinhas(getSlotsCompletos(t.id, bimestreAtivo));
 }
 
-function mudarBimesTRe(num) { bimesTRe = num; selConteudos.clear(); renderizarConteudo(); }
+function mudarBimestre(num) { bimestreAtivo = num; selConteudos.clear(); renderizarConteudo(); }
 
 function resetarOrdem() {
   if (!_autenticado) { _abrirModalGoogle(); return; }
-  if (_ehCoordenador()) { _mosTRarIndicadorSync("⛔ Somente leitura"); return; }
-  if (!confiRM("Restaurar ordem original dos conteúdos?")) return;
-  delete ordemConteudos[chaveOrdem(tuRMaAtiva.id, bimesTRe)];
+  if (_ehCoordenador()) { _mostrarIndicadorSync("⛔ Somente leitura"); return; }
+  if (!confirm("Restaurar ordem original dos conteúdos?")) return;
+  delete ordemConteudos[chaveOrdem(turmaAtiva.id, bimestreAtivo)];
   salvarTudo(); renderizarConteudo();
 }
 
 function abrirModalEventual() {
   if (!_autenticado) { _abrirModalGoogle(); return; }
-  if (_ehCoordenador()) { _mosTRarIndicadorSync("⛔ Somente leitura"); return; }
+  if (_ehCoordenador()) { _mostrarIndicadorSync("⛔ Somente leitura"); return; }
   document.getElementById("ev-data").value = hoje();
   document.getElementById("modal-eventual").style.display = "flex";
 }
 
 function fecharModalEventual() { document.getElementById("modal-eventual").style.display = "none"; }
 
-function confiRMarEventual() {
+function confirmarEventual() {
   const data = document.getElementById("ev-data").value;
   const hora = document.getElementById("ev-hora").value || "07:00";
-  const desc = document.getElementById("ev-desc").value.TRim();
-  if (!data) { alert("InfoRMe a data."); return; }
-  const lista = getEventuais(tuRMaAtiva.id, bimesTRe);
+  const desc = document.getElementById("ev-desc").value.trim();
+  if (!data) { alert("Informe a data."); return; }
+  const lista = getEventuais(turmaAtiva.id, bimestreAtivo);
   lista.push({ id: Date.now(), data, hora, descricao: desc });
   salvarEventuais(lista); fecharModalEventual(); renderizarConteudo();
 }
@@ -712,95 +712,95 @@ function confiRMarEventual() {
 function removerEventual(slotId) {
   if (!_autenticado) { _abrirModalGoogle(); return; }
   const eId = parseInt(slotId.replace("e",""), 10);
-  const lista = getEventuais(tuRMaAtiva.id, bimesTRe).filter(e => e.id !== eId);
+  const lista = getEventuais(turmaAtiva.id, bimestreAtivo).filter(e => e.id !== eId);
   salvarEventuais(lista);
-  delete estadoAulas[chaveSlot(tuRMaAtiva.id, bimesTRe, slotId)];
+  delete estadoAulas[chaveSlot(turmaAtiva.id, bimestreAtivo, slotId)];
   salvarTudo(); renderizarConteudo();
 }
 
-function confiRMarLimpar() {
+function confirmarLimpar() {
   if (!_autenticado) { _abrirModalGoogle(); return; }
-  if (_ehCoordenador()) { _mosTRarIndicadorSync("⛔ Somente leitura"); return; }
-  const lbl = RT_BIMESTRES.find(b=>b.bimesTRe===bimesTRe)?.label;
-  if (!confiRM(`Apagar todos os regisTRos do ${lbl} desta tuRMa?`)) return;
-  getSlotsCompletos(tuRMaAtiva.id, bimesTRe).forEach(s => {
-    delete estadoAulas[chaveSlot(tuRMaAtiva.id, bimesTRe, s.slotId)];
+  if (_ehCoordenador()) { _mostrarIndicadorSync("⛔ Somente leitura"); return; }
+  const lbl = RT_BIMESTRES.find(b=>b.bimestre===bimestreAtivo)?.label;
+  if (!confirm(`Apagar todos os registros do ${lbl} desta turma?`)) return;
+  getSlotsCompletos(turmaAtiva.id, bimestreAtivo).forEach(s => {
+    delete estadoAulas[chaveSlot(turmaAtiva.id, bimestreAtivo, s.slotId)];
   });
   salvarTudo(); selConteudos.clear(); renderizarConteudo();
 }
 
 function exportarCSV() {
-  const t = tuRMaAtiva;
-  const slots = getSlotsCompletos(t.id, bimesTRe);
-  const chaveC = `${t.serie}_${t.disciplina}_b${bimesTRe}`;
+  const t = turmaAtiva;
+  const slots = getSlotsCompletos(t.id, bimestreAtivo);
+  const chaveC = `${t.serie}_${t.disciplina}_b${bimestreAtivo}`;
   const conts = RT_CONTEUDOS[chaveC] || RT_CONTEUDOS[`${t.serie}_${t.disciplina}`] || [];
   const slotsReg = slots.filter(s=>!s.eventual);
-  const ordem = getOrdem(t.id, bimesTRe, slotsReg.length);
+  const ordem = getOrdem(t.id, bimestreAtivo, slotsReg.length);
   let rIdx = 0;
-  const linhas = [["#","Data","Horário","Conteúdos/Atividades","Chamada","EnTRegue","Dada?","RegisTRo"]];
+  const linhas = [["#","Data","Horário","Conteúdos/Atividades","Chamada","Entregue","Dada?","Registro"]];
   slots.forEach((slot, i) => {
-    const ch  = chaveSlot(t.id, bimesTRe, slot.slotId);
+    const ch  = chaveSlot(t.id, bimestreAtivo, slot.slotId);
     const est = estadoAulas[ch] || {};
     let cont  = slot.eventual ? (slot.descricao||"") : (est.conteudoEditado ?? (conts[ordem[rIdx]]||""));
     if (!slot.eventual) rIdx++;
     const horarioFmt = slot.eventual ? slot.inicio : (slot.label ? `${slot.label} (${slot.inicio}–${slot.fim})` : slot.inicio);
     linhas.push([i+1, fmtData(slot.data), horarioFmt, cont,
-      est.chamada?"Sim":"Não", est.conteudoEnTRegue?"Sim":"Não",
+      est.chamada?"Sim":"Não", est.conteudoEntregue?"Sim":"Não",
       est.feita?"Sim":"Não", est.feita?fmtData(est.dataFeita):"",
     ]);
   });
-  const csv  = linhas.map(l=>l.map(c=>`"${STRing(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const csv  = linhas.map(l=>l.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
   const blob = new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8;"});
-  const lbl  = t.subtitulo?`${t.serie}${t.tuRMa}_${t.subtitulo}`:`${t.serie}${t.tuRMa}`;
-  baixarArquivo(blob,`aulas_${lbl}_${t.sigla}_bim${bimesTRe}.csv`);
+  const lbl  = t.subtitulo?`${t.serie}${t.turma}_${t.subtitulo}`:`${t.serie}${t.turma}`;
+  baixarArquivo(blob,`aulas_${lbl}_${t.sigla}_bim${bimestreAtivo}.csv`);
 }
 
 function exportarJS() {
-  const ts = new Date().toLocaleSTRing("pt-BR");
+  const ts = new Date().toLocaleString("pt-BR");
 
   const arquivos = [
     {
-      nome: "bimesTRes.js",
+      nome: "bimestres.js",
       conteudo: [
         `// BIMESTRES.JS — Exportado em ${ts}`,
-        `const BIMESTRES = ${JSON.sTRingify(RT_BIMESTRES,null,2)};`,
+        `const BIMESTRES = ${JSON.stringify(RT_BIMESTRES,null,2)};`,
       ].join("\n\n"),
     },
     {
-      nome: "tuRMas_global.js",
+      nome: "turmas_global.js",
       conteudo: [
-        `// TURMAS_GLOBAL.JS — TuRMas-base da escola — Exportado em ${ts}`,
-        `const TURMAS_BASE = ${JSON.sTRingify(RT_CONFIG.tuRMasBase || TURMAS_BASE || [],null,2)};`,
+        `// TURMAS_GLOBAL.JS — Turmas-base da escola — Exportado em ${ts}`,
+        `const TURMAS_BASE = ${JSON.stringify(RT_CONFIG.turmasBase || TURMAS_BASE || [],null,2)};`,
       ].join("\n\n"),
     },
     {
-      nome: "tuRMas.js",
+      nome: "turmas.js",
       conteudo: [
-        `// TURMAS.JS — EnTRadas do diário (tuRMa + disciplina + horários) — Exportado em ${ts}`,
-        `const TURMAS = ${JSON.sTRingify(RT_TURMAS,null,2)};`,
+        `// TURMAS.JS — Entradas do diário (turma + disciplina + horários) — Exportado em ${ts}`,
+        `const TURMAS = ${JSON.stringify(RT_TURMAS,null,2)};`,
       ].join("\n\n"),
     },
     {
       nome: "conteudos.js",
       conteudo: [
         `// CONTEUDOS.JS — Conteúdos e ordem das aulas — Exportado em ${ts}`,
-        `const CONTEUDOS = ${JSON.sTRingify(RT_CONTEUDOS,null,2)};`,
-        `const ORDEM     = ${JSON.sTRingify(ordemConteudos,null,2)};`,
+        `const CONTEUDOS = ${JSON.stringify(RT_CONTEUDOS,null,2)};`,
+        `const ORDEM     = ${JSON.stringify(ordemConteudos,null,2)};`,
       ].join("\n\n"),
     },
     {
       nome: "periodos.js",
       conteudo: [
         `// PERIODOS.JS — Horários das aulas — Exportado em ${ts}`,
-        `const PERIODOS = ${JSON.sTRingify(RT_PERIODOS,null,2)};`,
+        `const PERIODOS = ${JSON.stringify(RT_PERIODOS,null,2)};`,
       ].join("\n\n"),
     },
     {
       nome: "estado.js",
       conteudo: [
         `// ESTADO.JS — Estado das aulas (feita, chamada, AD, CH, RE) — Exportado em ${ts}`,
-        `// Para restaurar: localStorage.setItem("aulaEstado_SEU_UID", JSON.sTRingify(ESTADO));`,
-        `const ESTADO = ${JSON.sTRingify(estadoAulas,null,2)};`,
+        `// Para restaurar: localStorage.setItem("aulaEstado_SEU_UID", JSON.stringify(ESTADO));`,
+        `const ESTADO = ${JSON.stringify(estadoAulas,null,2)};`,
       ].join("\n\n"),
     },
   ];
@@ -812,7 +812,7 @@ function exportarJS() {
     }, i * 400);
   });
 
-  _mosTRarIndicadorSync("⬇ Exportando 6 arquivos…");
+  _mostrarIndicadorSync("⬇ Exportando 6 arquivos…");
 }
 
 function baixarArquivo(blob, nome) {

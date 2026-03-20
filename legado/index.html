@@ -22,7 +22,7 @@
     }
     #auth-btn {
       flex-shrink: 0;
-      background: TRansparent;
+      background: transparent;
       border: 1.5px solid rgba(255,255,255,0.25);
       color: #c0cad6;
       font-family: 'DM Sans', sans-serif;
@@ -32,7 +32,7 @@
       padding: 6px 14px;
       border-radius: 6px;
       cursor: pointer;
-      TRansition: background .15s, color .15s, border-color .15s;
+      transition: background .15s, color .15s, border-color .15s;
       position: relative;
       z-index: 9995;
     }
@@ -59,7 +59,7 @@
     <button class="mob-nav-acao mob-nav-cal" onclick="abrirCalendario(); fecharMobileNav()" id="mob-btn-cal">
       📅 Calendário
     </button>
-    <div id="mob-nav-tuRMas"></div>
+    <div id="mob-nav-turmas"></div>
     <button class="mob-nav-acao mob-nav-gestao" onclick="abrirPainelGestao(); fecharMobileNav()">
       ⚙ Gestão
     </button>
@@ -71,8 +71,8 @@
     <aside class="sidebar" id="sidebar">
       <!-- calendário no topo da sidebar -->
       <button class="btn-cal-sidebar" id="btn-calendario" onclick="abrirCalendario()">📅 Calendário</button>
-      <div class="sidebar-titulo">TuRMas</div>
-      <div id="sidebar-tuRMas"></div>
+      <div class="sidebar-titulo">Turmas</div>
+      <div id="sidebar-turmas"></div>
       <button class="btn-gestao-sidebar" id="btn-gestao">⚙ Painel de Gestão</button>
     </aside>
 
@@ -83,9 +83,9 @@
   </div>
 
   <!-- Firebase SDK (compat — funciona sem bundler/npm) -->
-  <script sRC="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-  <script sRC="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-  <script sRC="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
   <script>
     firebase.initializeApp({
       apiKey:            "AIzaSyAqdTVWYfROLnFfrBm4xLIVp5w1noUo2xk",
@@ -97,9 +97,9 @@
     });
   </script>
 
-  <script sRC="aulas.js"></script>
-  <script sRC="app.js"></script>
-  <script sRC="calendario.js"></script>
+  <script src="aulas.js"></script>
+  <script src="app.js"></script>
+  <script src="calendario.js"></script>
 
 </body>
 </html>

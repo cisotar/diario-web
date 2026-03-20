@@ -1,63 +1,63 @@
-// GESTAO-USUARIOS.JS — Perfil, cadasTRo, usuários, diários, aprovação
+// GESTAO-USUARIOS.JS — Perfil, cadastro, usuários, diários, aprovação
 // Dependências: app-core.js
 
-function _htmlCheckboxMaterias(selecionadas, areaAtual, tuRMasSelecionadas) {
-  const lista = selecionadas ? selecionadas.split(";").map(s => s.TRim()).filter(Boolean) : [];
-  const tuRMasIds = Array.isArray(tuRMasSelecionadas) ? tuRMasSelecionadas : [];
+function _htmlCheckboxMaterias(selecionadas, areaAtual, turmasSelecionadas) {
+  const lista = selecionadas ? selecionadas.split(";").map(s => s.trim()).filter(Boolean) : [];
+  const turmasIds = Array.isArray(turmasSelecionadas) ? turmasSelecionadas : [];
 
-  // TuRMas-base disponíveis (do Firestore via RT_CONFIG, ou seed do tuRMas_global.js)
-  const tuRMasBase = RT_CONFIG.tuRMasBase || TURMAS_BASE;
+  // Turmas-base disponíveis (do Firestore via RT_CONFIG, ou seed do turmas_global.js)
+  const turmasBase = RT_CONFIG.turmasBase || TURMAS_BASE;
 
-  // Se há tuRMas-base cadasTRadas, usa o novo fluxo: professor escolhe disciplina+tuRMa
-  if (tuRMasBase && tuRMasBase.length) {
-    const rows = tuRMasBase.map((tb, idx) => {
-      const tbKey = `${tb.serie}${tb.tuRMa}`;
-      // Verifica se já tem disciplina escolhida para esta tuRMa
-      const enTRada = tuRMasIds.find ? tuRMasIds.find(t => t.tuRMaKey === tbKey) : null;
-      const disc  = enTRada?.disciplina || "";
-      const sigla = enTRada?.sigla || "";
-      const sel   = enTRada ? "checked" : "";
+  // Se há turmas-base cadastradas, usa o novo fluxo: professor escolhe disciplina+turma
+  if (turmasBase && turmasBase.length) {
+    const rows = turmasBase.map((tb, idx) => {
+      const tbKey = `${tb.serie}${tb.turma}`;
+      // Verifica se já tem disciplina escolhida para esta turma
+      const entrada = turmasIds.find ? turmasIds.find(t => t.turmaKey === tbKey) : null;
+      const disc  = entrada?.disciplina || "";
+      const sigla = entrada?.sigla || "";
+      const sel   = entrada ? "checked" : "";
       return `
-        <TR class="tb-linha" id="tb-linha-${idx}">
+        <tr class="tb-linha" id="tb-linha-${idx}">
           <td>
             <label class="mat-check-label" style="margin:0">
-              <input type="checkbox" class="mat-tuRMa-sel" data-idx="${idx}"
-                data-serie="${tb.serie}" data-tuRMa="${tb.tuRMa}" data-sub="${tb.subtitulo||""}"
+              <input type="checkbox" class="mat-turma-sel" data-idx="${idx}"
+                data-serie="${tb.serie}" data-turma="${tb.turma}" data-sub="${tb.subtitulo||""}"
                 data-per="${tb.periodo||"manha"}" ${sel}
-                onchange="_toggleTuRMaLinha(${idx})">
-              <span>${tb.serie}ª ${tb.tuRMa}${tb.subtitulo?" "+tb.subtitulo:""} <small style="color:var(--text-muted)">(${tb.periodo==="tarde"?"tarde":"manhã"})</small></span>
+                onchange="_toggleTurmaLinha(${idx})">
+              <span>${tb.serie}ª ${tb.turma}${tb.subtitulo?" "+tb.subtitulo:""} <small style="color:var(--text-muted)">(${tb.periodo==="tarde"?"tarde":"manhã"})</small></span>
             </label>
           </td>
           <td>
-            <input class="gi gi-sm mat-tuRMa-disc" data-idx="${idx}"
+            <input class="gi gi-sm mat-turma-disc" data-idx="${idx}"
               placeholder="Disciplina" value="${disc.replace(/"/g,'&quot;')}"
               style="visibility:${sel?"visible":"hidden"}"
               oninput="_sincDiscSigla(${idx})" />
           </td>
           <td>
-            <input class="gi gi-xs mat-tuRMa-sigla" data-idx="${idx}"
+            <input class="gi gi-xs mat-turma-sigla" data-idx="${idx}"
               placeholder="Sigla" maxlength="6" value="${sigla.replace(/"/g,'&quot;')}"
               style="visibility:${sel?"visible":"hidden"}" />
           </td>
-        </TR>`;
+        </tr>`;
     }).join("");
 
     return `
-      <label class="mat-group-label" style="margin-top:4px">TuRMas em que leciona e disciplina</label>
-      <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px">Marque as tuRMas, infoRMe a disciplina e a sigla.</p>
+      <label class="mat-group-label" style="margin-top:4px">Turmas em que leciona e disciplina</label>
+      <p style="font-size:.75rem;color:var(--text-muted);margin-bottom:6px">Marque as turmas, informe a disciplina e a sigla.</p>
       <div class="tabela-wrapper" style="margin-bottom:8px">
         <table class="tabela-gestao" style="min-width:0">
-          <thead><TR><th>TuRMa</th><th>Disciplina</th><th>Sigla</th></TR></thead>
+          <thead><tr><th>Turma</th><th>Disciplina</th><th>Sigla</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>`;
   }
 
-  // Fallback sem tuRMas cadasTRadas
+  // Fallback sem turmas cadastradas
   const temDiscs = Object.keys(RT_CONFIG.disciplinasPorSerie || {}).length > 0;
   if (!temDiscs) {
     return `<label>Disciplina(s) <span style="font-size:.72rem;color:var(--text-muted)">(separe por ;)</span>
-      <input class="gi" id="perf-disc-ouTRo" value="${lista.join("; ").replace(/"/g,'&quot;')}"
+      <input class="gi" id="perf-disc-outro" value="${lista.join("; ").replace(/"/g,'&quot;')}"
         placeholder="Geografia; Sociologia…" />
     </label>`;
   }
@@ -68,7 +68,7 @@ function _htmlCheckboxMaterias(selecionadas, areaAtual, tuRMasSelecionadas) {
 
   const discsDaArea = areaAtual ? _disciplinasDaArea(areaAtual) : [];
   const todasConhecidas = _todasDisciplinas();
-  const exTRas = lista.filter(m => !todasConhecidas.includes(m));
+  const extras = lista.filter(m => !todasConhecidas.includes(m));
 
   const checks = discsDaArea.map(m => {
     const checked = lista.includes(m) ? "checked" : "";
@@ -79,19 +79,19 @@ function _htmlCheckboxMaterias(selecionadas, areaAtual, tuRMasSelecionadas) {
     </label>`;
   }).join("");
 
-  // TuRMas disponíveis para as disciplinas já selecionadas
-  const tuRMasDisp = _tuRMasParaDiscs(lista);
-  const tuRMasHtml = tuRMasDisp.length ? `
-    <label class="mat-group-label" id="mat-tuRMas-label" style="margin-top:12px">TuRMas em que leciona</label>
-    <div class="mat-checks" id="mat-tuRMas-wrap">
-      ${tuRMasDisp.map(t => {
-        const checked = tuRMasIds.includes(t.id) ? "checked" : "";
+  // Turmas disponíveis para as disciplinas já selecionadas
+  const turmasDisp = _turmasParaDiscs(lista);
+  const turmasHtml = turmasDisp.length ? `
+    <label class="mat-group-label" id="mat-turmas-label" style="margin-top:12px">Turmas em que leciona</label>
+    <div class="mat-checks" id="mat-turmas-wrap">
+      ${turmasDisp.map(t => {
+        const checked = turmasIds.includes(t.id) ? "checked" : "";
         return `<label class="mat-check-label">
-          <input type="checkbox" class="mat-tuRMa-chk" value="${t.id}" ${checked}>
-          <span>${t.serie}ª ${t.tuRMa} — ${t.disciplina}</span>
+          <input type="checkbox" class="mat-turma-chk" value="${t.id}" ${checked}>
+          <span>${t.serie}ª ${t.turma} — ${t.disciplina}</span>
         </label>`;
       }).join("")}
-    </div>` : `<div id="mat-tuRMas-wrap"></div>`;
+    </div>` : `<div id="mat-turmas-wrap"></div>`;
 
   return `
     <label class="mat-group-label">Área do conhecimento
@@ -104,11 +104,11 @@ function _htmlCheckboxMaterias(selecionadas, areaAtual, tuRMasSelecionadas) {
     <div class="mat-checks" id="mat-checks-wrap">
       ${discsDaArea.length ? checks : '<span style="color:var(--text-muted);font-size:.8rem">Selecione uma área para ver as disciplinas</span>'}
     </div>
-    <label class="mat-ouTRo-label">OuTRa(s) não listada(s) <span style="font-size:.72rem;color:var(--text-muted)">(separe por ;)</span>
-      <input class="gi" id="perf-disc-ouTRo" value="${exTRas.join("; ").replace(/"/g,'&quot;')}"
+    <label class="mat-outro-label">Outra(s) não listada(s) <span style="font-size:.72rem;color:var(--text-muted)">(separe por ;)</span>
+      <input class="gi" id="perf-disc-outro" value="${extras.join("; ").replace(/"/g,'&quot;')}"
         placeholder="Ex: Filosofia; Arte" onchange="_onDiscChange()" />
     </label>
-    ${tuRMasHtml}`;
+    ${turmasHtml}`;
 }
 
 function _onAreaChange(areaId) {
@@ -116,7 +116,7 @@ function _onAreaChange(areaId) {
   if (!wrap) return;
   const discs = areaId ? _disciplinasDaArea(areaId) : [];
   if (!discs.length) {
-    wrap.innerHTML = `<span style="color:var(--text-muted);font-size:.8rem">Nenhuma disciplina cadasTRada para esta área</span>`;
+    wrap.innerHTML = `<span style="color:var(--text-muted);font-size:.8rem">Nenhuma disciplina cadastrada para esta área</span>`;
     _onDiscChange();
     return;
   }
@@ -129,41 +129,41 @@ function _onAreaChange(areaId) {
   _onDiscChange();
 }
 
-// Atualiza a lista de tuRMas quando as disciplinas mudam
+// Atualiza a lista de turmas quando as disciplinas mudam
 function _onDiscChange() {
-  const wrapTuRMas = document.getElementById("mat-tuRMas-wrap");
-  if (!wrapTuRMas) return;
-  const discs = _lerDisciplinasSelecionadas().split(";").map(s => s.TRim()).filter(Boolean);
-  const tuRMas = _tuRMasParaDiscs(discs);
-  if (!tuRMas.length) {
-    wrapTuRMas.innerHTML = `<span style="color:var(--text-muted);font-size:.8rem">Selecione uma disciplina para ver as tuRMas disponíveis</span>`;
+  const wrapTurmas = document.getElementById("mat-turmas-wrap");
+  if (!wrapTurmas) return;
+  const discs = _lerDisciplinasSelecionadas().split(";").map(s => s.trim()).filter(Boolean);
+  const turmas = _turmasParaDiscs(discs);
+  if (!turmas.length) {
+    wrapTurmas.innerHTML = `<span style="color:var(--text-muted);font-size:.8rem">Selecione uma disciplina para ver as turmas disponíveis</span>`;
     // Garantir que o label existe
-    let lbl = document.getElementById("mat-tuRMas-label");
+    let lbl = document.getElementById("mat-turmas-label");
     if (lbl) lbl.style.display = discs.length ? "" : "none";
     return;
   }
-  let lbl = document.getElementById("mat-tuRMas-label");
+  let lbl = document.getElementById("mat-turmas-label");
   if (lbl) lbl.style.display = "";
-  wrapTuRMas.innerHTML = tuRMas.map(t =>
+  wrapTurmas.innerHTML = turmas.map(t =>
     `<label class="mat-check-label">
-      <input type="checkbox" class="mat-tuRMa-chk" value="${t.id}">
-      <span>${t.serie}ª ${t.tuRMa} — ${t.disciplina}</span>
+      <input type="checkbox" class="mat-turma-chk" value="${t.id}">
+      <span>${t.serie}ª ${t.turma} — ${t.disciplina}</span>
     </label>`
   ).join("");
 }
 
 function _lerDisciplinasSelecionadas() {
   const checks = [...document.querySelectorAll(".mat-chk:checked")].map(c => c.value);
-  const ouTRoEl = document.getElementById("perf-disc-ouTRo");
-  const ouTRos  = ouTRoEl ? ouTRoEl.value.split(";").map(s => s.TRim()).filter(Boolean) : [];
-  return [...checks, ...ouTRos].join("; ");
+  const outroEl = document.getElementById("perf-disc-outro");
+  const outros  = outroEl ? outroEl.value.split(";").map(s => s.trim()).filter(Boolean) : [];
+  return [...checks, ...outros].join("; ");
 }
 
-// Toggle visibilidade dos campos disciplina/sigla ao maRCar/desmaRCar tuRMa
-function _toggleTuRMaLinha(idx) {
-  const chk  = document.querySelector(`.mat-tuRMa-sel[data-idx="${idx}"]`);
-  const disc = document.querySelector(`.mat-tuRMa-disc[data-idx="${idx}"]`);
-  const sig  = document.querySelector(`.mat-tuRMa-sigla[data-idx="${idx}"]`);
+// Toggle visibilidade dos campos disciplina/sigla ao marcar/desmarcar turma
+function _toggleTurmaLinha(idx) {
+  const chk  = document.querySelector(`.mat-turma-sel[data-idx="${idx}"]`);
+  const disc = document.querySelector(`.mat-turma-disc[data-idx="${idx}"]`);
+  const sig  = document.querySelector(`.mat-turma-sigla[data-idx="${idx}"]`);
   const vis  = chk?.checked ? "visible" : "hidden";
   if (disc) disc.style.visibility = vis;
   if (sig)  sig.style.visibility  = vis;
@@ -171,22 +171,22 @@ function _toggleTuRMaLinha(idx) {
 
 // Sugere sigla automaticamente a partir da disciplina
 function _sincDiscSigla(idx) {
-  const disc = document.querySelector(`.mat-tuRMa-disc[data-idx="${idx}"]`)?.value || "";
-  const sig  = document.querySelector(`.mat-tuRMa-sigla[data-idx="${idx}"]`);
-  if (sig && !sig.value) sig.value = disc.subsTRing(0, 4).toUpperCase().replace(/\s/g,"");
+  const disc = document.querySelector(`.mat-turma-disc[data-idx="${idx}"]`)?.value || "";
+  const sig  = document.querySelector(`.mat-turma-sigla[data-idx="${idx}"]`);
+  if (sig && !sig.value) sig.value = disc.substring(0, 4).toUpperCase().replace(/\s/g,"");
 }
 
-// Lê as tuRMas selecionadas no novo foRMulário (retorna array de objetos)
-function _lerTuRMasSelecionadas() {
-  const sels = [...document.querySelectorAll(".mat-tuRMa-sel:checked")];
+// Lê as turmas selecionadas no novo formulário (retorna array de objetos)
+function _lerTurmasSelecionadas() {
+  const sels = [...document.querySelectorAll(".mat-turma-sel:checked")];
   return sels.map(chk => {
     const idx   = chk.dataset.idx;
-    const disc  = document.querySelector(`.mat-tuRMa-disc[data-idx="${idx}"]`)?.value.TRim() || "";
-    const sigla = document.querySelector(`.mat-tuRMa-sigla[data-idx="${idx}"]`)?.value.TRim().toUpperCase() || disc.subsTRing(0,3).toUpperCase();
+    const disc  = document.querySelector(`.mat-turma-disc[data-idx="${idx}"]`)?.value.trim() || "";
+    const sigla = document.querySelector(`.mat-turma-sigla[data-idx="${idx}"]`)?.value.trim().toUpperCase() || disc.substring(0,3).toUpperCase();
     return {
-      tuRMaKey:  `${chk.dataset.serie}${chk.dataset.tuRMa}`,
+      turmaKey:  `${chk.dataset.serie}${chk.dataset.turma}`,
       serie:     chk.dataset.serie,
-      tuRMa:     chk.dataset.tuRMa,
+      turma:     chk.dataset.turma,
       subtitulo: chk.dataset.sub || "",
       periodo:   chk.dataset.per || "manha",
       disciplina: disc,
@@ -204,7 +204,7 @@ function htmlGestaoPerfil() {
       <div class="gestao-bloco-header">
         <h3>Meu Perfil</h3>
       </div>
-      <div class="perfil-foRM">
+      <div class="perfil-form">
         <label>Nome completo
           <input class="gi" id="perf-nome" value="${(p.nome||'').replace(/"/g,'&quot;')}"
             placeholder="Prof. Seu Nome" />
@@ -224,22 +224,22 @@ function htmlGestaoPerfil() {
 }
 
 async function _salvarPerfil() {
-  const nome = document.getElementById("perf-nome")?.value.TRim();
-  if (!nome) { alert("InfoRMe seu nome."); return; }
+  const nome = document.getElementById("perf-nome")?.value.trim();
+  if (!nome) { alert("Informe seu nome."); return; }
   if (!_perfilProf) _perfilProf = { uid: _userAtual.uid, email: _userAtual.email, status: "aprovado" };
   _perfilProf.nome = nome;
-  // disciplinas, area e tuRMasIds são gerenciados pela aba Minhas TuRMas
+  // disciplinas, area e turmasIds são gerenciados pela aba Minhas Turmas
   // Admin: salva nome da escola
   if (_isAdmin(_userAtual?.email)) {
-    const nomeEscola = document.getElementById("perf-escola-global")?.value.TRim() || "";
+    const nomeEscola = document.getElementById("perf-escola-global")?.value.trim() || "";
     RT_CONFIG.nomeEscola = nomeEscola;
-    TRy { await _dbConfigEscola().set({ nomeEscola, disciplinasPorSerie: RT_CONFIG.disciplinasPorSerie || {} }); }
+    try { await _dbConfigEscola().set({ nomeEscola, disciplinasPorSerie: RT_CONFIG.disciplinasPorSerie || {} }); }
     catch(e) { console.warn("Erro ao salvar config escola:", e); }
   }
   await _salvarPerfilFirestore(_perfilProf);
   _atualizarBotaoAuth();
   _atualizarTagline();
-  _mosTRarIndicadorSync("✓ Perfil salvo");
+  _mostrarIndicadorSync("✓ Perfil salvo");
 }
 
 // ════════════════════════════════════════════════════════════
@@ -254,7 +254,7 @@ function htmlGestaoUsuarios() {
   return `
     <div class="gestao-bloco">
       <div class="gestao-bloco-header">
-        <h3>Usuários cadasTRados</h3>
+        <h3>Usuários cadastrados</h3>
         <span id="usuarios-count" style="font-size:.8rem;color:var(--text-muted)">Carregando…</span>
       </div>
       <div id="usuarios-lista">
@@ -264,7 +264,7 @@ function htmlGestaoUsuarios() {
 }
 
 async function _carregarUsuarios() {
-  TRy {
+  try {
     const snap = await firebase.firestore().collection("professores").get();
     const users = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
     users.sort((a,b) => {
@@ -276,16 +276,16 @@ async function _carregarUsuarios() {
     const lista = document.getElementById("usuarios-lista");
     if (!lista) return;
     if (!users.length) {
-      lista.innerHTML = `<div style="padding:30px;text-align:center;color:var(--text-muted)">Nenhum usuário cadasTRado.</div>`;
+      lista.innerHTML = `<div style="padding:30px;text-align:center;color:var(--text-muted)">Nenhum usuário cadastrado.</div>`;
       return;
     }
     lista.innerHTML = `
       <div class="tabela-wrapper">
         <table class="tabela-gestao">
-          <thead><TR>
-            <th>Nome</th><th>E-mail</th><th>Escola</th><th>Área</th><th>Disciplinas</th><th>TuRMas</th>
+          <thead><tr>
+            <th>Nome</th><th>E-mail</th><th>Escola</th><th>Área</th><th>Disciplinas</th><th>Turmas</th>
             <th>Papel</th><th>Status</th><th>Solicitado em</th><th>Ações</th>
-          </TR></thead>
+          </tr></thead>
           <tbody>
             ${users.map(u => {
               const isAdminUser = _isAdmin(u.email);
@@ -294,7 +294,7 @@ async function _carregarUsuarios() {
               const statusLabel = u.status==="aprovado" ? "✓ Aprovado"
                 : u.status==="rejeitado" ? "✗ Rejeitado" : "⏳ Pendente";
               const dt = u.solicitadoEm
-                ? new Date(u.solicitadoEm).toLocaleDateSTRing("pt-BR") : "—";
+                ? new Date(u.solicitadoEm).toLocaleDateString("pt-BR") : "—";
               const papelAtual = u.papel || "professor";
               const papelCell  = isAdminUser
                 ? `<span class="badge-papel badge-admin">Admin</span>`
@@ -309,18 +309,18 @@ async function _carregarUsuarios() {
                     ${u.status!=="rejeitado" ? `<button class="btn-limpar" style="padding:4px 10px;font-size:.73rem" onclick="_rejeitarUsuario('${u.uid}')">Rejeitar</button>` : ""}
                     <button type="button" class="btn-icon-del" onclick="_excluirUsuario('${u.uid}')" title="Excluir">🗑</button>
                    </div>`;
-              return `<TR>
+              return `<tr>
                 <td>${u.nome||"—"}</td>
                 <td style="font-size:.78rem">${u.email||"—"}</td>
                 <td style="font-size:.78rem">${u.escola||"—"}</td>
                 <td style="font-size:.78rem">${u.area ? AREAS_CONHECIMENTO.find(a=>a.id===u.area)?.label||u.area : "—"}</td>
                 <td style="font-size:.78rem">${u.disciplinas||"—"}</td>
-                <td style="font-size:.78rem">${Array.isArray(u.tuRMasIds) && u.tuRMasIds.length ? u.tuRMasIds.join(", ") : "—"}</td>
+                <td style="font-size:.78rem">${Array.isArray(u.turmasIds) && u.turmasIds.length ? u.turmasIds.join(", ") : "—"}</td>
                 <td>${papelCell}</td>
                 <td><span class="prof-status ${statusCls}">${statusLabel}</span></td>
                 <td style="font-size:.78rem">${dt}</td>
                 <td>${acoes}</td>
-              </TR>`;
+              </tr>`;
             }).join("")}
           </tbody>
         </table>
@@ -333,29 +333,29 @@ async function _carregarUsuarios() {
 
 async function _aprovarUsuario(uid) {
   const papelSel = document.querySelector(`[onchange*="_alterarPapel('${uid}"]`)?.value || "professor";
-  TRy {
+  try {
     const db = firebase.firestore();
-    // Busca perfil para pegar tuRMasIds
+    // Busca perfil para pegar turmasIds
     const profSnap = await db.collection("professores").doc(uid).get();
     const profData = profSnap.data() || {};
-    const tuRMasIds = Array.isArray(profData.tuRMasIds) ? profData.tuRMasIds : [];
+    const turmasIds = Array.isArray(profData.turmasIds) ? profData.turmasIds : [];
 
-    // Se há tuRMas selecionadas, injeta no diário do professor
-    if (tuRMasIds.length) {
-      // tuRMasIds pode ser array de sTRings (legado) ou array de objetos (novo foRMato)
-      const tuRMasDoProf = tuRMasIds.map(t => {
-        if (typeof t === "sTRing") {
-          // Legado: tenta enconTRar em TURMAS
+    // Se há turmas selecionadas, injeta no diário do professor
+    if (turmasIds.length) {
+      // turmasIds pode ser array de strings (legado) ou array de objetos (novo formato)
+      const turmasDoProf = turmasIds.map(t => {
+        if (typeof t === "string") {
+          // Legado: tenta encontrar em TURMAS
           const found = TURMAS.find(x => x.id === t);
           return found ? { ...found, profUid: uid } : null;
         }
-        // Novo foRMato: objeto {serie, tuRMa, disciplina, sigla, subtitulo, periodo}
-        const id = `${t.serie}${t.tuRMa}_${t.sigla}`;
+        // Novo formato: objeto {serie, turma, disciplina, sigla, subtitulo, periodo}
+        const id = `${t.serie}${t.turma}_${t.sigla}`;
         // Verifica duplicata
         return {
           id,
           serie:      t.serie,
-          tuRMa:      t.tuRMa,
+          turma:      t.turma,
           subtitulo:  t.subtitulo || "",
           disciplina: t.disciplina,
           sigla:      t.sigla,
@@ -367,44 +367,44 @@ async function _aprovarUsuario(uid) {
       const diarioRef = db.collection("diario").doc(uid);
       const diarioSnap = await diarioRef.get();
       const diarioAtual = diarioSnap.exists ? diarioSnap.data() : {};
-      const tuRMasAtuais = diarioAtual.RT_TURMAS ? JSON.parse(diarioAtual.RT_TURMAS) : [];
-      const idsAtuais = new Set(tuRMasAtuais.map(t => t.id));
-      const novas = tuRMasDoProf.filter(t => !idsAtuais.has(t.id));
+      const turmasAtuais = diarioAtual.RT_TURMAS ? JSON.parse(diarioAtual.RT_TURMAS) : [];
+      const idsAtuais = new Set(turmasAtuais.map(t => t.id));
+      const novas = turmasDoProf.filter(t => !idsAtuais.has(t.id));
       await diarioRef.set({
         ...diarioAtual,
-        RT_TURMAS: JSON.sTRingify([...tuRMasAtuais, ...novas])
-      }, { merge: TRue });
+        RT_TURMAS: JSON.stringify([...turmasAtuais, ...novas])
+      }, { merge: true });
     }
 
     await db.collection("professores").doc(uid)
       .update({ status: "aprovado", papel: papelSel });
-    _mosTRarIndicadorSync(`✓ Aprovado como ${papelSel}${tuRMasIds.length ? ` · ${tuRMasIds.length} tuRMa(s) associada(s)` : ""}`);
+    _mostrarIndicadorSync(`✓ Aprovado como ${papelSel}${turmasIds.length ? ` · ${turmasIds.length} turma(s) associada(s)` : ""}`);
     _carregarUsuarios();
   } catch(e) { console.error(e); alert("Erro ao aprovar: " + e.message); }
 }
 
 async function _rejeitarUsuario(uid) {
-  if (!confiRM("Rejeitar o acesso deste usuário?")) return;
-  TRy {
+  if (!confirm("Rejeitar o acesso deste usuário?")) return;
+  try {
     await firebase.firestore().collection("professores").doc(uid).update({ status: "rejeitado" });
-    _mosTRarIndicadorSync("✓ Acesso rejeitado");
+    _mostrarIndicadorSync("✓ Acesso rejeitado");
     _carregarUsuarios();
   } catch(e) { alert("Erro ao rejeitar."); }
 }
 
 async function _excluirUsuario(uid) {
-  if (!confiRM("Excluir este usuário? Os dados do diário dele não serão apagados.")) return;
-  TRy {
+  if (!confirm("Excluir este usuário? Os dados do diário dele não serão apagados.")) return;
+  try {
     await firebase.firestore().collection("professores").doc(uid).delete();
-    _mosTRarIndicadorSync("✓ Usuário excluído");
+    _mostrarIndicadorSync("✓ Usuário excluído");
     _carregarUsuarios();
   } catch(e) { alert("Erro ao excluir."); }
 }
 
 async function _alterarPapel(uid, papel) {
-  TRy {
+  try {
     await firebase.firestore().collection("professores").doc(uid).update({ papel });
-    _mosTRarIndicadorSync(`✓ Papel alterado: ${papel}`);
+    _mostrarIndicadorSync(`✓ Papel alterado: ${papel}`);
   } catch(e) { alert("Erro ao alterar papel."); }
 }
 
@@ -431,10 +431,10 @@ async function _carregarDiariosCoord() {
   let uids = [];
   if (_isAdmin(_userAtual?.email)) {
     // Admin: carrega todos os professores aprovados do Firestore
-    TRy {
+    try {
       const snap = await firebase.firestore().collection("professores")
         .where("status","==","aprovado").get();
-      // Exclui o próprio usuário e ouTRos admins
+      // Exclui o próprio usuário e outros admins
       uids = snap.docs
         .filter(d => !_isAdmin(d.data().email))
         .map(d => d.id)
@@ -447,7 +447,7 @@ async function _carregarDiariosCoord() {
 
   if (!uids.length) {
     if (lista) lista.innerHTML = `<div style="padding:30px;text-align:center;color:var(--text-muted)">
-      Nenhum professor aprovado enconTRado.</div>`;
+      Nenhum professor aprovado encontrado.</div>`;
     if (count) count.textContent = "0 professor(es)";
     return;
   }
@@ -456,25 +456,25 @@ async function _carregarDiariosCoord() {
   if (count) count.textContent = `${qtd} professor(es)`;
   if (!lista) return;
   if (!qtd) {
-    lista.innerHTML = `<div style="padding:30px;text-align:center;color:var(--text-muted)">Nenhum dado enconTRado.</div>`;
+    lista.innerHTML = `<div style="padding:30px;text-align:center;color:var(--text-muted)">Nenhum dado encontrado.</div>`;
     return;
   }
-  lista.innerHTML = Object.enTRies(_diariosAssociados).map(([uid, dados]) => {
+  lista.innerHTML = Object.entries(_diariosAssociados).map(([uid, dados]) => {
     const p      = dados.perfil;
-    const tuRMas = dados.RT_TURMAS || [];
-    const tags = tuRMas.length
-      ? tuRMas.map(t => `
+    const turmas = dados.RT_TURMAS || [];
+    const tags = turmas.length
+      ? turmas.map(t => `
           <button type="button" onclick="abrirDiarioProf('${uid}','${t.id}')"
             style="display:inline-flex;align-items:center;gap:5px;
               background:var(--bg);border:1px solid var(--border);
               border-radius:4px;padding:3px 10px;margin:2px;cursor:pointer;
               font-size:.78rem;color:var(--text-mid);">
-            <span style="font-weight:600;color:var(--amber)">${t.serie}ª ${t.tuRMa}${t.subtitulo?" "+t.subtitulo:""}</span>
+            <span style="font-weight:600;color:var(--amber)">${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""}</span>
             <span>${t.disciplina}</span>
             <span style="color:var(--text-muted)">· ${t.sigla}</span>
             <span style="color:var(--green);font-size:.7rem">↗</span>
           </button>`).join("")
-      : `<em style="color:var(--text-muted);font-size:.8rem;">Sem tuRMas cadasTRadas</em>`;
+      : `<em style="color:var(--text-muted);font-size:.8rem;">Sem turmas cadastradas</em>`;
     return `
       <div style="margin-bottom:12px;padding:14px 16px;
         background:var(--bg-paper);border:1px solid var(--border);border-radius:var(--radius);">
@@ -490,10 +490,10 @@ async function _carregarDiariosCoord() {
 }
 let contDragIdx = null;
 function contDragStart(e, i)  { contDragIdx = i; e.dataTransfer.effectAllowed="move"; e.dataTransfer.setData("text/plain",i); }
-function contDragEnter(e, i)  { e.target.closest("TR")?.classList.add("cont-drag-over"); }
+function contDragEnter(e, i)  { e.target.closest("tr")?.classList.add("cont-drag-over"); }
 function contDrop(e, destIdx) {
   e.preventDefault();
-  e.target.closest("TR")?.classList.remove("cont-drag-over");
+  e.target.closest("tr")?.classList.remove("cont-drag-over");
   if (contDragIdx===null || contDragIdx===destIdx) return;
   const chave = gContChave;
   const lista = RT_CONTEUDOS[chave];

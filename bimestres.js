@@ -2,26 +2,26 @@
 
 const BIMESTRES = [
   {
-    "bimesTRe": 1,
-    "label": "1º BimesTRe",
+    "bimestre": 1,
+    "label": "1º Bimestre",
     "inicio": "2026-02-02",
     "fim": "2026-04-22"
   },
   {
-    "bimesTRe": 2,
-    "label": "2º BimesTRe",
+    "bimestre": 2,
+    "label": "2º Bimestre",
     "inicio": "2026-04-23",
     "fim": "2026-07-06"
   },
   {
-    "bimesTRe": 3,
-    "label": "3º BimesTRe",
+    "bimestre": 3,
+    "label": "3º Bimestre",
     "inicio": "2026-07-24",
     "fim": "2026-10-02"
   },
   {
-    "bimesTRe": 4,
-    "label": "4º BimesTRe",
+    "bimestre": 4,
+    "label": "4º Bimestre",
     "inicio": "2026-10-05",
     "fim": "2026-12-18"
   }
