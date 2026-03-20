@@ -1,10 +1,10 @@
-// TURMAS.JS — Entradas do diário (turma + disciplina + horários) — Exportado em 19/03/2026, 09:57:17
+// TURMAS.JS — EnTRadas do diário (tuRMa + disciplina + horários) — Exportado em 19/03/2026, 09:57:17
 
 const TURMAS = [
   {
     "id": "1D_GEO",
     "serie": "1",
-    "turma": "D",
+    "tuRMa": "D",
     "subtitulo": "",
     "disciplina": "Geografia",
     "sigla": "GEO",
@@ -23,7 +23,7 @@ const TURMAS = [
   {
     "id": "1E_GEO",
     "serie": "1",
-    "turma": "E",
+    "tuRMa": "E",
     "subtitulo": "",
     "disciplina": "Geografia",
     "sigla": "GEO",
@@ -42,7 +42,7 @@ const TURMAS = [
   {
     "id": "2A_GEO",
     "serie": "2",
-    "turma": "A",
+    "tuRMa": "A",
     "subtitulo": "(ADM)",
     "disciplina": "Geografia",
     "sigla": "GEO",
@@ -61,7 +61,7 @@ const TURMAS = [
   {
     "id": "2B_GEO",
     "serie": "2",
-    "turma": "B",
+    "tuRMa": "B",
     "subtitulo": "(ADS)",
     "disciplina": "Geografia",
     "sigla": "GEO",
@@ -80,7 +80,7 @@ const TURMAS = [
   {
     "id": "2C_GEO",
     "serie": "2",
-    "turma": "C",
+    "tuRMa": "C",
     "subtitulo": "(HUM)",
     "disciplina": "Geografia",
     "sigla": "GEO",
@@ -99,7 +99,7 @@ const TURMAS = [
   {
     "id": "2A_SOC",
     "serie": "2",
-    "turma": "A",
+    "tuRMa": "A",
     "subtitulo": "(ADM)",
     "disciplina": "Sociologia",
     "sigla": "SOC",
@@ -118,7 +118,7 @@ const TURMAS = [
   {
     "id": "2B_SOC",
     "serie": "2",
-    "turma": "B",
+    "tuRMa": "B",
     "subtitulo": "(ADS)",
     "disciplina": "Sociologia",
     "sigla": "SOC",
@@ -137,7 +137,7 @@ const TURMAS = [
   {
     "id": "2C_SOC",
     "serie": "2",
-    "turma": "C",
+    "tuRMa": "C",
     "subtitulo": "(HUM)",
     "disciplina": "Sociologia",
     "sigla": "SOC",
@@ -156,7 +156,7 @@ const TURMAS = [
   {
     "id": "3B_ATUAL",
     "serie": "3",
-    "turma": "B",
+    "tuRMa": "B",
     "subtitulo": "(HUM)",
     "disciplina": "Atualidades",
     "sigla": "ATUAL",
@@ -175,7 +175,7 @@ const TURMAS = [
   {
     "id": "1A_D1_glob",
     "serie": "1",
-    "turma": "A",
+    "tuRMa": "A",
     "subtitulo": "",
     "disciplina": "Geografia",
     "sigla": "GEO",
@@ -195,7 +195,7 @@ const TURMAS = [
   {
     "id": "1B_D1_glob",
     "serie": "1",
-    "turma": "B",
+    "tuRMa": "B",
     "subtitulo": "",
     "disciplina": "Geografia",
     "sigla": "GEO",
@@ -215,7 +215,7 @@ const TURMAS = [
   {
     "id": "1C_D1_glob",
     "serie": "1",
-    "turma": "C",
+    "tuRMa": "C",
     "subtitulo": "",
     "disciplina": "Geografia",
     "sigla": "GEO",

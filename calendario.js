@@ -16,20 +16,20 @@ const _CAL_MESES_AB = ["Jan","Fev","Mar","Abr","Mai","Jun",
 const _CAL_DIAS     = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 
 function calIso(d) {
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  return `${d.getFullYear()}-${STRing(d.getMonth()+1).padStart(2,"0")}-${STRing(d.getDate()).padStart(2,"0")}`;
 }
 
 function calAulasNoDia(isoDate) {
   const lista = [];
-  for (const t of (_turmasVisiveis ? _turmasVisiveis() : (RT_TURMAS || []))) {
+  for (const t of (_tuRMasVisiveis ? _tuRMasVisiveis() : (RT_TURMAS || []))) {
     for (const bim of (RT_BIMESTRES || [])) {
       if (isoDate < bim.inicio || isoDate > bim.fim) continue;
-      const slots = getSlotsCompletos(t.id, bim.bimestre);
+      const slots = getSlotsCompletos(t.id, bim.bimesTRe);
       for (const slot of slots) {
         if (slot.data !== isoDate) continue;
-        const ch  = chaveSlot(t.id, bim.bimestre, slot.slotId);
+        const ch  = chaveSlot(t.id, bim.bimesTRe, slot.slotId);
         const est = estadoAulas[ch] || {};
-        lista.push({ turma: t, bim: bim.bimestre, slot, ch, est });
+        lista.push({ tuRMa: t, bim: bim.bimesTRe, slot, ch, est });
       }
     }
   }
@@ -37,8 +37,8 @@ function calAulasNoDia(isoDate) {
   return lista;
 }
 
-// ── Toggle — NÃO depende de turmaAtiva/bimestre ──────────
-function calToggle(turmaId, bimestre, slotId, campo, novoVal, inputEl) {
+// ── Toggle — NÃO depende de tuRMaAtiva/bimesTRe ──────────
+function calToggle(tuRMaId, bimesTRe, slotId, campo, novoVal, inputEl) {
   if (!_autenticado) {
     if (inputEl) inputEl.checked = !novoVal;
     _abrirModalGoogle();
@@ -46,10 +46,10 @@ function calToggle(turmaId, bimestre, slotId, campo, novoVal, inputEl) {
   }
   if (_ehCoordenador()) {
     if (inputEl) inputEl.checked = !novoVal;
-    _mostrarIndicadorSync("⛔ Somente leitura");
+    _mosTRarIndicadorSync("⛔ Somente leitura");
     return;
   }
-  const ch = chaveSlot(turmaId, bimestre, slotId);
+  const ch = chaveSlot(tuRMaId, bimesTRe, slotId);
   if (!estadoAulas[ch]) estadoAulas[ch] = {};
   estadoAulas[ch][campo] = novoVal;
   if (campo === "feita") estadoAulas[ch].dataFeita = novoVal ? hoje() : null;
@@ -58,18 +58,18 @@ function calToggle(turmaId, bimestre, slotId, campo, novoVal, inputEl) {
 }
 
 // ── Conteúdo textual de uma aula ──────────────────────────────
-// Tenta primeiro chave específica por bimestre, depois chave genérica
-function _calConteudo(turma, slot, bim) {
-  const est = estadoAulas[chaveSlot(turma.id, bim, slot.slotId)] || {};
+// Tenta primeiro chave específica por bimesTRe, depois chave genérica
+function _calConteudo(tuRMa, slot, bim) {
+  const est = estadoAulas[chaveSlot(tuRMa.id, bim, slot.slotId)] || {};
   if (est.conteudoEditado) return est.conteudoEditado;
   if (slot.eventual) return slot.descricao || "";
-  try {
-    const slotsReg = getSlotsCompletos(turma.id, bim).filter(s => !s.eventual);
-    const ordem    = getOrdem(turma.id, bim, slotsReg.length);
+  TRy {
+    const slotsReg = getSlotsCompletos(tuRMa.id, bim).filter(s => !s.eventual);
+    const ordem    = getOrdem(tuRMa.id, bim, slotsReg.length);
     const ri       = slotsReg.findIndex(s => s.slotId === slot.slotId);
     const ci       = ri >= 0 ? ordem[ri] : null;
-    const conts    = RT_CONTEUDOS[`${turma.serie}_${turma.disciplina}_b${bim}`]
-                  || RT_CONTEUDOS[`${turma.serie}_${turma.disciplina}`] || [];
+    const conts    = RT_CONTEUDOS[`${tuRMa.serie}_${tuRMa.disciplina}_b${bim}`]
+                  || RT_CONTEUDOS[`${tuRMa.serie}_${tuRMa.disciplina}`] || [];
     return (ci != null && conts[ci]) ? conts[ci] : "";
   } catch { return ""; }
 }
@@ -86,16 +86,16 @@ function abrirCalendario() {
 
 function fecharCalendario() {
   document.getElementById("btn-calendario")?.classList.remove("");
-  if (turmaAtiva) renderizarConteudo();
+  if (tuRMaAtiva) renderizarConteudo();
   else            renderizarBemVindo();
 }
 
-function calIrTurma(turmaId) {
+function calIrTuRMa(tuRMaId) {
   document.getElementById("btn-calendario")?.classList.remove("");
-  selecionarTurma(turmaId);
+  selecionarTuRMa(tuRMaId);
 }
 
-// ── Estrutura HTML fixa ───────────────────────────────────────
+// ── EsTRutura HTML fixa ───────────────────────────────────────
 function _calRender() {
   document.getElementById("conteudo-principal").innerHTML = `
     <div class="cal-painel">
@@ -105,7 +105,7 @@ function _calRender() {
           <div class="cal-legenda">
             <span class="cal-leg-item"><span class="cal-leg cal-leg-ad"></span>AD — Aula dada</span>
             <span class="cal-leg-item"><span class="cal-leg cal-leg-ch"></span>CH — Chamada</span>
-            <span class="cal-leg-item"><span class="cal-leg cal-leg-re"></span>RE — Registro</span>
+            <span class="cal-leg-item"><span class="cal-leg cal-leg-re"></span>RE — RegisTRo</span>
           </div>
         </div>
         <button class="btn-voltar" onclick="fecharCalendario()">← Voltar</button>
@@ -168,11 +168,11 @@ function calIrDia(isoDate) {
 //  Botões AD / CH / RE
 // ════════════════════════════════════════════════════════════
 function _calChecks(item, modo) {
-  const { turma, bim, slot, est } = item;
+  const { tuRMa, bim, slot, est } = item;
   const ad  = !!est.feita;
   const ch  = !!est.chamada;
-  const reg = !!est.conteudoEntregue;
-  const tid = turma.id, b = bim, sid = slot.slotId;
+  const reg = !!est.conteudoEnTRegue;
+  const tid = tuRMa.id, b = bim, sid = slot.slotId;
 
   const passada = slot.data < hoje();
   const btn = (campo, val, label, tipo) => {
@@ -181,7 +181,7 @@ function _calChecks(item, modo) {
     else if (passada) cls = "cal-chk-off cal-chk-passada";
     else              cls = "cal-chk-off cal-chk-fut";
     const ico   = val ? "✓" : "○";
-    const title = `${label}: ${val ? "feito — clique para desmarcar" : "não feito — clique para marcar"}`;
+    const title = `${label}: ${val ? "feito — clique para desmaRCar" : "não feito — clique para maRCar"}`;
     return `<button class="cal-chk cal-chk-${modo} ${cls}"
       title="${title}"
       onclick="event.stopPropagation(); calToggle('${tid}',${b},'${sid}','${campo}',${!val})"
@@ -191,7 +191,7 @@ function _calChecks(item, modo) {
   return `<div class="cal-checks-row cal-checks-${modo}">
     ${btn("feita",            ad,  "AD", "ad")}
     ${btn("chamada",          ch,  "CH", "ch")}
-    ${btn("conteudoEntregue", reg, "RE", "re")}
+    ${btn("conteudoEnTRegue", reg, "RE", "re")}
   </div>`;
 }
 
@@ -199,13 +199,13 @@ function _calChecks(item, modo) {
 //  CHIP COMPACTO — visão mês
 // ════════════════════════════════════════════════════════════
 function _calChipMes(item) {
-  const { turma, slot, est } = item;
-  const ad  = !!est.feita, ch = !!est.chamada, reg = !!est.conteudoEntregue;
+  const { tuRMa, slot, est } = item;
+  const ad  = !!est.feita, ch = !!est.chamada, reg = !!est.conteudoEnTRegue;
   const passada = slot.data < hoje();
   const cor = ad ? "chip-cor-ad" : (passada ? "chip-cor-pend" : "chip-cor-fut");
   return `<div class="cal-chip-mes ${cor}"
-    title="${turma.serie}ª ${turma.turma}${turma.subtitulo?" "+turma.subtitulo:""} · ${turma.sigla}&#10;${slot.label||slot.aula||""} ${slot.inicio}–${slot.fim}">
-    <span class="cpm-turma">${turma.serie}ª${turma.turma}<em>${turma.sigla}</em></span>
+    title="${tuRMa.serie}ª ${tuRMa.tuRMa}${tuRMa.subtitulo?" "+tuRMa.subtitulo:""} · ${tuRMa.sigla}&#10;${slot.label||slot.aula||""} ${slot.inicio}–${slot.fim}">
+    <span class="cpm-tuRMa">${tuRMa.serie}ª${tuRMa.tuRMa}<em>${tuRMa.sigla}</em></span>
     <span class="cpm-hora">${slot.inicio||""}</span>
     <span class="cpm-dots">
       <span class="dot ${ad  ? "dot-ad"  : "dot-off"}" title="AD">●</span>
@@ -219,14 +219,14 @@ function _calChipMes(item) {
 //  CARD SEMANA
 // ════════════════════════════════════════════════════════════
 function _calCardSem(item) {
-  const { turma, slot, est } = item;
+  const { tuRMa, slot, est } = item;
   const ad  = !!est.feita;
   const passada = slot.data < hoje();
   const cor = ad ? "chip-cor-ad" : (passada ? "chip-cor-pend" : "chip-cor-fut");
   return `<div class="cal-card-sem ${cor}">
-    <button class="ccs-topo cal-turma-link" onclick="calIrTurma('${turma.id}')" title="Abrir diário de classe: ${turma.serie}ª ${turma.turma} ${turma.disciplina}">
-      <span class="ccs-sigla">${turma.sigla}</span>
-      <span class="ccs-nome">${turma.serie}ª${turma.turma}${turma.subtitulo ? " "+turma.subtitulo : ""}</span>
+    <button class="ccs-topo cal-tuRMa-link" onclick="calIrTuRMa('${tuRMa.id}')" title="Abrir diário de classe: ${tuRMa.serie}ª ${tuRMa.tuRMa} ${tuRMa.disciplina}">
+      <span class="ccs-sigla">${tuRMa.sigla}</span>
+      <span class="ccs-nome">${tuRMa.serie}ª${tuRMa.tuRMa}${tuRMa.subtitulo ? " "+tuRMa.subtitulo : ""}</span>
       <span class="ccs-link-ico">↗</span>
     </button>
     ${_calChecks(item, "sm")}
@@ -237,22 +237,22 @@ function _calCardSem(item) {
 //  CARD DIA
 // ════════════════════════════════════════════════════════════
 function _calCardDia(item) {
-  const { turma, slot, est, bim } = item;
+  const { tuRMa, slot, est, bim } = item;
   const ad      = !!est.feita;
   const passada = slot.data < hoje();
   const cor     = ad ? "card-ad" : (passada ? "card-pend" : "card-fut");
   const status  = ad
     ? `✓ Dada${est.dataFeita ? " em " + fmtData(est.dataFeita) : ""}`
     : (passada ? "⚠ Pendente" : "—");
-  const conteudo = _calConteudo(turma, slot, bim);
+  const conteudo = _calConteudo(tuRMa, slot, bim);
 
   return `<div class="cal-card-dia ${cor}">
     <div class="ccd-topo">
-      <button class="ccd-info cal-turma-link" onclick="calIrTurma('${turma.id}')" title="Abrir diário de classe: ${turma.serie}ª ${turma.turma} ${turma.disciplina}">
-        <span class="ccd-sigla-badge">${turma.sigla}</span>
+      <button class="ccd-info cal-tuRMa-link" onclick="calIrTuRMa('${tuRMa.id}')" title="Abrir diário de classe: ${tuRMa.serie}ª ${tuRMa.tuRMa} ${tuRMa.disciplina}">
+        <span class="ccd-sigla-badge">${tuRMa.sigla}</span>
         <div class="ccd-nomes">
-          <span class="ccd-nome-turma">${turma.serie}ª Série ${turma.turma}${turma.subtitulo?" — "+turma.subtitulo:""}</span>
-          <span class="ccd-disciplina">${turma.disciplina}</span>
+          <span class="ccd-nome-tuRMa">${tuRMa.serie}ª Série ${tuRMa.tuRMa}${tuRMa.subtitulo?" — "+tuRMa.subtitulo:""}</span>
+          <span class="ccd-disciplina">${tuRMa.disciplina}</span>
         </div>
         <span class="ccd-link-ico">↗</span>
       </button>
@@ -287,7 +287,7 @@ function _calRenderMes() {
       const aulas  = calAulasNoDia(iso);
       const MAX    = 4;
 
-      html += `<div class="cal-dia-cel${doMes?"":" cal-outro-mes"}${ehHoje?" cal-hoje":""}"
+      html += `<div class="cal-dia-cel${doMes?"":" cal-ouTRo-mes"}${ehHoje?" cal-hoje":""}"
                onclick="calIrDia('${iso}')">
         <div class="cal-dia-num-wrap">
           <span class="cal-dia-num${ehHoje?" cal-hoje-num":""}">${cur.getDate()}</span>
@@ -422,7 +422,7 @@ function _calRenderDia() {
 
   const nAd  = aulas.filter(a => a.est.feita).length;
   const nCh  = aulas.filter(a => a.est.chamada).length;
-  const nReg = aulas.filter(a => a.est.conteudoEntregue).length;
+  const nReg = aulas.filter(a => a.est.conteudoEnTRegue).length;
 
   let html = `<div class="cal-dia${ehHoje?" cal-dia-hoje":""}">
     <div class="cal-dia-resumo">
@@ -440,7 +440,7 @@ function _calRenderDia() {
       <div class="cal-dia-bloco-header">
         <span class="cdb-nome">${grupo.label}</span>
         ${grupo.inicio?`<span class="cdb-hora">${grupo.inicio}${grupo.fim?" – "+grupo.fim:""}</span>`:""}
-        <span class="cdb-n">${grupo.itens.length} turma${grupo.itens.length>1?"s":""}</span>
+        <span class="cdb-n">${grupo.itens.length} tuRMa${grupo.itens.length>1?"s":""}</span>
       </div>
       <div class="cal-dia-cards">
         ${grupo.itens.map(item => _calCardDia(item)).join("")}

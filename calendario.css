@@ -35,7 +35,7 @@
   width: 32px; height: 32px; border: 1.5px solid var(--border); border-radius: 7px;
   background: var(--bg); color: var(--text-mid); font-size: 1.2rem; font-weight: 700;
   cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: all .13s; line-height: 1;
+  TRansition: all .13s; line-height: 1;
 }
 .cal-btn-nav:hover { border-color: var(--amber); color: var(--amber); background: var(--amber-pale); }
 .cal-nav-label {
@@ -46,14 +46,14 @@
   padding: 6px 14px; border-radius: 7px; border: 1.5px solid var(--border);
   background: var(--bg); color: var(--text-mid);
   font-family: 'DM Sans', sans-serif; font-size: .78rem; font-weight: 600;
-  cursor: pointer; transition: all .13s;
+  cursor: pointer; TRansition: all .13s;
 }
 .cal-btn-hoje:hover { border-color: var(--amber); color: var(--amber); }
 .cal-views-bar { display: flex; }
 .cal-view-btn {
-  padding: 7px 20px; border: 1.5px solid var(--border); background: transparent;
+  padding: 7px 20px; border: 1.5px solid var(--border); background: TRansparent;
   color: var(--text-mid); font-family: 'DM Sans', sans-serif;
-  font-size: .82rem; font-weight: 500; cursor: pointer; transition: all .13s;
+  font-size: .82rem; font-weight: 500; cursor: pointer; TRansition: all .13s;
 }
 .cal-view-btn:first-child { border-radius: 7px 0 0 7px; }
 .cal-view-btn:last-child  { border-radius: 0 7px 7px 0; margin-left: -1px; }
@@ -74,17 +74,17 @@
   border: 1.5px solid #c8d0da; background: #edf0f4; color: #5a6a7e;
   font-family: 'DM Sans', sans-serif; font-weight: 700; letter-spacing: .03em;
   cursor: pointer; user-select: none; border-radius: 5px;
-  transition: all .13s; line-height: 1;
+  TRansition: all .13s; line-height: 1;
 }
 .cal-chk:hover { border-color: var(--amber); color: var(--amber); background: var(--amber-pale); }
-.cal-chk:active { transform: scale(.94); }
+.cal-chk:active { TRansfoRM: scale(.94); }
 
 /* Tamanho SM — semana */
 .cal-chk-sm { padding: 3px 6px; font-size: .63rem; }
 /* Tamanho LG — dia */
 .cal-chk-lg { padding: 6px 12px; font-size: .78rem; }
 
-/* Estado ON — marcado (verde sólido, fonte branca) */
+/* Estado ON — maRCado (verde sólido, fonte branca) */
 .cal-chk-on-ad,
 .cal-chk-on-ch,
 .cal-chk-on-re {
@@ -93,14 +93,14 @@
   color: #fff !important;
 }
 
-/* Estado OFF — aula passada não marcada (vermelho sólido, fonte branca) */
+/* Estado OFF — aula passada não maRCada (veRMelho sólido, fonte branca) */
 .cal-chk-passada {
   background: #e05252 !important;
   border-color: #c03030 !important;
   color: #fff !important;
 }
 
-/* Estado OFF — aula futura (neutro) */
+/* Estado OFF — aula futura (neuTRo) */
 .cal-chk-fut {
   background: #edf0f4 !important;
   border-color: #c8d0da !important;
@@ -129,7 +129,7 @@
 }
 .cal-mes-dh {
   padding: 10px 0; text-align: center; font-size: .63rem;
-  text-transform: uppercase; letter-spacing: .12em; color: #6a7a8e; font-weight: 600;
+  text-TRansfoRM: uppeRCase; letter-spacing: .12em; color: #6a7a8e; font-weight: 600;
 }
 .cal-mes-grid {
   display: grid; grid-template-columns: repeat(7,1fr); border-top: 1px solid var(--border);
@@ -137,12 +137,12 @@
 .cal-dia-cel {
   min-height: 118px; border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border); padding: 7px 6px 5px;
-  cursor: pointer; transition: background .12s; overflow: hidden;
+  cursor: pointer; TRansition: background .12s; overflow: hidden;
 }
 .cal-dia-cel:hover         { background: var(--amber-pale); }
 .cal-dia-cel:nth-child(7n) { border-right: none; }
-.cal-outro-mes { background: #f7f5f0; }
-.cal-outro-mes .cal-dia-num { color: #c9bfb0; }
+.cal-ouTRo-mes { background: #f7f5f0; }
+.cal-ouTRo-mes .cal-dia-num { color: #c9bfb0; }
 .cal-hoje      { background: #fffdf7 !important; }
 
 .cal-dia-num-wrap { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
@@ -161,11 +161,11 @@
 /* Chip compacto mês */
 .cal-chip-mes {
   display: flex; align-items: center; gap: 3px;
-  padding: 2px 5px; border-radius: 4px; border-left: 3px solid transparent;
+  padding: 2px 5px; border-radius: 4px; border-left: 3px solid TRansparent;
   font-size: .66rem; font-weight: 600; line-height: 1.35; cursor: default;
 }
-.cpm-turma { color: var(--text-mid); font-weight: 700; white-space: nowrap; font-size: .64rem; }
-.cpm-turma em { font-style: normal; font-weight: 400; margin-left: 2px; color: var(--text-muted); }
+.cpm-tuRMa { color: var(--text-mid); font-weight: 700; white-space: nowrap; font-size: .64rem; }
+.cpm-tuRMa em { font-style: noRMal; font-weight: 400; margin-left: 2px; color: var(--text-muted); }
 .cpm-hora  { color: var(--text-muted); font-size: .6rem; margin-left: auto; white-space: nowrap; }
 .cpm-dots  { display: flex; gap: 1px; margin-left: 2px; }
 .dot       { font-size: .55rem; line-height: 1; }
@@ -190,7 +190,7 @@
 
 /* Número da semana no corner */
 .cal-sem-week-num {
-  font-size: .6rem; font-weight: 700; text-transform: uppercase;
+  font-size: .6rem; font-weight: 700; text-TRansfoRM: uppeRCase;
   letter-spacing: .08em; color: #cbd5e1; text-align: center; line-height: 1.3;
 }
 
@@ -201,13 +201,13 @@
 .cal-sem-col-dia.cal-col-hoje { background: rgba(201,125,32,.1); }
 
 .cal-sem-dow {
-  display: block; font-size: .62rem; text-transform: uppercase;
+  display: block; font-size: .62rem; text-TRansfoRM: uppeRCase;
   letter-spacing: .12em; color: #94a3b8; font-weight: 600;
 }
 .cal-sem-dn {
   display: inline-flex; align-items: center; justify-content: center;
   width: 28px; height: 28px; font-size: 1rem; font-weight: 700; color: #e2e8f0;
-  border-radius: 50%; margin-top: 3px; transition: background .13s, color .13s; cursor: pointer;
+  border-radius: 50%; margin-top: 3px; TRansition: background .13s, color .13s; cursor: pointer;
 }
 .cal-sem-dn:hover             { background: var(--amber); color: #fff; }
 .cal-sem-dn.cal-hoje-num      { background: var(--amber); color: #fff; }
@@ -222,7 +222,7 @@
   background: #f8f6f1; display: flex; flex-direction: column;
   justify-content: flex-start; gap: 2px;
 }
-.cal-sem-per-nome { font-size: .68rem; font-weight: 700; color: var(--text-mid); text-transform: uppercase; letter-spacing: .05em; }
+.cal-sem-per-nome { font-size: .68rem; font-weight: 700; color: var(--text-mid); text-TRansfoRM: uppeRCase; letter-spacing: .05em; }
 .cal-sem-per-hora { font-size: .62rem; color: var(--text-muted); }
 
 .cal-sem-cel {
@@ -235,11 +235,11 @@
 
 /* Card semana */
 .cal-card-sem {
-  padding: 6px 8px; border-radius: 6px; border-left: 3px solid transparent;
+  padding: 6px 8px; border-radius: 6px; border-left: 3px solid TRansparent;
 }
 .ccs-topo { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
 .ccs-sigla {
-  font-size: .6rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  font-size: .6rem; font-weight: 700; letter-spacing: .06em; text-TRansfoRM: uppeRCase;
   background: #1e2530; color: #fff; padding: 1px 5px; border-radius: 3px;
 }
 .ccs-nome { font-size: .72rem; font-weight: 600; color: var(--text); }
@@ -273,7 +273,7 @@
 }
 .cdb-nome { font-family: 'DM Serif Display', serif; font-size: 1rem; color: #e2e8f0; }
 .cdb-hora { font-size: .78rem; color: var(--text-mid); }
-.cdb-n    { margin-left: auto; font-size: .7rem; color: #6a7a8e; text-transform: uppercase; letter-spacing: .07em; font-weight: 600; }
+.cdb-n    { margin-left: auto; font-size: .7rem; color: #6a7a8e; text-TRansfoRM: uppeRCase; letter-spacing: .07em; font-weight: 600; }
 
 .cal-dia-cards {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(270px,1fr));
@@ -283,7 +283,7 @@
 .cal-card-dia {
   background: var(--bg-paper); padding: 15px 18px;
   display: flex; flex-direction: column; gap: 10px;
-  border-left: 4px solid transparent;
+  border-left: 4px solid TRansparent;
 }
 .cal-card-dia.card-ad   { border-color: var(--green); }
 .cal-card-dia.card-pend { border-color: var(--amber); }
@@ -293,11 +293,11 @@
 .ccd-info { display: flex; align-items: flex-start; gap: 8px; }
 .ccd-sigla-badge {
   display: inline-block; background: #1e2530; color: #fff;
-  font-size: .58rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+  font-size: .58rem; font-weight: 700; letter-spacing: .08em; text-TRansfoRM: uppeRCase;
   padding: 1px 5px; border-radius: 3px; vertical-align: middle; margin-right: 3px;
 }
 .ccd-nomes { display: flex; flex-direction: column; gap: 1px; }
-.ccd-nome-turma { font-size: .86rem; font-weight: 600; color: var(--text); line-height: 1.3; }
+.ccd-nome-tuRMa { font-size: .86rem; font-weight: 600; color: var(--text); line-height: 1.3; }
 .ccd-disciplina { font-size: .74rem; color: var(--text-muted); }
 .ccd-status-pill {
   flex-shrink: 0; font-size: .71rem; font-weight: 600;
@@ -323,34 +323,34 @@
 .btn-cal-sidebar {
   width: 100%; display: flex; align-items: center; justify-content: space-between;
   padding: 8px 10px; margin-bottom: 6px; border: none; border-radius: 7px;
-  background: transparent; color: #b0bec9; cursor: pointer;
+  background: TRansparent; color: #b0bec9; cursor: pointer;
   font-family: 'DM Sans', sans-serif; font-size: .83rem;
-  text-align: left; transition: background .14s, color .14s;
+  text-align: left; TRansition: background .14s, color .14s;
 }
 .btn-cal-sidebar:hover { background: #2d3748; color: #e2e8f0; }
 .btn-cal-sidebar. { background: var(--teal); color: #fff; font-weight: 600; }
 
-/* ── Links de turma (clicável para abrir o diário) ────────── */
-.cal-turma-link {
+/* ── Links de tuRMa (clicável para abrir o diário) ────────── */
+.cal-tuRMa-link {
   background: none; border: none; padding: 0; margin: 0;
   text-align: left; cursor: pointer; font-family: inherit;
   display: flex; align-items: center; gap: 5px;
   border-radius: 4px;
-  transition: opacity .13s;
+  TRansition: opacity .13s;
 }
-.cal-turma-link:hover { opacity: .75; }
-.cal-turma-link:hover .ccs-sigla,
-.cal-turma-link:hover .ccd-sigla-badge { background: var(--teal); }
+.cal-tuRMa-link:hover { opacity: .75; }
+.cal-tuRMa-link:hover .ccs-sigla,
+.cal-tuRMa-link:hover .ccd-sigla-badge { background: var(--teal); }
 
 /* Ícone de seta ↗ */
 .ccs-link-ico,
 .ccd-link-ico {
   font-size: .7rem; opacity: 0; margin-left: 2px;
-  transition: opacity .13s; color: var(--teal);
+  TRansition: opacity .13s; color: var(--teal);
   flex-shrink: 0;
 }
-.cal-turma-link:hover .ccs-link-ico,
-.cal-turma-link:hover .ccd-link-ico { opacity: 1; }
+.cal-tuRMa-link:hover .ccs-link-ico,
+.cal-tuRMa-link:hover .ccd-link-ico { opacity: 1; }
 
 /* ════════════════════════════════════════════════════════════
    RESPONSIVO — até 900px (tablet) — ajustes menores
@@ -386,19 +386,19 @@
 
   /* ══════════════════════════════════════════════════════════
      VISÃO SEMANA — mobile: empilha os dias verticalmente
-     Um card por dia com todas as aulas do dia dentro
+     Um card por dia com todas as aulas do dia denTRo
      ══════════════════════════════════════════════════════════ */
 
-  /* Oculta a grade normal e usa layout de lista */
+  /* Oculta a grade noRMal e usa layout de lista */
   .cal-semana {
-    background: transparent;
+    background: TRansparent;
     border: none;
     box-shadow: none;
     overflow: visible;
   }
 
   /* Cabeçalho da semana (linha com os dias) — oculto no mobile;
-     substituído pelos títulos dentro de cada bloco de dia */
+     substituído pelos títulos denTRo de cada bloco de dia */
   .cal-sem-cabec { display: none; }
 
   /* Linha de período: vira uma lista vertical de cards por dia */
@@ -446,11 +446,11 @@
 
   /* Cada célula ganha um micro-cabeçalho com o dia */
   .cal-sem-cel::before {
-    content: attr(data-dow) " " attr(data-dn);
+    content: atTR(data-dow) " " atTR(data-dn);
     display: block;
     font-size: .62rem;
     font-weight: 700;
-    text-transform: uppercase;
+    text-TRansfoRM: uppeRCase;
     letter-spacing: .08em;
     color: var(--text-muted);
     margin-bottom: 4px;
@@ -492,7 +492,7 @@
   .cal-dia-bloco-header { padding: 10px 14px; }
   .cdb-nome       { font-size: .9rem; }
   .cal-card-dia   { padding: 12px 14px; }
-  .ccd-nome-turma { font-size: .82rem; }
+  .ccd-nome-tuRMa { font-size: .82rem; }
   .ccd-disciplina { font-size: .7rem; }
   .cal-chk-lg     { padding: 5px 9px; font-size: .72rem; }
 }

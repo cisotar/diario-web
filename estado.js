@@ -1,990 +1,990 @@
 // ESTADO.JS — Estado das aulas (feita, chamada, AD, CH, RE) — Exportado em 19/03/2026, 09:57:17
 
-// Para restaurar: localStorage.setItem("aulaEstado_SEU_UID", JSON.stringify(ESTADO));
+// Para restaurar: localStorage.setItem("aulaEstado_SEU_UID", JSON.sTRingify(ESTADO));
 
 const ESTADO = {
   "1A_GEO_b1_sr0": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true,
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema."
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema."
   },
   "1A_GEO_b1_sr23": {},
   "1A_GEO_b1_sr22": {},
   "1A_GEO_b1_sr21": {},
   "1A_GEO_b1_sr20": {},
   "1A_GEO_b1_sr1": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "chamada": true,
-    "conteudoEntregue": true
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2A_SOC_b1_sr8": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2A_SOC_b1_sr9": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "conteudoEntregue": true,
-    "chamada": true
+    "conteudoEnTRegue": TRue,
+    "chamada": TRue
   },
   "2A_SOC_b1_sr7": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "conteudoEntregue": true,
-    "chamada": true
+    "conteudoEnTRegue": TRue,
+    "chamada": TRue
   },
   "2A_SOC_b1_sr6": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2A_SOC_b1_sr5": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2A_SOC_b1_sr0": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2A_SOC_b1_sr1": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2A_SOC_b1_sr2": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2A_SOC_b1_sr3": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2A_SOC_b1_sr4": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1A_GEO_b1_sr2": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1A_GEO_b1_sr3": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1A_GEO_b1_sr4": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1A_GEO_b1_sr5": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1A_GEO_b1_sr6": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1A_GEO_b1_sr7": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1A_GEO_b1_sr8": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1B_GEO_b1_sr0": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true,
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema."
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema."
   },
   "1B_GEO_b1_sr1": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true,
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema."
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema."
   },
   "1B_GEO_b1_sr2": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true,
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema."
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema."
   },
   "1B_GEO_b1_sr3": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true,
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema."
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema."
   },
   "1B_GEO_b1_sr4": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true,
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema."
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema."
   },
   "1B_GEO_b1_sr5": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true,
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema."
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema."
   },
   "1B_GEO_b1_sr7": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true,
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema."
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema."
   },
   "1B_GEO_b1_sr6": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true,
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema."
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema."
   },
   "1B_GEO_b1_sr8": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_GEO_b1_sr0": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_GEO_b1_sr1": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_GEO_b1_sr2": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_GEO_b1_sr3": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_GEO_b1_sr4": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_GEO_b1_sr5": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_GEO_b1_sr6": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_GEO_b1_sr7": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_GEO_b1_sr8": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1D_GEO_b1_sr1": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1D_GEO_b1_sr2": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1D_GEO_b1_sr3": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1D_GEO_b1_sr4": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1D_GEO_b1_sr5": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1D_GEO_b1_sr6": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1D_GEO_b1_sr7": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1D_GEO_b1_sr8": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1D_GEO_b1_sr9": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1D_GEO_b1_sr0": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1E_GEO_b1_sr0": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1E_GEO_b1_sr1": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1E_GEO_b1_sr2": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1E_GEO_b1_sr3": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1E_GEO_b1_sr4": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1E_GEO_b1_sr5": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1E_GEO_b1_sr6": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1E_GEO_b1_sr7": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1E_GEO_b1_sr8": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1E_GEO_b1_sr9": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_GEO_b1_sr9": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-07",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1E_GEO_b1_sr10": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1A_GEO_b1_sr9": {
-    "anotacao": "Marcação de AD tardia, a partir da implementação desse sistema.",
-    "feita": true,
+    "anotacao": "MaRCação de AD tardia, a partir da implementação desse sistema.",
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_SOC_b1_sr9": {
     "feita": false,
     "dataFeita": null,
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2C_GEO_b1_sr9": {
     "feita": false,
     "dataFeita": null,
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "3B_ATUAL_b1_sr9": {
     "feita": false,
     "dataFeita": null,
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_GEO_b1_sr9": {
     "feita": false,
     "dataFeita": null,
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2A_GEO_b1_sr9": {
     "feita": false,
     "dataFeita": null,
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2C_SOC_b1_sr9": {
     "feita": false,
     "dataFeita": null,
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2C_GEO_b1_sr11": {
     "feita": false,
     "dataFeita": null,
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_SOC_b1_sr1": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2C_GEO_b1_sr1": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2C_SOC_b1_sr0": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2A_GEO_b1_sr0": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_GEO_b1_sr0": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_SOC_b1_sr0": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "3B_ATUAL_b1_sr1": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2C_GEO_b1_sr0": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_GEO_b1_sr1": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "3B_ATUAL_b1_sr0": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2A_GEO_b1_sr1": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2C_SOC_b1_sr1": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2A_SOC_b4_sr0": {
     "feita": false,
     "dataFeita": null
   },
   "2A_SOC_b1_sr10": {
-    "conteudoEntregue": true,
-    "chamada": true,
+    "conteudoEnTRegue": TRue,
+    "chamada": TRue,
     "feita": false,
     "dataFeita": null
   },
   "1A_GEO_b1_sr10": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1A_GEO_b1_sr11": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-09",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2C_SOC_b1_sr2": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-10",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2C_SOC_b1_sr3": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-10",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2C_SOC_b1_sr4": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-10",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2C_SOC_b1_sr6": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-10",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2C_SOC_b1_sr7": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-10",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2C_SOC_b1_sr8": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-10",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2C_SOC_b1_sr5": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-10",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_SOC_b1_sr2": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-10",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_SOC_b1_sr3": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-10",
-    "conteudoEntregue": true,
-    "chamada": true
+    "conteudoEnTRegue": TRue,
+    "chamada": TRue
   },
   "2B_SOC_b1_sr4": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-10",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_SOC_b1_sr5": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-10",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_SOC_b1_sr6": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-10",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_SOC_b1_sr7": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-10",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_SOC_b1_sr8": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-10",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_GEO_b1_sr2": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-10",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_GEO_b1_sr3": {
-    "conteudoEntregue": true,
-    "feita": true,
+    "conteudoEnTRegue": TRue,
+    "feita": TRue,
     "dataFeita": "2026-03-10",
-    "chamada": true
+    "chamada": TRue
   },
   "2B_GEO_b1_sr4": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-10",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_GEO_b1_sr5": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-10",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_GEO_b1_sr6": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-10",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_GEO_b1_sr7": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-10",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_GEO_b1_sr8": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-10",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_GEO_b1_sr10": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2C_SOC_b1_sr10": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2C_GEO_b1_sr10": {
-    "chamada": true,
-    "conteudoEntregue": true,
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
     "feita": false,
     "dataFeita": null
   },
   "3B_ATUAL_b1_sr10": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2C_GEO_b1_sr8": {
-    "chamada": true,
-    "conteudoEntregue": true,
-    "feita": true,
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "feita": TRue,
     "dataFeita": "2026-03-11"
   },
   "3B_ATUAL_b1_sr8": {
-    "chamada": true,
-    "conteudoEntregue": true,
-    "feita": true,
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "feita": TRue,
     "dataFeita": "2026-03-11"
   },
   "1B_GEO_b1_sr9": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1B_GEO_b1_sr10": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_GEO_b1_sr10": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2A_GEO_b1_sr2": {
-    "chamada": true,
-    "conteudoEntregue": true,
-    "feita": true,
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "feita": TRue,
     "dataFeita": "2026-03-11"
   },
   "2A_GEO_b1_sr3": {
-    "chamada": true,
-    "conteudoEntregue": true,
-    "feita": true,
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "feita": TRue,
     "dataFeita": "2026-03-11"
   },
   "2A_GEO_b1_sr4": {
-    "chamada": true,
-    "conteudoEntregue": true,
-    "feita": true,
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "feita": TRue,
     "dataFeita": "2026-03-11"
   },
   "2A_GEO_b1_sr5": {
-    "chamada": true,
-    "conteudoEntregue": true,
-    "feita": true,
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "feita": TRue,
     "dataFeita": "2026-03-11"
   },
   "2A_GEO_b1_sr6": {
-    "chamada": true,
-    "conteudoEntregue": true,
-    "feita": true,
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "feita": TRue,
     "dataFeita": "2026-03-11"
   },
   "2A_GEO_b1_sr8": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2C_GEO_b1_sr7": {
-    "chamada": true,
-    "conteudoEntregue": true,
-    "feita": true,
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "feita": TRue,
     "dataFeita": "2026-03-11"
   },
   "3B_ATUAL_b1_sr7": {
-    "chamada": true,
-    "conteudoEntregue": true,
-    "feita": true,
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "feita": TRue,
     "dataFeita": "2026-03-11"
   },
   "2A_GEO_b1_sr7": {
-    "chamada": true,
-    "conteudoEntregue": true,
-    "feita": true,
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "feita": TRue,
     "dataFeita": "2026-03-12"
   },
   "3B_ATUAL_b1_sr6": {
-    "chamada": true,
-    "conteudoEntregue": true,
-    "feita": true,
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "feita": TRue,
     "dataFeita": "2026-03-11"
   },
   "2C_GEO_b1_sr6": {
-    "chamada": true,
-    "conteudoEntregue": true,
-    "feita": true,
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "feita": TRue,
     "dataFeita": "2026-03-11"
   },
   "2C_GEO_b1_sr5": {
-    "chamada": true,
-    "conteudoEntregue": true,
-    "feita": true,
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "feita": TRue,
     "dataFeita": "2026-03-11"
   },
   "2C_GEO_b1_sr4": {
-    "chamada": true,
-    "conteudoEntregue": true,
-    "feita": true,
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "feita": TRue,
     "dataFeita": "2026-03-11"
   },
   "2C_GEO_b1_sr3": {
-    "chamada": true,
-    "conteudoEntregue": true,
-    "feita": true,
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "feita": TRue,
     "dataFeita": "2026-03-11"
   },
   "2C_GEO_b1_sr2": {
-    "chamada": true,
-    "conteudoEntregue": true,
-    "feita": true,
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "feita": TRue,
     "dataFeita": "2026-03-11"
   },
   "3B_ATUAL_b1_sr4": {
-    "chamada": true,
-    "conteudoEntregue": true,
-    "feita": true,
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "feita": TRue,
     "dataFeita": "2026-03-11"
   },
   "3B_ATUAL_b1_sr2": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-11",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "3B_ATUAL_b1_sr3": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-11",
-    "conteudoEntregue": true,
-    "chamada": true
+    "conteudoEnTRegue": TRue,
+    "chamada": TRue
   },
   "3B_ATUAL_b1_sr5": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-11",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2A_GEO_b1_sr10": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_SOC_b1_sr10": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1D_GEO_b1_sr10": {
-    "chamada": true,
-    "conteudoEntregue": true,
-    "feita": true,
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "feita": TRue,
     "dataFeita": "2026-03-18"
   },
   "1B_GEO_b1_sr11": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1D_GEO_b1_sr11": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_GEO_b1_sr11": {
     "chamada": false,
-    "conteudoEntregue": false
+    "conteudoEnTRegue": false
   },
   "2B_SOC_b1_sr11": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1E_GEO_b1_sr11": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "3B_ATUAL_b1_sr11": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_GEO_b1_sr11": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2A_GEO_b1_sr11": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2C_SOC_b1_sr11": {
-    "conteudoEntregue": true,
-    "chamada": true
+    "conteudoEnTRegue": TRue,
+    "chamada": TRue
   },
   "2A_SOC_b1_sr11": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1A_D1_glob_b1_sr0": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1A_D1_glob_b1_sr2": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1A_D1_glob_b1_sr1": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1A_D1_glob_b1_sr3": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1A_D1_glob_b1_sr4": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true,
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
     "detalhe": "Aula 1 - Climatologia e meteorologia"
   },
   "1A_D1_glob_b1_sr5": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true,
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
     "detalhe": "Aula 2 - Atmosfera"
   },
   "1A_D1_glob_b1_sr6": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true,
-    "detalhe": "Aula 3 - Elementos e controles climáticos"
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue,
+    "detalhe": "Aula 3 - Elementos e conTRoles climáticos"
   },
   "1A_D1_glob_b1_sr7": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1A_D1_glob_b1_sr8": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1A_D1_glob_b1_sr9": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1A_D1_glob_b1_sr10": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1A_D1_glob_b1_sr11": {
     "feita": false,
     "dataFeita": null,
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1A_D1_glob_b1_sr12": {
     "feita": false,
     "dataFeita": null,
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1A_D1_glob_b1_sr13": {
     "feita": false,
     "dataFeita": null,
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1A_D1_glob_b1_sr14": {
     "feita": false,
     "dataFeita": null,
     "chamada": false,
-    "conteudoEntregue": false
+    "conteudoEnTRegue": false
   },
   "1A_D1_glob_b1_sr15": {
     "feita": false,
     "dataFeita": null,
     "chamada": false,
-    "conteudoEntregue": false
+    "conteudoEnTRegue": false
   },
   "1A_D1_glob_b1_sr16": {
     "feita": false,
     "dataFeita": null,
     "chamada": false,
-    "conteudoEntregue": false
+    "conteudoEnTRegue": false
   },
   "1A_D1_glob_b1_sr17": {
     "feita": false,
@@ -1015,189 +1015,189 @@ const ESTADO = {
     "dataFeita": null
   },
   "1B_D1_glob_b1_sr0": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1B_D1_glob_b1_sr1": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1B_D1_glob_b1_sr2": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1B_D1_glob_b1_sr3": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1B_D1_glob_b1_sr4": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1B_D1_glob_b1_sr5": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1B_D1_glob_b1_sr6": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1B_D1_glob_b1_sr7": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1B_D1_glob_b1_sr8": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1B_D1_glob_b1_sr9": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1B_D1_glob_b1_sr10": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1B_D1_glob_b1_sr12": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1B_D1_glob_b1_sr11": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_D1_glob_b1_sr0": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_D1_glob_b1_sr1": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_D1_glob_b1_sr2": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_D1_glob_b1_sr3": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_D1_glob_b1_sr4": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_D1_glob_b1_sr5": {
-    "feita": true,
+    "feita": TRue,
     "dataFeita": "2026-03-18",
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_D1_glob_b1_sr12": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_D1_glob_b1_sr6": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_D1_glob_b1_sr7": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_D1_glob_b1_sr8": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_D1_glob_b1_sr9": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_D1_glob_b1_sr10": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_D1_glob_b1_sr11": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_SOC_b1_sr13": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1C_D1_glob_b1_sr13": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1B_D1_glob_b1_sr13": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1D_GEO_b1_sr12": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1D_GEO_b1_sr13": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "1E_GEO_b1_sr12": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2A_GEO_b1_sr12": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_GEO_b1_sr12": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2B_SOC_b1_sr12": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2C_GEO_b1_sr12": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "2C_SOC_b1_sr12": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   },
   "3B_ATUAL_b1_sr12": {
-    "chamada": true,
-    "conteudoEntregue": true
+    "chamada": TRue,
+    "conteudoEnTRegue": TRue
   }
 };

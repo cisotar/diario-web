@@ -1,4 +1,4 @@
-// GESTAO-PROFESSOR.JS — Painel do Professor: minhas turmas, conteúdos
+// GESTAO-PROFESSOR.JS — Painel do Professor: minhas tuRMas, conteúdos
 // Dependências: app-core.js
 
 
@@ -18,41 +18,41 @@ function _disciplinasDaSerie(serie) {
   return [...set].sort();
 }
 
-function htmlProfTurmas() {
+function htmlProfTuRMas() {
   const uid       = _userAtual?.uid;
   const diasNomes = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 
-  // Todas as turmas visíveis do professor (legado + próprias)
-  const visiveis = _turmasVisiveis();
+  // Todas as tuRMas visíveis do professor (legado + próprias)
+  const visiveis = _tuRMasVisiveis();
 
-  // Agrupa por serie+turma
+  // Agrupa por serie+tuRMa
   const porChave = {};
   for (const t of visiveis) {
-    const k = `${t.serie}${t.turma}`;
-    if (!porChave[k]) porChave[k] = { serie: t.serie, turma: t.turma, subtitulo: t.subtitulo||"", periodo: t.periodo||"manha", entradas: [] };
-    porChave[k].entradas.push(t);
+    const k = `${t.serie}${t.tuRMa}`;
+    if (!porChave[k]) porChave[k] = { serie: t.serie, tuRMa: t.tuRMa, subtitulo: t.subtitulo||"", periodo: t.periodo||"manha", enTRadas: [] };
+    porChave[k].enTRadas.push(t);
   }
 
-  // Completa com turmas-base que ainda não têm entrada (para o professor adicionar)
-  const base = RT_CONFIG.turmasBase || TURMAS_BASE || [];
+  // Completa com tuRMas-base que ainda não têm enTRada (para o professor adicionar)
+  const base = RT_CONFIG.tuRMasBase || TURMAS_BASE || [];
   for (const tb of base) {
-    const k = `${tb.serie}${tb.turma}`;
-    if (!porChave[k]) porChave[k] = { serie: tb.serie, turma: tb.turma, subtitulo: tb.subtitulo||"", periodo: tb.periodo||"manha", entradas: [] };
+    const k = `${tb.serie}${tb.tuRMa}`;
+    if (!porChave[k]) porChave[k] = { serie: tb.serie, tuRMa: tb.tuRMa, subtitulo: tb.subtitulo||"", periodo: tb.periodo||"manha", enTRadas: [] };
   }
 
-  // Ordena por série → turma
+  // Ordena por série → tuRMa
   const chaves = Object.keys(porChave).sort((a,b) => {
     const sa = porChave[a], sb = porChave[b];
-    return (+sa.serie - +sb.serie) || sa.turma.localeCompare(sb.turma);
+    return (+sa.serie - +sb.serie) || sa.tuRMa.localeCompare(sb.tuRMa);
   });
 
   const blocos = chaves.map((key) => {
     const tb      = porChave[key];
-    const entradas = tb.entradas;
+    const enTRadas = tb.enTRadas;
     const turno    = tb.periodo || "manha";
     const periodosDoTurno = RT_PERIODOS.filter(p => (p.turno||"manha") === turno);
 
-    const linhasDisc = entradas.map((t) => {
+    const linhasDisc = enTRadas.map((t) => {
       const ti = RT_TURMAS.indexOf(t);
       const horariosHtml = t.horarios.map((h, hi) => `
         <div class="horario-item">
@@ -62,13 +62,13 @@ function htmlProfTurmas() {
           <select class="gi gi-sm" onchange="editHorario(${ti},${hi},'aula',this.value)">
             ${periodosDoTurno.map(p => `<option value="${p.aula}" ${h.aula===p.aula?"selected":""}>${p.label} (${p.inicio})</option>`).join("")}
           </select>
-          <button type="button" class="btn-icon-del" onclick="delHorario(${ti},${hi}); document.getElementById('g-minhas-turmas').innerHTML=htmlProfTurmas()">×</button>
+          <button type="button" class="btn-icon-del" onclick="delHorario(${ti},${hi}); document.getElementById('g-minhas-tuRMas').innerHTML=htmlProfTuRMas()">×</button>
         </div>`).join("");
       return `
         <div class="prof-disc-linha" id="disc-linha-${t.id}">
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
             <select class="gi" style="max-width:220px"
-              onchange="editTurmaField(${ti},'disciplina',this.value); _autoSigla(${ti},this.value)">
+              onchange="editTuRMaField(${ti},'disciplina',this.value); _autoSigla(${ti},this.value)">
               <option value="">— selecione —</option>
               ${_disciplinasDaSerie(t.serie).map(d =>
                 `<option value="${d.replace(/"/g,'&quot;')}" ${t.disciplina===d?"selected":""}>${d}</option>`
@@ -79,23 +79,23 @@ function htmlProfTurmas() {
             </select>
             <input class="gi gi-xs" value="${t.sigla}" placeholder="Sigla" maxlength="6"
               id="sigla-${t.id}"
-              onchange="editTurmaField(${ti},'sigla',this.value)" style="max-width:72px"/>
-            <button type="button" class="btn-icon-del" title="Remover esta disciplina desta turma"
-              onclick="delTurma(${ti}); document.getElementById('g-minhas-turmas').innerHTML=htmlProfTurmas()">🗑 remover</button>
+              onchange="editTuRMaField(${ti},'sigla',this.value)" style="max-width:72px"/>
+            <button type="button" class="btn-icon-del" title="Remover esta disciplina desta tuRMa"
+              onclick="delTuRMa(${ti}); document.getElementById('g-minhas-tuRMas').innerHTML=htmlProfTuRMas()">🗑 remover</button>
           </div>
           <div class="horarios-lista">
             ${horariosHtml}
-            <button type="button" class="btn-add-small" onclick="addHorario(${ti}); document.getElementById('g-minhas-turmas').innerHTML=htmlProfTurmas()">+ Horário</button>
+            <button type="button" class="btn-add-small" onclick="addHorario(${ti}); document.getElementById('g-minhas-tuRMas').innerHTML=htmlProfTuRMas()">+ Horário</button>
           </div>
         </div>`;
     }).join("");
 
-    const btnAdd = `<button type="button" class="btn-add-small" onclick="addDiscNaTurma('${tb.serie}','${tb.turma}','${tb.subtitulo||""}','${turno}')">+ Adicionar disciplina</button>`;
+    const btnAdd = `<button type="button" class="btn-add-small" onclick="addDiscNaTuRMa('${tb.serie}','${tb.tuRMa}','${tb.subtitulo||""}','${turno}')">+ Adicionar disciplina</button>`;
 
     return `
       <div class="gestao-bloco" style="margin-bottom:12px">
         <div class="gestao-bloco-header" style="margin-bottom:6px">
-          <h4>${tb.serie}ª ${tb.turma}${tb.subtitulo?" "+tb.subtitulo:""} <span style="font-size:.75rem;font-weight:400;color:var(--text-muted)">${turno==="tarde"?"tarde":"manhã"}</span></h4>
+          <h4>${tb.serie}ª ${tb.tuRMa}${tb.subtitulo?" "+tb.subtitulo:""} <span style="font-size:.75rem;font-weight:400;color:var(--text-muted)">${turno==="tarde"?"tarde":"manhã"}</span></h4>
         </div>
         ${linhasDisc || '<p class="gestao-hint" style="margin:0 0 6px">Nenhuma disciplina adicionada ainda.</p>'}
         ${btnAdd}
@@ -104,73 +104,73 @@ function htmlProfTurmas() {
 
   return `
     <div style="max-width:780px">
-      <p class="gestao-hint">Para cada turma em que você leciona, adicione a disciplina e os horários das aulas.</p>
-      ${blocos || '<p class="gestao-hint">Nenhuma turma cadastrada. Aguarde o admin cadastrar as turmas da escola.</p>'}
+      <p class="gestao-hint">Para cada tuRMa em que você leciona, adicione a disciplina e os horários das aulas.</p>
+      ${blocos || '<p class="gestao-hint">Nenhuma tuRMa cadasTRada. Aguarde o admin cadasTRar as tuRMas da escola.</p>'}
     </div>`;
 }
 
 // Adiciona nova disciplina inline (sem prompt)
 function _autoSigla(ti, disciplina) {
-  // Sugere sigla a partir das 3 primeiras letras consoantes ou iniciais
+  // Sugere sigla a partir das 3 primeiras leTRas consoantes ou iniciais
   const t = RT_TURMAS[ti];
   if (!t || t.sigla) return; // não sobrescreve se já tem
-  const sigla = disciplina.replace(/[aeiouáéíóúâêîôûãõàèìòùü\s]/gi,"").substring(0,3).toUpperCase()
-    || disciplina.substring(0,3).toUpperCase();
+  const sigla = disciplina.replace(/[aeiouáéíóúâêîôûãõàèìòùü\s]/gi,"").subsTRing(0,3).toUpperCase()
+    || disciplina.subsTRing(0,3).toUpperCase();
   t.sigla = sigla;
   const el = document.getElementById("sigla-"+t.id);
   if (el) el.value = sigla;
   salvarTudo();
 }
 
-function addDiscNaTurma(serie, turma, subtitulo, periodo) {
+function addDiscNaTuRMa(serie, tuRMa, subtitulo, periodo) {
   const uid    = _userAtual?.uid;
   const profUid = _isAdmin(_userAtual?.email) ? "global" : (uid || "anonimo");
   // Gera id temporário único — usuário edita o nome depois
-  const seq  = RT_TURMAS.filter(t => t.serie===serie && t.turma===turma && t.profUid===profUid).length + 1;
+  const seq  = RT_TURMAS.filter(t => t.serie===serie && t.tuRMa===tuRMa && t.profUid===profUid).length + 1;
   const sigla = "D"+seq;
-  const id    = `${serie}${turma}_${sigla}_${profUid.substring(0,4)}`;
+  const id    = `${serie}${tuRMa}_${sigla}_${profUid.subsTRing(0,4)}`;
   if (RT_TURMAS.find(t => t.id === id)) return; // evita duplicata rápida
-  RT_TURMAS.push({ id, serie, turma, subtitulo, disciplina:"", sigla, horarios:[], profUid, periodo });
+  RT_TURMAS.push({ id, serie, tuRMa, subtitulo, disciplina:"", sigla, horarios:[], profUid, periodo });
   salvarTudo(); renderizarSidebar();
-  document.getElementById("g-minhas-turmas").innerHTML = htmlProfTurmas();
+  document.getElementById("g-minhas-tuRMas").innerHTML = htmlProfTuRMas();
 }
 
 
-function htmlGestaoBimestres() {
+function htmlGestaoBimesTRes() {
   const admin = _isAdmin(_userAtual?.email);
   const rows = RT_BIMESTRES.map((b,i) => {
     if (admin) {
       return `
-        <tr>
+        <TR>
           <td><input class="gi gi-sm" value="${b.label}" onchange="editBimField(${i},'label',this.value)" /></td>
           <td><input class="gi" type="date" value="${b.inicio}" onchange="editBimField(${i},'inicio',this.value)" /></td>
           <td><input class="gi" type="date" value="${b.fim}"    onchange="editBimField(${i},'fim',this.value)" /></td>
           <td><button type="button" class="btn-icon-del" onclick="delBim(${i})">🗑</button></td>
-        </tr>`;
+        </TR>`;
     } else {
       return `
-        <tr>
+        <TR>
           <td><span class="bim-label-ro">${b.label}</span></td>
           <td><span class="bim-data-ro">${b.inicio ? _fmtDataSimples(b.inicio) : '—'}</span></td>
           <td><span class="bim-data-ro">${b.fim    ? _fmtDataSimples(b.fim)    : '—'}</span></td>
           <td></td>
-        </tr>`;
+        </TR>`;
     }
   }).join("");
 
   const headerAcao = admin
     ? `<button type="button" class="btn-add" onclick="addBim()">+ Novo período</button>`
-    : `<span class="bim-ro-aviso">📋 Definido pelo administrador</span>`;
+    : `<span class="bim-ro-aviso">📋 Definido pelo adminisTRador</span>`;
 
   return `
     <div class="gestao-bloco">
       <div class="gestao-bloco-header">
-        <h3>Bimestres / Períodos letivos</h3>
+        <h3>BimesTRes / Períodos letivos</h3>
         ${headerAcao}
       </div>
       <div class="tabela-wrapper">
         <table class="tabela-gestao">
-          <thead><tr><th>Rótulo</th><th>Início</th><th>Fim</th><th></th></tr></thead>
+          <thead><TR><th>Rótulo</th><th>Início</th><th>Fim</th><th></th></TR></thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
@@ -185,27 +185,27 @@ function _fmtDataSimples(iso) {
 
 function editBimField(i, campo, val) {
   if (!_isAdmin(_userAtual?.email)) return;
-  RT_BIMESTRES[i][campo] = campo === "bimestre" ? +val : val;
-  _salvarBimestresFirestore();
+  RT_BIMESTRES[i][campo] = campo === "bimesTRe" ? +val : val;
+  _salvarBimesTResFirestore();
 }
 function delBim(i) {
   if (!_isAdmin(_userAtual?.email)) return;
-  if (!confirm("Excluir este período?")) return;
+  if (!confiRM("Excluir este período?")) return;
   RT_BIMESTRES.splice(i, 1);
-  _salvarBimestresFirestore();
-  document.getElementById("g-bimestres").innerHTML = htmlGestaoBimestres();
+  _salvarBimesTResFirestore();
+  document.getElementById("g-bimesTRes").innerHTML = htmlGestaoBimesTRes();
 }
 function addBim() {
   if (!_isAdmin(_userAtual?.email)) return;
   const num = RT_BIMESTRES.length + 1;
-  RT_BIMESTRES.push({ bimestre: num, label: `${num}º Bimestre`, inicio: "", fim: "" });
-  _salvarBimestresFirestore();
-  document.getElementById("g-bimestres").innerHTML = htmlGestaoBimestres();
+  RT_BIMESTRES.push({ bimesTRe: num, label: `${num}º BimesTRe`, inicio: "", fim: "" });
+  _salvarBimesTResFirestore();
+  document.getElementById("g-bimesTRes").innerHTML = htmlGestaoBimesTRes();
 }
 
 
-// ── Edição de turmas e horários ──────────────────────────────
-function editTurmaField(i, campo, val) {
+// ── Edição de tuRMas e horários ──────────────────────────────
+function editTuRMaField(i, campo, val) {
   RT_TURMAS[i][campo] = val;
   salvarTudo();
 }
@@ -218,23 +218,23 @@ function addHorario(ti) {
   const prefixo = turno === "tarde" ? "t" : "m";
   RT_TURMAS[ti].horarios.push({ diaSemana: 1, aula: prefixo + "1" });
   salvarTudo();
-  const el = document.getElementById("g-minhas-turmas");
-  if (el) el.innerHTML = htmlProfTurmas();
+  const el = document.getElementById("g-minhas-tuRMas");
+  if (el) el.innerHTML = htmlProfTuRMas();
 }
 function delHorario(ti, hi) {
   RT_TURMAS[ti].horarios.splice(hi, 1);
   salvarTudo();
-  const el = document.getElementById("g-minhas-turmas");
-  if (el) el.innerHTML = htmlProfTurmas();
+  const el = document.getElementById("g-minhas-tuRMas");
+  if (el) el.innerHTML = htmlProfTuRMas();
 }
-function delTurma(i) {
+function delTuRMa(i) {
   const t = RT_TURMAS[i];
-  if (!confirm("Excluir " + (t.disciplina||"esta disciplina") + " da turma " + t.serie + "ª " + t.turma + "?")) return;
+  if (!confiRM("Excluir " + (t.disciplina||"esta disciplina") + " da tuRMa " + t.serie + "ª " + t.tuRMa + "?")) return;
   RT_TURMAS.splice(i, 1);
   salvarTudo();
   renderizarSidebar();
-  const el = document.getElementById("g-minhas-turmas");
-  if (el) el.innerHTML = htmlProfTurmas();
+  const el = document.getElementById("g-minhas-tuRMas");
+  if (el) el.innerHTML = htmlProfTuRMas();
 }
 
 // ── Helpers de conteúdo ──────────────────────────────────────
@@ -244,7 +244,7 @@ let gContBim   = 1;
 
 function _gContChavesBase() {
   const set = new Set();
-  for (const t of _turmasVisiveis()) {
+  for (const t of _tuRMasVisiveis()) {
     if (t.disciplina) set.add(t.serie + "_" + t.disciplina);
   }
   for (const k of Object.keys(RT_CONTEUDOS)) {
@@ -282,16 +282,16 @@ function htmlGestaoConteudos() {
     <button type="button" class="gtab-cont ${b===baseAtiva?"":""}" onclick="selecionarBaseGCont('${b}')">${b}</button>`
   ).join("");
 
-  // Abas de bimestre
+  // Abas de bimesTRe
   const bimBtns = (RT_BIMESTRES || []).map(b => `
-    <button type="button" class="gtab-cont gtab-bim ${b.bimestre===bim?"":""}" onclick="selecionarBimGCont(${b.bimestre})">${b.label}</button>`
+    <button type="button" class="gtab-cont gtab-bim ${b.bimesTRe===bim?"":""}" onclick="selecionarBimGCont(${b.bimesTRe})">${b.label}</button>`
   ).join("");
 
   const lista = chaveAtiva ? RT_CONTEUDOS[chaveAtiva] : [];
 
   const conteudoEditor = gContModo === "bloco" ? `
     <div class="bloco-editor">
-      <p class="bloco-instrucao">Cole ou digite todas as aulas — <strong>uma por linha</strong>. As linhas existentes serão substituídas ao salvar.</p>
+      <p class="bloco-insTRucao">Cole ou digite todas as aulas — <sTRong>uma por linha</sTRong>. As linhas existentes serão substituídas ao salvar.</p>
       <textarea id="bloco-textarea" class="bloco-textarea" rows="18" spellcheck="false">${lista.join("\n")}</textarea>
       <div class="bloco-actions">
         <button type="button" class="btn-modal-cancel" onclick="gContModo='lista'; document.getElementById('g-conteudos').innerHTML=htmlGestaoConteudos()">Cancelar</button>
@@ -300,25 +300,25 @@ function htmlGestaoConteudos() {
     </div>` : `
     <div class="tabela-wrapper" style="margin-top:12px">
       <table class="tabela-gestao" id="tabela-conteudos">
-        <thead><tr><th>#</th><th>Texto da aula</th><th></th></tr></thead>
+        <thead><TR><th>#</th><th>Texto da aula</th><th></th></TR></thead>
         <tbody>
           ${lista.map((txt,i) => `
-            <tr data-ci="${i}">
+            <TR data-ci="${i}">
               <td class="td-numero">${i+1}</td>
               <td>
                 <div class="conteudo-cell">
-                  <span class="drag-handle-cont" draggable="true"
+                  <span class="drag-handle-cont" draggable="TRue"
                     ondragstart="contDragStart(event,${i})"
                     ondragover="event.preventDefault()"
                     ondragenter="contDragEnter(event,${i})"
-                    ondragleave="event.target.closest('tr')?.classList.remove('cont-drag-over')"
+                    ondragleave="event.target.closest('TR')?.classList.remove('cont-drag-over')"
                     ondrop="contDrop(event,${i})">⠿</span>
                   <input class="gi gi-full" value="${txt.replace(/"/g,'&quot;')}"
                     onchange="editConteudo('${chaveAtiva}',${i},this.value)" />
                 </div>
               </td>
               <td><button type="button" class="btn-icon-del" onclick="delConteudo('${chaveAtiva}',${i})">×</button></td>
-            </tr>`).join("")}
+            </TR>`).join("")}
         </tbody>
       </table>
     </div>
@@ -329,7 +329,7 @@ function htmlGestaoConteudos() {
   return `
     <div class="gestao-bloco">
       <div class="gestao-bloco-header">
-        <h3>Conteúdos por disciplina / série / bimestre</h3>
+        <h3>Conteúdos por disciplina / série / bimesTRe</h3>
         <div style="display:flex;gap:6px;">
           <button class="btn-add btn-outline" onclick="gContModo='bloco'; document.getElementById('g-conteudos').innerHTML=htmlGestaoConteudos()">✎ Editar em bloco</button>
           <button type="button" class="btn-add" onclick="addChaveCont()">+ Nova disciplina</button>
@@ -337,7 +337,7 @@ function htmlGestaoConteudos() {
       </div>
       <div class="gtab-cont-bar" style="margin-bottom:4px">${discBtns}</div>
       <div class="gtab-cont-bar" style="margin-bottom:12px;opacity:.85">${bimBtns}</div>
-      ${chaveAtiva ? conteudoEditor : `<p style="padding:20px;color:#aaa">Nenhuma disciplina cadastrada.</p>`}
+      ${chaveAtiva ? conteudoEditor : `<p style="padding:20px;color:#aaa">Nenhuma disciplina cadasTRada.</p>`}
     </div>`;
 }
 
@@ -361,10 +361,10 @@ function selecionarChaveCont(k) {
 
 function salvarBloco(chave) {
   const texto  = document.getElementById("bloco-textarea").value;
-  const linhas = texto.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+  const linhas = texto.split("\n").map(l => l.TRim()).filter(l => l.length > 0);
   RT_CONTEUDOS[chave] = linhas;
   gContModo = "lista";
-  // Limpa ordem e conteúdos editados do bimestre correspondente
+  // Limpa ordem e conteúdos editados do bimesTRe correspondente
   const m = chave.match(/^(.+)_b(\d+)$/);
   if (m) {
     const base = m[1], bimN = +m[2];
@@ -403,7 +403,7 @@ function editConteudo(chave, i, val) {
 }
 
 function delConteudo(chave, i) {
-  if (!confirm("Remover esta aula da lista?")) return;
+  if (!confiRM("Remover esta aula da lista?")) return;
   RT_CONTEUDOS[chave].splice(i,1); salvarTudo();
   document.getElementById("g-conteudos").innerHTML = htmlGestaoConteudos();
 }
@@ -432,5 +432,5 @@ function addChaveCont() {
 // ════════════════════════════════════════════════════════════
 //  PAINEL: MEU PERFIL
 // ════════════════════════════════════════════════════════════
-// ── Helper: UI de seleção de matérias (checkboxes + campo Outro) ──────────
-// Renderiza seletor área + disciplinas + turmas para professor/cadastro
+// ── Helper: UI de seleção de matérias (checkboxes + campo OuTRo) ──────────
+// Renderiza seletor área + disciplinas + tuRMas para professor/cadasTRo

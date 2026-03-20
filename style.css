@@ -1,5 +1,5 @@
 /* ============================================================
-   STYLE.CSS — Controle de Aulas v4
+   STYLE.CSS — ConTRole de Aulas v4
    Estética: Editorial Acadêmica · Ardósia + Âmbar
    Fontes: DM Serif Display + DM Sans
    ============================================================ */
@@ -78,7 +78,7 @@ body {
 }
 .header-tagline span:nth-child(1) {
   font-size: .72rem;
-  text-transform: uppercase;
+  text-TRansfoRM: uppeRCase;
   letter-spacing: .1em;
   color: #e2e8f0;
 }
@@ -112,7 +112,7 @@ body {
   flex-direction: column;
   padding: 16px 10px 24px;
   scrollbar-width: thin;
-  scrollbar-color: #3a4555 transparent;
+  scrollbar-color: #3a4555 TRansparent;
 }
 
 .sidebar::-webkit-scrollbar { width: 4px; }
@@ -120,7 +120,7 @@ body {
 
 .sidebar-titulo {
   font-size: .66rem;
-  text-transform: uppercase;
+  text-TRansfoRM: uppeRCase;
   letter-spacing: .14em;
   color: #94a3b8;
   font-weight: 600;
@@ -133,7 +133,7 @@ body {
 
 .sidebar-grupo-titulo {
   font-size: .64rem;
-  text-transform: uppercase;
+  text-TRansfoRM: uppeRCase;
   letter-spacing: .12em;
   color: #94a3b8;
   font-weight: 600;
@@ -148,12 +148,12 @@ body {
   padding: 8px 10px;
   border: none;
   border-radius: 7px;
-  background: transparent;
+  background: TRansparent;
   color: #e2e8f0;
   cursor: pointer;
   font-family: 'DM Sans', sans-serif;
   font-size: .83rem;
-  transition: background .14s, color .14s;
+  TRansition: background .14s, color .14s;
   margin-bottom: 2px;
   text-align: left;
 }
@@ -169,7 +169,7 @@ body {
 .sidebar-btn-disc {
   font-size: .62rem;
   font-weight: 700;
-  text-transform: uppercase;
+  text-TRansfoRM: uppeRCase;
   letter-spacing: .07em;
   background: #0d9488;
   color: #fff;
@@ -190,7 +190,7 @@ body {
   font-weight: 700;
   cursor: pointer;
   text-align: left;
-  transition: background .14s;
+  TRansition: background .14s;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -210,7 +210,7 @@ body {
   font-weight: 500;
   cursor: pointer;
   text-align: left;
-  transition: background .14s, color .14s;
+  TRansition: background .14s, color .14s;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -244,40 +244,40 @@ body {
 
 .bem-vindo p { font-size: .9rem; line-height: 1.7; color: var(--text-mid); }
 
-/* ── Header turma ───────────────────────────────────────── */
-.header-turma {
+/* ── Header tuRMa ───────────────────────────────────────── */
+.header-tuRMa {
   display: flex; align-items: center;
   justify-content: space-between;
   margin-bottom: 24px; gap: 16px; flex-wrap: wrap;
 }
 
-.header-turma-info { display: flex; align-items: center; gap: 14px; }
+.header-tuRMa-info { display: flex; align-items: center; gap: 14px; }
 
-.header-turma-badge {
+.header-tuRMa-badge {
   background: var(--amber); color: #fff;
   font-size: .72rem; font-weight: 700;
-  letter-spacing: .1em; text-transform: uppercase;
+  letter-spacing: .1em; text-TRansfoRM: uppeRCase;
   padding: 5px 12px; border-radius: 6px;
 }
 
-.header-turma-nome {
+.header-tuRMa-nome {
   font-family: 'DM Serif Display', serif;
   font-size: 1.75rem; line-height: 1.1;
 }
 
-.header-turma-disc { font-size: .92rem; color: var(--text-mid); margin-top: 3px; font-weight: 500; }
+.header-tuRMa-disc { font-size: .92rem; color: var(--text-mid); margin-top: 3px; font-weight: 500; }
 
 /* ── Stats ──────────────────────────────────────────────── */
-.stat-circulo { display: flex; align-items: center; gap: 10px; }
+.stat-ciRCulo { display: flex; align-items: center; gap: 10px; }
 
-.stat-svg { width: 64px; height: 64px; transform: rotate(-90deg); }
+.stat-svg { width: 64px; height: 64px; TRansfoRM: rotate(-90deg); }
 
-.stat-bg  { fill: none; stroke: #e2ddd5; stroke-width: 3.5; }
+.stat-bg  { fill: none; sTRoke: #e2ddd5; sTRoke-width: 3.5; }
 
 .stat-prog {
-  fill: none; stroke: var(--amber);
-  stroke-width: 3.5; stroke-linecap: round;
-  transition: stroke-dasharray .4s ease;
+  fill: none; sTRoke: var(--amber);
+  sTRoke-width: 3.5; sTRoke-linecap: round;
+  TRansition: sTRoke-dasharray .4s ease;
 }
 
 .stat-texto { display: flex; flex-direction: column; align-items: center; justify-content: center; }
@@ -289,21 +289,21 @@ body {
 
 .stat-label {
   font-size: .68rem; color: var(--text-muted);
-  margin-top: 2px; text-transform: uppercase; letter-spacing: .07em; font-weight: 500; text-align: center;
+  margin-top: 2px; text-TRansfoRM: uppeRCase; letter-spacing: .07em; font-weight: 500; text-align: center;
 }
 
-/* ── Tabs bimestre ──────────────────────────────────────── */
-.tabs-bimestre { display: flex; gap: 5px; margin-bottom: 12px; flex-wrap: wrap; }
+/* ── Tabs bimesTRe ──────────────────────────────────────── */
+.tabs-bimesTRe { display: flex; gap: 5px; margin-bottom: 12px; flex-wrap: wrap; }
 
 .tab-bim {
   padding: 6px 16px;
   border: 1.5px solid var(--border);
   border-radius: 18px;
-  background: transparent;
+  background: TRansparent;
   color: var(--text-mid);
   font-family: 'DM Sans', sans-serif;
   font-size: .8rem; font-weight: 500;
-  cursor: pointer; transition: all .14s;
+  cursor: pointer; TRansition: all .14s;
 }
 
 .tab-bim:hover { border-color: var(--amber); color: var(--amber); }
@@ -313,8 +313,8 @@ body {
   color: #fff; font-weight: 600;
 }
 
-/* ── Info bimestre ──────────────────────────────────────── */
-.bimestre-info {
+/* ── Info bimesTRe ──────────────────────────────────────── */
+.bimesTRe-info {
   display: flex; align-items: center;
   justify-content: space-between;
   font-size: .79rem; color: var(--text-muted);
@@ -325,7 +325,7 @@ body {
   flex-wrap: wrap; gap: 6px;
 }
 
-.bimestre-info-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bimesTRe-info-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 .hint-drag { font-size: .72rem; color: var(--text-muted); font-style: italic; font-weight: 500; }
 
@@ -353,7 +353,7 @@ body {
 .tabela-aulas th {
   padding: 12px 12px;
   text-align: center;
-  font-size: .63rem; text-transform: uppercase;
+  font-size: .63rem; text-TRansfoRM: uppeRCase;
   letter-spacing: .1em; font-weight: 600;
   white-space: nowrap;
   cursor: help;
@@ -367,7 +367,7 @@ body {
 .th-data     { width: 160px; text-align: left; }
 .th-sel      { width: 40px; text-align: center; cursor: default; }
 .th-conteudo { text-align: left; }
-.th-chamada, .th-dada, .th-registro, .th-entregue { width: 68px; text-align: center; }
+.th-chamada, .th-dada, .th-regisTRo, .th-enTRegue { width: 68px; text-align: center; }
 .th-dada-em  { width: 110px; }
 
 /* Tooltip das colunas */
@@ -389,8 +389,8 @@ body {
 }
 
 /* ── Estados das linhas ──────────────────────────────────── */
-.tabela-aulas tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
-.tabela-aulas tbody tr:last-child { border-bottom: none; }
+.tabela-aulas tbody TR { border-bottom: 1px solid var(--border); TRansition: background .1s; }
+.tabela-aulas tbody TR:last-child { border-bottom: none; }
 
 .row-futura   { background: #fff; }
 .row-futura:hover  { background: var(--blue-pale); }
@@ -453,12 +453,12 @@ body {
   font-family: 'DM Sans', sans-serif;
   font-size: .76rem;
   color: var(--text-mid);
-  background: transparent;
+  background: TRansparent;
   border: none;
   border-bottom: 1px dashed var(--border);
   border-radius: 0;
   outline: none;
-  transition: border-color .13s, background .13s, color .13s;
+  TRansition: border-color .13s, background .13s, color .13s;
 }
 
 .anotacao-input::placeholder { color: #bbc4ce; font-style: italic; }
@@ -480,20 +480,20 @@ body {
 .sel-btn {
   display: inline-flex; align-items: center; justify-content: center;
   width: 30px; height: 30px;
-  background: transparent;
-  border: 1.5px solid transparent;
+  background: TRansparent;
+  border: 1.5px solid TRansparent;
   border-radius: 6px;
   color: #c0cad6;
   font-size: 1rem;
   cursor: grab;
   user-select: none;
-  transition: background .12s, border-color .12s, color .12s;
+  TRansition: background .12s, border-color .12s, color .12s;
 }
 .sel-btn:active { cursor: grabbing; }
 .sel-btn:hover { background: var(--amber-pale); border-color: var(--amber); color: var(--amber); }
 .sel-btn.sel-btn- { background: var(--amber); border-color: var(--amber); color: #fff; }
 .sel-btn.sel-btn-:active { cursor: grabbing; }
-tr:hover .sel-btn:not(.sel-btn-) { color: var(--text-mid); border-color: var(--border); }
+TR:hover .sel-btn:not(.sel-btn-) { color: var(--text-mid); border-color: var(--border); }
 
 .tag-eventual {
   display: inline-block;
@@ -505,7 +505,7 @@ tr:hover .sel-btn:not(.sel-btn-) { color: var(--text-mid); border-color: var(--b
 }
 
 /* ── Coluna conteúdo ────────────────────────────────────── */
-.td-conteudo { position: relative; transition: background .13s; }
+.td-conteudo { position: relative; TRansition: background .13s; }
 
 .conteudo-cell { display: flex; align-items: flex-start; gap: 5px; }
 
@@ -513,11 +513,11 @@ tr:hover .sel-btn:not(.sel-btn-) { color: var(--text-mid); border-color: var(--b
 .drag-handle-cont {
   flex-shrink: 0; font-size: .95rem; color: #94a3b2;
   cursor: pointer; user-select: none; padding: 2px 5px;
-  line-height: 1.45; border-radius: 4px; transition: color .13s, background .13s;
-  border: 1.5px solid transparent;
+  line-height: 1.45; border-radius: 4px; TRansition: color .13s, background .13s;
+  border: 1.5px solid TRansparent;
 }
 .drag-handle-cont:active { cursor: grabbing; }
-tr:hover .drag-handle-cont { color: var(--amber); }
+TR:hover .drag-handle-cont { color: var(--amber); }
 .drag-handle-cont.handle-sel {
   color: #fff !important;
   background: var(--amber);
@@ -528,8 +528,8 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   flex: 1; line-height: 1.45; color: var(--text);
   cursor: text; border-radius: 4px;
   padding: 2px 5px;
-  outline: 1.5px dashed transparent;
-  transition: background .12s, outline .12s;
+  outline: 1.5px dashed TRansparent;
+  TRansition: background .12s, outline .12s;
 }
 
 .conteudo-texto:hover {
@@ -556,7 +556,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   color: #b0bec9; font-size: 1rem;
   cursor: pointer; padding: 0 4px;
   line-height: 1; border-radius: 3px;
-  transition: color .13s;
+  TRansition: color .13s;
 }
 
 .btn-del-eventual:hover { color: var(--red); }
@@ -572,10 +572,10 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 }
 
 /* ── Checkboxes ─────────────────────────────────────────── */
-.td-check, .td-chamada, .td-entregue { text-align: center; }
+.td-check, .td-chamada, .td-enTRegue { text-align: center; }
 
-.td-registro { font-size: .79rem; color: var(--text-mid); white-space: nowrap; }
-.row-feita .td-registro { color: var(--green); font-weight: 600; }
+.td-regisTRo { font-size: .79rem; color: var(--text-mid); white-space: nowrap; }
+.row-feita .td-regisTRo { color: var(--green); font-weight: 600; }
 
 .checkbox-wrapper {
   display: inline-flex; align-items: center;
@@ -591,15 +591,15 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   border: 2px solid var(--border);
   border-radius: 5px; background: #fff;
   display: flex; align-items: center; justify-content: center;
-  transition: all .13s; flex-shrink: 0;
+  TRansition: all .13s; flex-shrink: 0;
 }
 
 .checkmark::after {
   content: ''; width: 5px; height: 9px;
-  border: 2px solid transparent;
+  border: 2px solid TRansparent;
   border-top: none; border-left: none;
-  transform: rotate(45deg) translateY(-1px);
-  transition: border-color .13s;
+  TRansfoRM: rotate(45deg) TRanslateY(-1px);
+  TRansition: border-color .13s;
 }
 
 .checkbox-wrapper input:checked + .checkmark {
@@ -608,7 +608,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 
 .checkbox-wrapper input:checked + .checkmark::after { border-color: #fff; }
 
-/* Checkmarks alterns (chamada=teal, entregue=blue) */
+/* Checkmarks alterns (chamada=teal, enTRegue=blue) */
 .checkmark-alt { border-radius: 50%; }
 
 .checkbox-wrapper input:checked + .checkmark-alt {
@@ -631,8 +631,8 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   padding: 8px 16px; border-radius: 7px;
   font-family: 'DM Sans', sans-serif;
   font-size: .8rem; font-weight: 600;
-  cursor: pointer; border: 1.5px solid transparent;
-  transition: all .13s;
+  cursor: pointer; border: 1.5px solid TRansparent;
+  TRansition: all .13s;
 }
 
 .btn-eventual      { background: var(--purple); color:#fff; border-color: var(--purple); }
@@ -644,10 +644,10 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .btn-exportar-js   { background: var(--teal); color:#fff; border-color: var(--teal); }
 .btn-exportar-js:hover { background: #0a5c60; }
 
-.btn-resetar-ordem { background: transparent; color: var(--text-mid); border-color: var(--border); }
+.btn-resetar-ordem { background: TRansparent; color: var(--text-mid); border-color: var(--border); }
 .btn-resetar-ordem:hover { border-color: var(--amber); color: var(--amber); }
 
-.btn-limpar { background: transparent; color: var(--text-muted); border-color: var(--border); }
+.btn-limpar { background: TRansparent; color: var(--text-muted); border-color: var(--border); }
 .btn-limpar:hover { border-color: var(--red); color: var(--red); }
 
 .sem-aulas { padding: 40px; text-align: center; color: var(--text-muted); font-size: .9rem; }
@@ -673,30 +673,30 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   font-size: 1.35rem; margin-bottom: 20px; color: var(--text);
 }
 
-.modal-form { display: flex; flex-direction: column; gap: 12px; margin-bottom: 22px; }
+.modal-foRM { display: flex; flex-direction: column; gap: 12px; margin-bottom: 22px; }
 
-.modal-form label {
+.modal-foRM label {
   display: flex; flex-direction: column;
   font-size: .8rem; font-weight: 600;
   color: var(--text-mid); gap: 4px;
 }
 
-.modal-form input, .modal-form textarea {
+.modal-foRM input, .modal-foRM textarea {
   padding: 8px 10px; border: 1.5px solid var(--border);
   border-radius: 6px; font-family: 'DM Sans', sans-serif;
   font-size: .875rem; color: var(--text);
-  outline: none; transition: border-color .13s;
+  outline: none; TRansition: border-color .13s;
 }
 
-.modal-form input:focus, .modal-form textarea:focus { border-color: var(--blue); }
-.modal-form textarea { resize: vertical; }
+.modal-foRM input:focus, .modal-foRM textarea:focus { border-color: var(--blue); }
+.modal-foRM textarea { resize: vertical; }
 
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
 
 .btn-modal-cancel {
   padding: 8px 18px; border-radius: 7px;
   border: 1.5px solid var(--border);
-  background: transparent; color: var(--text-mid);
+  background: TRansparent; color: var(--text-mid);
   font-family: 'DM Sans', sans-serif; font-size: .82rem;
   font-weight: 600; cursor: pointer;
 }
@@ -706,7 +706,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   background: var(--amber); color: #fff;
   border: none; font-family: 'DM Sans', sans-serif;
   font-size: .82rem; font-weight: 600; cursor: pointer;
-  transition: background .13s;
+  TRansition: background .13s;
 }
 
 .btn-modal-ok:hover { background: #b56e18; }
@@ -730,10 +730,10 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .btn-voltar {
   padding: 8px 18px; border-radius: 7px;
   border: 1.5px solid var(--border);
-  background: transparent; color: var(--text-mid);
+  background: TRansparent; color: var(--text-mid);
   font-family: 'DM Sans', sans-serif;
   font-size: .82rem; font-weight: 600;
-  cursor: pointer; transition: all .13s;
+  cursor: pointer; TRansition: all .13s;
 }
 
 .btn-voltar:hover { border-color: var(--amber); color: var(--amber); }
@@ -744,10 +744,10 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .gtab {
   padding: 8px 20px; border-radius: 8px;
   border: 1.5px solid var(--border);
-  background: transparent; color: var(--text-mid);
+  background: TRansparent; color: var(--text-mid);
   font-family: 'DM Sans', sans-serif;
   font-size: .83rem; font-weight: 500;
-  cursor: pointer; transition: all .13s;
+  cursor: pointer; TRansition: all .13s;
 }
 
 .gtab:hover { border-color: var(--amber); color: var(--amber); }
@@ -777,12 +777,12 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .tabela-gestao thead { background: #1e2530; color: #e2e8f0; }
 .tabela-gestao th {
   padding: 10px 12px; text-align: left;
-  font-size: .63rem; text-transform: uppercase;
+  font-size: .63rem; text-TRansfoRM: uppeRCase;
   letter-spacing: .1em; font-weight: 600;
 }
 .tabela-gestao td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
-.tabela-gestao tbody tr:last-child td { border-bottom: none; }
-.tabela-gestao tbody tr:hover { background: var(--blue-pale); }
+.tabela-gestao tbody TR:last-child td { border-bottom: none; }
+.tabela-gestao tbody TR:hover { background: var(--blue-pale); }
 
 /* Drag na lista de conteúdos */
 .cont-drag-over { outline: 2px dashed var(--amber); }
@@ -793,7 +793,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   border-radius: 5px; font-family: 'DM Sans', sans-serif;
   font-size: .83rem; color: var(--text);
   background: #fff; outline: none; width: 100%;
-  transition: border-color .12s;
+  TRansition: border-color .12s;
 }
 
 .gi:focus { border-color: var(--blue); }
@@ -812,16 +812,16 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   background: var(--amber); color: #fff;
   border: none; font-family: 'DM Sans', sans-serif;
   font-size: .8rem; font-weight: 600; cursor: pointer;
-  transition: background .13s;
+  TRansition: background .13s;
 }
 
 .btn-add:hover { background: #b56e18; }
 
 .btn-add-small {
   padding: 3px 10px; border-radius: 5px;
-  background: transparent; border: 1px dashed var(--border);
+  background: TRansparent; border: 1px dashed var(--border);
   color: var(--text-muted); font-family: 'DM Sans', sans-serif;
-  font-size: .75rem; cursor: pointer; transition: all .12s;
+  font-size: .75rem; cursor: pointer; TRansition: all .12s;
   margin-top: 3px;
 }
 
@@ -831,7 +831,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   background: none; border: none;
   color: #b0bec9; font-size: 1rem;
   cursor: pointer; padding: 2px 5px;
-  border-radius: 4px; transition: color .12s;
+  border-radius: 4px; TRansition: color .12s;
 }
 
 .btn-icon-del:hover { color: var(--red); }
@@ -842,10 +842,10 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .gtab-cont {
   padding: 5px 12px; border-radius: 6px;
   border: 1.5px solid var(--border);
-  background: transparent; color: var(--text-mid);
+  background: TRansparent; color: var(--text-mid);
   font-family: 'DM Sans', sans-serif;
   font-size: .77rem; font-weight: 500;
-  cursor: pointer; transition: all .12s;
+  cursor: pointer; TRansition: all .12s;
 }
 
 .gtab-cont:hover { border-color: var(--amber); color: var(--amber); }
@@ -857,17 +857,17 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 
 /* ── Animações ──────────────────────────────────────────── */
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; TRansfoRM: TRanslateY(10px); }
+  to   { opacity: 1; TRansfoRM: TRanslateY(0); }
 }
 
 @keyframes fadeBg {
   from { opacity: 0; } to { opacity: 1; }
 }
 
-.header-turma   { animation: fadeUp .22s ease both; }
-.tabs-bimestre  { animation: fadeUp .22s .04s ease both; }
-.bimestre-info  { animation: fadeUp .22s .07s ease both; }
+.header-tuRMa   { animation: fadeUp .22s ease both; }
+.tabs-bimesTRe  { animation: fadeUp .22s .04s ease both; }
+.bimesTRe-info  { animation: fadeUp .22s .07s ease both; }
 .tabela-wrapper { animation: fadeUp .22s .10s ease both; }
 .rodape-tabela  { animation: fadeUp .22s .14s ease both; }
 
@@ -880,20 +880,20 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   flex-shrink: 0;
   flex-direction: column; align-items: center; justify-content: center;
   gap: 5px; width: 38px; height: 38px;
-  background: transparent; border: none; border-radius: 7px;
+  background: TRansparent; border: none; border-radius: 7px;
   cursor: pointer; padding: 6px;
-  transition: background .13s;
+  TRansition: background .13s;
 }
 .btn-hamburger:hover { background: rgba(255,255,255,.08); }
 .btn-hamburger span {
   display: block; width: 20px; height: 2px;
   background: #e2e8f0; border-radius: 2px;
-  transition: transform .22s ease, opacity .22s ease;
+  TRansition: TRansfoRM .22s ease, opacity .22s ease;
 }
 /* animação X quando aberto */
-.btn-hamburger.aberto span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
-.btn-hamburger.aberto span:nth-child(2) { opacity: 0; transform: scaleX(0); }
-.btn-hamburger.aberto span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+.btn-hamburger.aberto span:nth-child(1) { TRansfoRM: TRanslateY(7px) rotate(45deg); }
+.btn-hamburger.aberto span:nth-child(2) { opacity: 0; TRansfoRM: scaleX(0); }
+.btn-hamburger.aberto span:nth-child(3) { TRansfoRM: TRanslateY(-7px) rotate(-45deg); }
 
 /* ─────────────────────────────────────────────────────────────
    MOBILE NAV — dropdown que desce do topo (oculto no desktop)
@@ -906,7 +906,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   background: #1a2030;
   border-bottom: 2px solid #2d3748;
   max-height: 0; overflow: hidden;
-  transition: max-height .3s cubic-bezier(.4,0,.2,1);
+  TRansition: max-height .3s cubic-bezier(.4,0,.2,1);
   box-shadow: 0 10px 30px rgba(0,0,0,.4);
 }
 .mob-nav.aberta { max-height: calc(100dvh - var(--header-h)); overflow-y: auto; }
@@ -916,18 +916,18 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   position: fixed; inset: 0; z-index: 110;
   background: rgba(0,0,0,.5);
   opacity: 0; pointer-events: none;
-  transition: opacity .2s;
+  TRansition: opacity .2s;
 }
 .mob-nav-overlay.visivel { opacity: 1; pointer-events: all; }
 
 /* Botões de ação rápida (Calendário, Gestão) */
 .mob-nav-acao {
   width: 100%; padding: 15px 20px;
-  background: transparent; border: none; border-bottom: 1px solid #2d3748;
+  background: TRansparent; border: none; border-bottom: 1px solid #2d3748;
   color: #e2e8f0; font-family: 'DM Sans', sans-serif;
   font-size: .9rem; font-weight: 600; text-align: left;
   cursor: pointer; display: flex; align-items: center; gap: 10px;
-  transition: background .13s, color .13s;
+  TRansition: background .13s, color .13s;
 }
 .mob-nav-acao:hover       { background: #2d3748; color: #fff; }
 .mob-nav-acao.       { background: #2d3748; color: #fff; }
@@ -939,37 +939,37 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 
 .mob-grp-header {
   width: 100%; padding: 12px 20px;
-  background: transparent; border: none;
+  background: TRansparent; border: none;
   color: #94a3b8; font-family: 'DM Sans', sans-serif;
-  font-size: .7rem; font-weight: 700; text-transform: uppercase;
+  font-size: .7rem; font-weight: 700; text-TRansfoRM: uppeRCase;
   letter-spacing: .12em; text-align: left; cursor: pointer;
   display: flex; justify-content: space-between; align-items: center;
-  transition: color .13s, background .13s;
+  TRansition: color .13s, background .13s;
 }
 .mob-grp-header:hover { color: #e2e8f0; background: #1e2530; }
-.mob-grp-arrow        { font-size: .75rem; transition: transform .18s; }
-.mob-grp.aberto .mob-grp-arrow { transform: rotate(180deg); }
+.mob-grp-arrow        { font-size: .75rem; TRansition: TRansfoRM .18s; }
+.mob-grp.aberto .mob-grp-arrow { TRansfoRM: rotate(180deg); }
 
 .mob-grp-lista { display: none; padding-bottom: 6px; }
 .mob-grp.aberto .mob-grp-lista { display: block; }
 
-.mob-turma-btn {
+.mob-tuRMa-btn {
   width: 100%; padding: 10px 20px 10px 32px;
-  background: transparent; border: none;
+  background: TRansparent; border: none;
   color: #e2e8f0; font-family: 'DM Sans', sans-serif; font-size: .88rem;
   text-align: left; cursor: pointer;
   display: flex; align-items: center; justify-content: space-between;
-  transition: background .13s, color .13s;
+  TRansition: background .13s, color .13s;
 }
-.mob-turma-btn:hover { background: #252f3f; color: #fff; }
-.mob-turma-btn. { background: var(--amber); color: #fff; font-weight: 600; }
+.mob-tuRMa-btn:hover { background: #252f3f; color: #fff; }
+.mob-tuRMa-btn. { background: var(--amber); color: #fff; font-weight: 600; }
 
-.mob-turma-sigla {
+.mob-tuRMa-sigla {
   font-size: .62rem; font-weight: 700; letter-spacing: .07em;
   background: #0d9488; color: #fff;
   padding: 2px 6px; border-radius: 4px; flex-shrink: 0;
 }
-.mob-turma-btn. .mob-turma-sigla { background: rgba(255,255,255,.2); color: #fff; }
+.mob-tuRMa-btn. .mob-tuRMa-sigla { background: rgba(255,255,255,.2); color: #fff; }
 
 /* ─────────────────────────────────────────────────────────────
    RESPONSIVE — abaixo de 860px
@@ -983,7 +983,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   .mob-nav        { display: block; }
   .mob-nav-overlay { display: block; }
 
-  /* ── Header mobile: hambúrguer | logo centralizado | login ── */
+  /* ── Header mobile: hambúrguer | logo cenTRalizado | login ── */
   .app-header {
     padding: 0 10px;
     justify-content: space-between;
@@ -992,7 +992,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   .header-logo {
     position: absolute;
     left: 50%;
-    transform: translateX(-50%);
+    TRansfoRM: TRanslateX(-50%);
     font-size: 1.1rem;
     pointer-events: none; /* não bloqueia cliques nos botões laterais */
   }
@@ -1001,21 +1001,21 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   .app-layout   { overflow-x: hidden; }
   .main-content { margin-left: 0; padding: 14px 12px 60px; width: 100%; overflow-x: hidden; }
 
-  .header-turma { margin-bottom: 16px; }
-  .header-turma-nome { font-size: 1.2rem; }
-  .header-turma-badge { font-size: .68rem; padding: 4px 9px; }
+  .header-tuRMa { margin-bottom: 16px; }
+  .header-tuRMa-nome { font-size: 1.2rem; }
+  .header-tuRMa-badge { font-size: .68rem; padding: 4px 9px; }
 
   .stat-svg { width: 52px; height: 52px; }
   .stat-num { font-size: 1.1rem; }
 
-  .tabs-bimestre { gap: 4px; }
+  .tabs-bimesTRe { gap: 4px; }
   .tab-bim { padding: 5px 11px; font-size: .75rem; }
 
   .tabela-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .tabela-aulas { font-size: .76rem; min-width: 460px; }
   .tabela-aulas th, .tabela-aulas td { padding: 6px 6px; }
   .th-data, .td-data { display: none; }
-  .th-chamada, .th-dada, .th-registro, .th-entregue { width: 52px; }
+  .th-chamada, .th-dada, .th-regisTRo, .th-enTRegue { width: 52px; }
   .th-numero { width: 30px; }
 
   .rodape-tabela { gap: 8px; }
@@ -1035,7 +1035,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   .anotacao-input { display: none; }
 }
 
-/* ── Tela inicial mobile (lista de turmas) ──────────────── */
+/* ── Tela inicial mobile (lista de tuRMas) ──────────────── */
 .mob-home { padding: 8px 0 20px; }
 
 .mob-home-titulo {
@@ -1057,7 +1057,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .mob-home-serie-label {
   font-size: .62rem;
   font-weight: 700;
-  text-transform: uppercase;
+  text-TRansfoRM: uppeRCase;
   letter-spacing: .13em;
   color: var(--text-muted);
   margin-bottom: 8px;
@@ -1079,16 +1079,16 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   font-family: 'DM Sans', sans-serif;
   text-align: left;
   width: 100%;
-  transition: background .13s, transform .1s;
+  TRansition: background .13s, TRansfoRM .1s;
   box-shadow: var(--shadow);
 }
 
-.mob-home-card:active { transform: scale(.98); background: var(--amber-pale); }
+.mob-home-card:active { TRansfoRM: scale(.98); background: var(--amber-pale); }
 
 .mob-home-card-sigla {
   font-size: .68rem;
   font-weight: 700;
-  text-transform: uppercase;
+  text-TRansfoRM: uppeRCase;
   background: var(--amber);
   color: #fff;
   padding: 3px 8px;
@@ -1121,15 +1121,15 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   font-size: .88rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background .13s;
+  TRansition: background .13s;
 }
 
 .mob-home-cal-btn:active { background: #0a5c60; }
 
-/* ── Sidebar agrupada por turma ─────────────────────────── */
-.sidebar-turma-grupo { margin-bottom: 3px; }
+/* ── Sidebar agrupada por tuRMa ─────────────────────────── */
+.sidebar-tuRMa-grupo { margin-bottom: 3px; }
 
-.sidebar-turma-label {
+.sidebar-tuRMa-label {
   font-size: .68rem; color: #94a3b8;
   padding: 5px 10px 1px; font-weight: 600; letter-spacing: .05em;
 }
@@ -1140,7 +1140,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 /* ── Bloco editor de conteúdos ──────────────────────────── */
 .bloco-editor { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
 
-.bloco-instrucao {
+.bloco-insTRucao {
   font-size: .82rem; color: var(--text-mid);
   padding: 10px 14px;
   background: var(--amber-pale);
@@ -1155,7 +1155,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   color: var(--text); background: #fff;
   border: 1.5px solid var(--border);
   border-radius: 8px; outline: none; resize: vertical;
-  transition: border-color .13s;
+  TRansition: border-color .13s;
 }
 
 .bloco-textarea:focus {
@@ -1167,14 +1167,14 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 
 /* Botão outline */
 .btn-outline {
-  background: transparent !important;
+  background: TRansparent !important;
   color: var(--amber) !important;
   border: 1.5px solid var(--amber) !important;
 }
 .btn-outline:hover { background: var(--amber) !important; color: #fff !important; }
 
 /* ══════════════════════════════════════════════════════════
-   TELAS DE ACESSO (aguardando aprovação, cadastro, etc.)
+   TELAS DE ACESSO (aguardando aprovação, cadasTRo, etc.)
    ══════════════════════════════════════════════════════════ */
 .acesso-tela {
   display: flex; align-items: center; justify-content: center;
@@ -1211,52 +1211,52 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   border-radius: 6px; padding: 6px 14px;
 }
 
-.acesso-form {
+.acesso-foRM {
   width: 100%; display: flex; flex-direction: column;
   gap: 10px; text-align: left;
 }
 
-.acesso-form label {
+.acesso-foRM label {
   display: flex; flex-direction: column;
   font-size: .8rem; font-weight: 600;
   color: var(--text-mid); gap: 4px;
 }
 
-.acesso-form input {
+.acesso-foRM input {
   padding: 8px 10px; border: 1.5px solid var(--border);
   border-radius: 6px; font-family: 'DM Sans', sans-serif;
   font-size: .875rem; color: var(--text);
-  outline: none; transition: border-color .13s; width: 100%;
+  outline: none; TRansition: border-color .13s; width: 100%;
 }
 
-.acesso-form input:focus { border-color: var(--blue); }
+.acesso-foRM input:focus { border-color: var(--blue); }
 
 .acesso-btn-ok {
   padding: 10px 28px; border-radius: 8px;
   background: var(--amber); color: #fff;
   border: none; font-family: 'DM Sans', sans-serif;
   font-size: .88rem; font-weight: 600; cursor: pointer;
-  transition: background .13s; width: 100%;
+  TRansition: background .13s; width: 100%;
 }
 .acesso-btn-ok:hover { background: #b56e18; }
 
 .acesso-btn-sair {
   padding: 8px 20px; border-radius: 8px;
-  background: transparent; color: var(--text-muted);
+  background: TRansparent; color: var(--text-muted);
   border: 1.5px solid var(--border);
   font-family: 'DM Sans', sans-serif;
   font-size: .82rem; font-weight: 500; cursor: pointer;
-  transition: all .13s; width: 100%;
+  TRansition: all .13s; width: 100%;
 }
 .acesso-btn-sair:hover { border-color: var(--red); color: var(--red); }
 
 /* ── Painel de professores ─────────────────────────────── */
-.perfil-form {
+.perfil-foRM {
   display: flex; flex-direction: column; gap: 12px;
   max-width: 500px; margin-top: 4px;
 }
 
-.perfil-form label {
+.perfil-foRM label {
   display: flex; flex-direction: column;
   font-size: .8rem; font-weight: 600;
   color: var(--text-mid); gap: 4px;
@@ -1276,25 +1276,25 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   display: flex; align-items: center; gap: 6px;
   font-size: .82rem; font-weight: 500; color: var(--text);
   cursor: pointer; padding: 3px 6px;
-  border-radius: 5px; transition: background .12s;
+  border-radius: 5px; TRansition: background .12s;
 }
 .mat-check-label:hover { background: var(--amber-pale); }
 .mat-check-label input[type="checkbox"] {
   accent-color: var(--amber);
   width: 15px; height: 15px; cursor: pointer; flex-shrink: 0;
 }
-.mat-outro-label {
+.mat-ouTRo-label {
   display: flex; flex-direction: column;
   font-size: .8rem; font-weight: 600; color: var(--text-mid); gap: 4px;
 }
 
-.acesso-form .mat-group-label,
-.acesso-form .mat-outro-label { color: var(--text); }
-.acesso-form .mat-checks {
+.acesso-foRM .mat-group-label,
+.acesso-foRM .mat-ouTRo-label { color: var(--text); }
+.acesso-foRM .mat-checks {
   background: rgba(255,255,255,.08);
   border-color: rgba(255,255,255,.15);
 }
-.acesso-form .mat-check-label { color: var(--text); }
+.acesso-foRM .mat-check-label { color: var(--text); }
 
 .prof-status {
   display: inline-block; font-size: .73rem; font-weight: 600;
@@ -1311,7 +1311,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   vertical-align: middle; letter-spacing: .04em;
 }
 
-/* ── Bimestres somente leitura (não-admin) ──────────────── */
+/* ── BimesTRes somente leitura (não-admin) ──────────────── */
 .bim-label-ro {
   font-size: .85rem; font-weight: 600; color: var(--text);
 }
@@ -1330,7 +1330,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   display: inline-block;
   font-size: .7rem; font-weight: 700; letter-spacing: .04em;
   padding: 2px 7px; border-radius: 4px;
-  text-transform: uppercase;
+  text-TRansfoRM: uppeRCase;
 }
 .badge-coord {
   background: #ede9fe; color: #6d28d9;
@@ -1354,7 +1354,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .disc-area-label {
   font-size: .72rem;
   font-weight: 700;
-  text-transform: uppercase;
+  text-TRansfoRM: uppeRCase;
   letter-spacing: .08em;
   color: var(--text-muted);
 }
@@ -1378,11 +1378,11 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   font-size: .78rem;
   color: var(--text-mid);
 }
-.periodo-preview-item strong {
+.periodo-preview-item sTRong {
   color: var(--text);
 }
 
-/* ── Tabela turmas-base no cadastro ─────────────────────── */
+/* ── Tabela tuRMas-base no cadasTRo ─────────────────────── */
 .tb-linha td {
   vertical-align: middle;
   padding: 4px 6px;
@@ -1393,7 +1393,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 
 .periodo-preview-intervalo { background:var(--amber-light,#f0a84a22); border-color:var(--amber,#c97d20); color:var(--amber,#c97d20); font-size:.75rem; }
 
-/* ── Gestão de turmas: níveis / séries / turmas ─────────────── */
+/* ── Gestão de tuRMas: níveis / séries / tuRMas ─────────────── */
 .serie-bloco {
   border: 1px solid var(--border, #dde3ec);
   border-radius: 8px;
@@ -1408,23 +1408,23 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   background: var(--bg-paper, #faf8f3);
   border-bottom: 1px solid var(--border, #dde3ec);
 }
-.serie-bloco-header strong {
+.serie-bloco-header sTRong {
   flex: 1;
   font-size: .9rem;
 }
-.serie-turmas-wrap {
+.serie-tuRMas-wrap {
   padding: 8px 12px;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
-.turma-inline-linha {
+.tuRMa-inline-linha {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
-.turma-inline-label {
+.tuRMa-inline-label {
   font-size: .75rem;
   color: var(--text-muted);
   min-width: 38px;
@@ -1514,7 +1514,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   font-size: .85rem;
   color: var(--text-mid);
   cursor: pointer;
-  border-bottom-color: transparent;
+  border-bottom-color: TRansparent;
 }
 .tab-aba. {
   background: var(--bg);
@@ -1534,9 +1534,9 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .badge-sit-ok  { background: #e6f4ea; color: #2d7a4f; }
 .badge-sit-ab  { background: #fce8e8; color: #c0392b; }
 .badge-sit-nc  { background: #fff3cd; color: #856404; }
-.badge-sit-tr  { background: #e8f0fe; color: #1a73e8; }
-.badge-sit-rm  { background: #f3e8fd; color: #7b1fa2; }
-.badge-sit-rc  { background: #fce8f3; color: #c2185b; }
+.badge-sit-TR  { background: #e8f0fe; color: #1a73e8; }
+.badge-sit-RM  { background: #f3e8fd; color: #7b1fa2; }
+.badge-sit-RC  { background: #fce8f3; color: #c2185b; }
 
 .aluno-in td { opacity: .55; }
 
