@@ -1499,3 +1499,71 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   color: var(--teal, #0d7478);
   font-style: italic;
 }
+
+/* ── Abas cronograma / chamada ───────────────────────────────── */
+.tabs-cronograma-aba {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.tab-aba {
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: 6px 6px 0 0;
+  padding: 6px 16px;
+  font-size: .85rem;
+  color: var(--text-mid);
+  cursor: pointer;
+  border-bottom-color: transparent;
+}
+.tab-aba.ativo {
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 600;
+  border-bottom-color: var(--bg);
+}
+
+/* ── Badges de situação do aluno ────────────────────────────── */
+.badge-situacao {
+  display: inline-block;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: .75rem;
+  font-weight: 700;
+}
+.badge-sit-ok  { background: #e6f4ea; color: #2d7a4f; }
+.badge-sit-ab  { background: #fce8e8; color: #c0392b; }
+.badge-sit-nc  { background: #fff3cd; color: #856404; }
+.badge-sit-tr  { background: #e8f0fe; color: #1a73e8; }
+.badge-sit-rm  { background: #f3e8fd; color: #7b1fa2; }
+.badge-sit-rc  { background: #fce8f3; color: #c2185b; }
+
+.aluno-inativo td { opacity: .55; }
+
+/* ── Chamada: botões C/F ─────────────────────────────────────── */
+.btn-cf {
+  width: 28px;
+  height: 22px;
+  border: none;
+  border-radius: 4px;
+  font-size: .75rem;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+}
+.chk-comp { background: #e6f4ea; color: #2d7a4f; }
+.chk-comp:hover { background: #c8e6c9; }
+.chk-falta { background: #fce8e8; color: #c0392b; }
+.chk-falta:hover { background: #ffcdd2; }
+.th-data-sel { background: var(--amber-light, #f0a84a33) !important; }
+.th-mes-chamada {
+  text-align: center;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  padding: 4px 6px;
+  background: #1a2235;
+  color: #7dd3fc;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}

@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Diário de Classe · 2026</title>
-  <!-- favicon PNG embutido — funciona em todos os navegadores e favoritos -->
   <link rel="icon" type="image/png" href="favicon.png" />
   <link rel="apple-touch-icon" href="favicon.png" />
   <link rel="stylesheet" href="style.css" />
@@ -14,7 +13,6 @@
     .header-tagline {
       flex: 1;
       text-align: center;
-      /* evita sobrepor logo ou botão */
       min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -44,7 +42,6 @@
 <body>
 
   <header class="app-header">
-    <!-- hambúrguer: só aparece no mobile -->
     <button class="btn-hamburger" id="btn-hamburger" onclick="toggleMobileNav()" aria-label="Menu">
       <span></span><span></span><span></span>
     </button>
@@ -52,9 +49,6 @@
     <span class="header-tagline" id="header-tagline"></span>
   </header>
 
-  <!-- barra de navegação mobile (dropdown do topo) -->
-  <!-- "inert" substitui aria-hidden: bloqueia foco E oculta de leitores de tela,
-       evitando o erro "Blocked aria-hidden on a focused element" -->
   <nav class="mob-nav" id="mob-nav" inert>
     <button class="mob-nav-acao mob-nav-cal" onclick="abrirCalendario(); fecharMobileNav()" id="mob-btn-cal">
       📅 Calendário
@@ -67,22 +61,18 @@
   <div class="mob-nav-overlay" id="mob-nav-overlay" onclick="fecharMobileNav()"></div>
 
   <div class="app-layout">
-
     <aside class="sidebar" id="sidebar">
-      <!-- calendário no topo da sidebar -->
       <button class="btn-cal-sidebar" id="btn-calendario" onclick="abrirCalendario()">📅 Calendário</button>
       <div class="sidebar-titulo">Turmas</div>
       <div id="sidebar-turmas"></div>
       <button class="btn-gestao-sidebar" id="btn-gestao">⚙ Painel de Gestão</button>
     </aside>
-
     <main class="main-content">
       <div id="conteudo-principal"></div>
     </main>
-
   </div>
 
-  <!-- Firebase SDK (compat — funciona sem bundler/npm) -->
+  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -97,17 +87,65 @@
     });
   </script>
 
+  <!-- ── Dados estáticos ── -->
   <script src="bimestres.js"></script>
   <script src="turmas_global.js"></script>
   <script src="turmas.js"></script>
   <script src="conteudos.js"></script>
   <script src="periodos.js"></script>
   <script src="estado.js"></script>
-  <script src="app-core.js"></script>
+
+  <!-- ── Módulos do sistema ── -->
+  <script src="globals.js"></script>
+  <script src="db.js"></script>
+  <script src="auth.js"></script>
+  <script src="sidebar.js"></script>
+  <script src="cronograma.js"></script>
+  <script src="chamada.js"></script>
+  <script src="tala.js"></script>
+
+  <!-- ── Painéis de gestão ── -->
   <script src="gestao-escola.js"></script>
   <script src="gestao-professor.js"></script>
   <script src="gestao-usuarios.js"></script>
+
+  <!-- ── Calendário ── -->
   <script src="calendario.js"></script>
+
+  <!-- ── Listas de alunos por turma (pasta talas/) ── -->
+  <!-- Ensino Médio — 1ª série -->
+  <script src="talas/talas1a.js"></script>
+  <script src="talas/talas1b.js"></script>
+  <script src="talas/talas1c.js"></script>
+  <script src="talas/talas1d.js"></script>
+  <script src="talas/talas1e.js"></script>
+  <!-- Ensino Médio — 2ª série -->
+  <script src="talas/talas2a.js"></script>
+  <script src="talas/talas2b.js"></script>
+  <script src="talas/talas2c.js"></script>
+  <!-- Ensino Médio — 3ª série -->
+  <script src="talas/talas3a.js"></script>
+  <script src="talas/talas3b.js"></script>
+  <!-- Ensino Fundamental — 5º ano -->
+  <script src="talas/talas5a.js"></script>
+  <script src="talas/talas5b.js"></script>
+  <script src="talas/talas5c.js"></script>
+  <!-- Ensino Fundamental — 6º ano -->
+  <script src="talas/talas6a.js"></script>
+  <script src="talas/talas6b.js"></script>
+  <script src="talas/talas6c.js"></script>
+  <!-- Ensino Fundamental — 7º ano -->
+  <script src="talas/talas7a.js"></script>
+  <script src="talas/talas7b.js"></script>
+  <script src="talas/talas7c.js"></script>
+  <!-- Ensino Fundamental — 8º ano -->
+  <script src="talas/talas8a.js"></script>
+  <script src="talas/talas8b.js"></script>
+  <script src="talas/talas8c.js"></script>
+  <script src="talas/talas8d.js"></script>
+
+  <!-- ── Boot (deve ser o último — registra DOMContentLoaded) ── -->
+  <script src="boot.js"></script>
 
 </body>
 </html>

@@ -7,7 +7,48 @@
 
 let turmaAtiva    = null;
 let bimestreAtivo = null;
-let visaoDetalhada = false; // false = padrão, true = detalhada
+let visaoDetalhada = false;
+let RT_ALUNOS = {};  // { "1A": [{num,nome,matricula,situacao},...], ... }
+
+// Registry de alunos: os arquivos alunos_*.js registram aqui via _registrarAlunos()
+const _ALUNOS_REGISTRY = {};
+function _registrarAlunos(turmaKey, lista) {
+  _ALUNOS_REGISTRY[turmaKey.toUpperCase()] = lista;
+}
+function _seedAlunos(turmaKey) {
+  const k = turmaKey.replace(/[^A-Z0-9]/gi,"").toUpperCase();
+  // Tenta registry primeiro, depois window como fallback
+  if (_ALUNOS_REGISTRY[k]) return _ALUNOS_REGISTRY[k];
+  const nome = "ALUNOS_" + k;
+  return (typeof window !== "undefined" && window[nome]) ? window[nome] : [];
+}
+
+// Carrega alunos de uma turma: Firestore > seed
+async function _carregarAlunos(turmaKey) {
+  if (RT_ALUNOS[turmaKey]) return RT_ALUNOS[turmaKey];
+  // DEV mode: usa só o seed
+  if (!_DEV) {
+    try {
+      const snap = await firebase.firestore().collection("alunos").doc(turmaKey).get();
+      if (snap.exists && Array.isArray(snap.data().lista)) {
+        RT_ALUNOS[turmaKey] = snap.data().lista;
+        return RT_ALUNOS[turmaKey];
+      }
+    } catch(e) { console.warn("Erro ao carregar alunos:", e); }
+  }
+  // Fallback para seed
+  RT_ALUNOS[turmaKey] = JSON.parse(JSON.stringify(_seedAlunos(turmaKey)));
+  return RT_ALUNOS[turmaKey];
+}
+
+// Salva alunos de uma turma no Firestore
+async function _salvarAlunos(turmaKey) {
+  if (_DEV) { console.log("[DEV] _salvarAlunos — apenas memória"); return; }
+  try {
+    await firebase.firestore().collection("alunos").doc(turmaKey)
+      .set({ lista: RT_ALUNOS[turmaKey], _atualizado: new Date().toISOString() });
+  } catch(e) { console.warn("Erro ao salvar alunos:", e); }
+} // false = padrão, true = detalhada
 let estadoAulas = {};
 let ordemConteudos = {};
 let linhasEventuais = {};
@@ -1337,6 +1378,7 @@ function renderizarConteudo() {
   const pct = totalReg > 0 ? Math.round(feitas/totalReg*100) : 0;
   const tabsBim = RT_BIMESTRES.map(b => `
     <button class="tab-bim ${b.bimestre===bimestreAtivo?"ativo":""}" onclick="mudarBimestre(${b.bimestre})">${b.label}</button>`).join("");
+  const abaAtiva = window._abaCronograma || "cronograma";
   main.innerHTML = `
     <div class="header-turma">
       <div class="header-turma-info">
@@ -1367,7 +1409,15 @@ function renderizarConteudo() {
         </div>
       </div>
     </div>
-    <div class="tabs-bimestre">${tabsBim}</div>
+    <div class="tabs-cronograma-aba">
+      <button type="button" class="tab-aba ${abaAtiva==="cronograma"?"ativo":""}"
+        onclick="trocarAbaCronograma('cronograma')">📅 Cronograma</button>
+      <button type="button" class="tab-aba ${abaAtiva==="tala"?"ativo":""}"
+        onclick="trocarAbaCronograma('tala')">👥 Tala</button>
+      <button type="button" class="tab-aba ${abaAtiva==="chamada"?"ativo":""}"
+        onclick="trocarAbaCronograma('chamada')">✅ Chamada</button>
+    </div>
+    <div class="tabs-bimestre" style="${(abaAtiva==="chamada"||abaAtiva==="tala")?"display:none":""}">${tabsBim}</div>
     <div class="bimestre-info">
       <span>📅 ${bimObj.label}: ${fmtData(bimObj.inicio)} → ${fmtData(bimObj.fim)}</span>
       <div class="bimestre-info-right">
@@ -1375,6 +1425,15 @@ function renderizarConteudo() {
         <span class="pct-badge">${pct}% concluído</span>
       </div>
     </div>
+    <div id="secao-tala" style="${abaAtiva==="tala"?"":"display:none"}">
+      <div style="padding:20px;text-align:center;color:var(--text-muted)">⏳ Carregando lista de alunos…</div>
+    </div>
+    <div id="secao-chamada" style="${abaAtiva==="chamada"?"":"display:none"}">
+      <div style="padding:20px;text-align:center;color:var(--text-muted)">⏳ Carregando chamada…</div>
+    </div>
+      <div style="padding:20px;text-align:center;color:var(--text-muted)">⏳ Carregando lista de alunos…</div>
+    </div>
+    <div id="secao-cronograma" style="${abaAtiva==="chamada"?"display:none":""}">
     <div class="tabela-wrapper">
       ${total === 0
         ? `<div class="sem-aulas">Nenhuma aula prevista neste bimestre.</div>`
@@ -1410,6 +1469,7 @@ function renderizarConteudo() {
           </table>`
       }
     </div>
+    </div><!-- /secao-cronograma -->
     <div class="rodape-tabela">
       <div class="rodape-grupo">
         <button class="btn-eventual" onclick="abrirModalEventual()">+ Aula eventual</button>
@@ -1447,7 +1507,318 @@ function renderizarConteudo() {
   if (total > 0) renderizarLinhas(slots);
 }
 
+// ── Sistema de Chamadas ───────────────────────────────────────
+// Estrutura: RT_CHAMADAS[turmaKey][data][numAluno] = "C"|"F"
+let RT_CHAMADAS = {};
+
+async function _carregarChamadas(turmaKey) {
+  if (RT_CHAMADAS[turmaKey]) return RT_CHAMADAS[turmaKey];
+  if (!_DEV) {
+    try {
+      const snap = await firebase.firestore()
+        .collection("chamadas").doc(turmaKey).get();
+      if (snap.exists) {
+        RT_CHAMADAS[turmaKey] = snap.data().registros || {};
+        return RT_CHAMADAS[turmaKey];
+      }
+    } catch(e) { console.warn("Erro ao carregar chamadas:", e); }
+  }
+  RT_CHAMADAS[turmaKey] = {};
+  return RT_CHAMADAS[turmaKey];
+}
+
+async function _salvarChamadas(turmaKey) {
+  if (_DEV) { console.log("[DEV] _salvarChamadas — apenas memória"); return; }
+  try {
+    await firebase.firestore().collection("chamadas").doc(turmaKey)
+      .set({ registros: RT_CHAMADAS[turmaKey], _atualizado: new Date().toISOString() },
+           { merge: true });
+  } catch(e) { console.warn("Erro ao salvar chamadas:", e); }
+}
+
+// Data selecionada para chamada (padrão: hoje se for dia de aula, senão último dia de aula)
+let _dataChamadaSel = null;
+// Bimestre selecionado na aba de chamada (independente do bimestreAtivo do cronograma)
+let _bimestreChamadaSel = null;
+
+function _diasDeAulaNoBimestre(turmaId, bim) {
+  const slots = getSlotsCompletos(turmaId, bim).filter(s => !s.eventual);
+  // Datas únicas ordenadas
+  return [...new Set(slots.map(s => s.data))].sort();
+}
+
+async function renderizarChamadaFrequencia() {
+  const t      = turmaAtiva;
+  if (!t) return;
+  const secao  = document.getElementById("secao-chamada");
+  if (!secao) return;
+
+  const turmaKey = t.serie + t.turma;
+  const alunos   = await _carregarAlunos(turmaKey);
+  const chamadas = await _carregarChamadas(turmaKey);
+  const hoje_str = hoje();
+
+  // Inicializa bimestre da chamada com o bimestre ativo do cronograma
+  if (!_bimestreChamadaSel) _bimestreChamadaSel = bimestreAtivo;
+  const bimObj = RT_BIMESTRES.find(b => b.bimestre === _bimestreChamadaSel) || RT_BIMESTRES[0];
+
+  // Todos os dias de aula da turma no bimestre selecionado
+  const datas = _diasDeAulaNoBimestre(t.id, _bimestreChamadaSel);
+
+  // Data selecionada: padrão hoje se for dia de aula, senão último dia de aula passado
+  if (!_dataChamadaSel || !datas.includes(_dataChamadaSel)) {
+    _dataChamadaSel = datas.includes(hoje_str)
+      ? hoje_str
+      : [...datas].reverse().find(d => d <= hoje_str) || datas[0] || hoje_str;
+  }
+
+  // Alunos ativos (sem situação de saída)
+  const alunosAtivos = alunos.filter(a => !["AB","TR","RM","RC"].includes(a.situacao));
+
+  // ── Seletor de data (para marcar chamada individual) ──
+  const datasOpts = datas.map(d =>
+    `<option value="${d}" ${d===_dataChamadaSel?"selected":""}>${fmtData(d)}</option>`
+  ).join("");
+
+  // ── Datas visíveis: filtra pelo bimestre selecionado (inicio → fim) ──
+  // Exibe todas as datas do bimestre até hoje; do futuro, mostra as próximas 2
+  const datasVisiveis = datas.filter(d => d >= bimObj.inicio && d <= bimObj.fim && d <= hoje_str)
+    .concat(datas.filter(d => d >= bimObj.inicio && d <= bimObj.fim && d > hoje_str).slice(0, 2));
+
+  // ── Cabeçalho duplo: linha 1 = meses agrupados; linha 2 = dias ──
+  // Agrupa datas por mês para calcular colspan
+  const gruposMes = [];
+  for (const d of datasVisiveis) {
+    const [ano, mes] = d.split("-");
+    const chave = `${ano}-${mes}`;
+    const labelMes = NOMES_MES[+mes - 1].charAt(0).toUpperCase() + NOMES_MES[+mes - 1].slice(1) + "/" + ano;
+    if (!gruposMes.length || gruposMes[gruposMes.length - 1].chave !== chave) {
+      gruposMes.push({ chave, label: labelMes, count: 1 });
+    } else {
+      gruposMes[gruposMes.length - 1].count++;
+    }
+  }
+
+  const thMeses = gruposMes.map(m =>
+    `<th colspan="${m.count}" class="th-mes-chamada">${m.label}</th>`
+  ).join("");
+
+  const thDias = datasVisiveis.map(d => {
+    const isSel = d === _dataChamadaSel;
+    const isPast = d <= hoje_str;
+    const dia = d.split("-")[2];
+    return `<th class="th-data-chamada ${isSel ? "th-data-sel" : ""}" style="min-width:36px;font-size:.75rem;padding:2px 3px;text-align:center">
+      ${dia}
+      ${isPast ? `<div style="display:flex;gap:1px;justify-content:center;margin-top:2px">
+        <button type="button" class="btn-lote" style="font-size:.55rem;padding:1px 2px"
+          onclick="chamadaTodosData('${turmaKey}','${d}','C')">C</button>
+        <button type="button" class="btn-lote btn-lote-off" style="font-size:.55rem;padding:1px 2px"
+          onclick="chamadaTodosData('${turmaKey}','${d}','F')">F</button>
+      </div>` : ""}
+    </th>`;
+  }).join("");
+
+  const rows = alunosAtivos.map(a => {
+    const tds = datasVisiveis.map(d => {
+      const isPast = d <= hoje_str;
+      const val = (chamadas[d] || {})[a.num] || (isPast ? "C" : "");
+      if (!val) return `<td></td>`;
+      const cls = val === "F" ? "chk-falta" : "chk-comp";
+      return `<td style="text-align:center">
+        ${isPast ? `<button type="button" class="btn-cf ${cls}"
+          onclick="toggleChamada('${turmaKey}','${d}',${a.num})">${val}</button>` : ""}
+      </td>`;
+    }).join("");
+
+    // Situação do aluno
+    const sit = a.situacao
+      ? `<span class="badge-situacao badge-sit-${a.situacao.toLowerCase()}">${a.situacao}</span>`
+      : "";
+
+    return `<tr>
+      <td class="td-numero">${a.num}</td>
+      <td style="font-size:.82rem">${a.nome||"—"} ${sit}</td>
+      ${tds}
+    </tr>`;
+  }).join("");
+
+  // Abas de bimestre para filtro da chamada
+  const tabsBimChamada = RT_BIMESTRES.map(b =>
+    `<button type="button" class="tab-bim ${b.bimestre === _bimestreChamadaSel ? "ativo" : ""}"
+      onclick="_bimestreChamadaSel=${b.bimestre};_dataChamadaSel=null;renderizarChamadaFrequencia()">${b.label}</button>`
+  ).join("");
+
+  secao.innerHTML = `
+    <div class="gestao-bloco">
+      <div class="gestao-bloco-header" style="flex-wrap:wrap;gap:8px">
+        <h3>Chamada — ${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""}</h3>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <label style="font-size:.8rem">Marcar data:
+            <select class="gi gi-sm" onchange="_dataChamadaSel=this.value;renderizarChamadaFrequencia()">
+              ${datasOpts}
+            </select>
+          </label>
+          <button type="button" class="btn-add"
+            onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','C')">✓ Todos C</button>
+          <button type="button" class="btn-add" style="background:var(--text-muted)"
+            onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','F')">✗ Todos F</button>
+        </div>
+      </div>
+      <div class="tabs-bimestre" style="margin-bottom:8px">${tabsBimChamada}</div>
+      <div style="overflow-x:auto">
+        <table class="tabela-gestao" style="min-width:0">
+          <thead>
+            <tr>
+              <th style="width:36px" rowspan="2">Nº</th>
+              <th rowspan="2">Nome</th>
+              ${thMeses}
+            </tr>
+            <tr>
+              ${thDias}
+            </tr>
+          </thead>
+          <tbody>${rows || '<tr><td colspan="10" class="td-vazio">Nenhum aluno ativo.</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+async function toggleChamada(turmaKey, data, numAluno) {
+  const chamadas = await _carregarChamadas(turmaKey);
+  if (!chamadas[data]) chamadas[data] = {};
+  chamadas[data][numAluno] = (chamadas[data][numAluno] === "F") ? "C" : "F";
+  await _salvarChamadas(turmaKey);
+  renderizarChamadaFrequencia();
+}
+
+async function chamadaTodosData(turmaKey, data, valor) {
+  const [alunos, chamadas] = await Promise.all([
+    _carregarAlunos(turmaKey),
+    _carregarChamadas(turmaKey),
+  ]);
+  if (!chamadas[data]) chamadas[data] = {};
+  const ativos = alunos.filter(a => !["AB","TR","RM","RC"].includes(a.situacao));
+  for (const a of ativos) chamadas[data][a.num] = valor;
+  await _salvarChamadas(turmaKey);
+  renderizarChamadaFrequencia();
+}
+
+
 // ── Visão detalhada ──────────────────────────────────────────
+// ── Aba Chamada ──────────────────────────────────────────────
+function trocarAbaCronograma(aba) {
+  window._abaCronograma = aba;
+  const secCron = document.getElementById("secao-cronograma");
+  const secTala = document.getElementById("secao-tala");
+  const secCham = document.getElementById("secao-chamada");
+  const tabsBim = document.querySelector(".tabs-bimestre");
+  const btns    = document.querySelectorAll(".tab-aba");
+  btns.forEach(b => b.classList.remove("ativo"));
+  document.querySelector(`.tab-aba[onclick*="'${aba}'"]`)?.classList.add("ativo");
+
+  if (secCron) secCron.style.display = aba === "cronograma" ? "" : "none";
+  if (secTala) secTala.style.display = aba === "tala"       ? "" : "none";
+  if (secCham) secCham.style.display = aba === "chamada"    ? "" : "none";
+  if (tabsBim) tabsBim.style.display = aba === "cronograma" ? "" : "none";
+
+  if (aba === "tala")    renderizarTala();
+  if (aba === "chamada") renderizarChamadaFrequencia();
+}
+
+async function renderizarTala() {
+  const t = turmaAtiva;
+  if (!t) return;
+  const secao = document.getElementById("secao-chamada");
+  if (!secao) return;
+  secao.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted)">⏳ Carregando…</div>';
+  const turmaKey = t.serie + t.turma; // ex: "1A"
+  const alunos   = await _carregarAlunos(turmaKey);
+  const adm      = _isAdmin(_userAtual?.email);
+  const SITUACOES = ["","AB","NC","TR","RM","RC"];
+  const SITUACAO_LABEL = { "":"Matriculado","AB":"Abandonou","NC":"Não compareceu","TR":"Transferido","RM":"Remanejado","RC":"Reclassificado" };
+
+  const rows = alunos.map((a, idx) => {
+    const sitOpts = SITUACOES.map(s =>
+      `<option value="${s}" ${(a.situacao||"")=== s?"selected":""}>${s||"—"} ${SITUACAO_LABEL[s]||""}</option>`
+    ).join("");
+    const sitBadge = a.situacao
+      ? `<span class="badge-situacao badge-sit-${a.situacao.toLowerCase()}">${a.situacao}</span>`
+      : `<span class="badge-situacao badge-sit-ok">✓</span>`;
+    return `<tr class="${a.situacao?"aluno-inativo":""}">
+      <td class="td-numero">${a.num}</td>
+      <td>${adm
+        ? `<input class="gi" value="${(a.nome||"").replace(/"/g,'&quot;')}"
+             onchange="editarAluno('${turmaKey}',${idx},'nome',this.value)" />`
+        : (a.nome||"—")}
+      </td>
+      <td style="font-size:.8rem">${adm
+        ? `<input class="gi gi-sm" value="${(a.matricula||"").replace(/"/g,'&quot;')}"
+             onchange="editarAluno('${turmaKey}',${idx},'matricula',this.value)" />`
+        : (a.matricula||"—")}
+      </td>
+      <td>
+        <select class="gi gi-sm" onchange="editarAluno('${turmaKey}',${idx},'situacao',this.value)">
+          ${sitOpts}
+        </select>
+      </td>
+      ${adm ? `<td><button type="button" class="btn-icon-del" onclick="removerAluno('${turmaKey}',${idx})" title="Remover aluno">×</button></td>` : "<td></td>"}
+    </tr>`;
+  }).join("");
+
+  // Botão add/remove só para admin
+  const btnAdd = adm
+    ? `<button type="button" class="btn-add" onclick="adicionarAluno('${turmaKey}')">+ Aluno</button>`
+    : "";
+
+  secao.innerHTML = `
+    <div class="gestao-bloco">
+      <div class="gestao-bloco-header">
+        <h3>Lista de Alunos — ${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""}</h3>
+        <span style="font-size:.8rem;color:var(--text-muted)">${alunos.length} aluno(s)</span>
+        ${btnAdd}
+      </div>
+      <div class="tabela-wrapper">
+        <table class="tabela-gestao">
+          <thead><tr>
+            <th style="width:40px">Nº</th>
+            <th>Nome</th>
+            <th style="width:120px">Matrícula</th>
+            <th style="width:160px">Situação</th>
+            ${adm ? "<th style='width:32px'></th>" : "<th></th>"}
+          </tr></thead>
+          <tbody>${rows || '<tr><td colspan="4" class="td-vazio">Nenhum aluno cadastrado.</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+async function editarAluno(turmaKey, idx, campo, valor) {
+  const lista = await _carregarAlunos(turmaKey);
+  if (!lista[idx]) return;
+  lista[idx][campo] = valor;
+  await _salvarAlunos(turmaKey);
+  _mostrarIndicadorSync("✓ Aluno atualizado");
+}
+
+async function removerAluno(turmaKey, idx) {
+  const lista = await _carregarAlunos(turmaKey);
+  if (!lista[idx]) return;
+  if (!confirm(`Remover "${lista[idx].nome || "este aluno"}"?`)) return;
+  lista.splice(idx, 1);
+  // Renumera
+  lista.forEach((a, i) => a.num = i + 1);
+  await _salvarAlunos(turmaKey);
+  renderizarTala();
+}
+
+async function adicionarAluno(turmaKey) {
+  const lista = await _carregarAlunos(turmaKey);
+  const num   = lista.length ? Math.max(...lista.map(a => a.num || 0)) + 1 : 1;
+  lista.push({ num, nome: "", matricula: "", situacao: "" });
+  await _salvarAlunos(turmaKey);
+  renderizarTala();
+}
+
 function alternarVisao() {
   visaoDetalhada = !visaoDetalhada;
   renderizarConteudo();
@@ -1589,12 +1960,6 @@ function renderizarLinhas(slots) {
           ${editado?'<span class="badge-editado">✎</span>':""}
           ${slot.eventual?`<button class="btn-del-eventual" onclick="removerEventual('${slotId}')" title="Remover esta aula eventual">×</button>`:""}
         </div>
-        <input type="text" class="anotacao-input"
-          placeholder="Anotação…"
-          value="${(est.anotacao||'').replace(/"/g,'&quot;')}"
-          onchange="salvarAnotacao('${slotId}', this.value)"
-          title="Anotação livre sobre esta aula"
-        />
         ${visaoDetalhada ? (() => {
           const chaveBase = `${turmaAtiva.serie}_${turmaAtiva.disciplina}_b${bimestreAtivo}`;
           const lista = RT_CONTEUDOS[chaveBase] || RT_CONTEUDOS[`${turmaAtiva.serie}_${turmaAtiva.disciplina}`] || [];
@@ -1610,6 +1975,12 @@ function renderizarLinhas(slots) {
           </select>
           ${detalheAtual ? `<span class="detalhe-exibido">${detalheAtual}</span>` : ""}`;
         })() : ""}
+        <input type="text" class="anotacao-input"
+          placeholder="Anotação…"
+          value="${(est.anotacao||'').replace(/"/g,'&quot;')}"
+          onchange="salvarAnotacao('${slotId}', this.value)"
+          title="Anotação livre sobre esta aula"
+        />
       </td>
       <td class="td-data">${fmtSlotData(slot)}</td>
       <td class="td-check">${mkChk("feita",   feita, "Aula dada?")}</td>
