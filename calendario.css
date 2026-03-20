@@ -59,10 +59,10 @@
 .cal-view-btn:last-child  { border-radius: 0 7px 7px 0; margin-left: -1px; }
 .cal-view-btn:not(:first-child):not(:last-child) { margin-left: -1px; }
 .cal-view-btn:hover { border-color: var(--amber); color: var(--amber); z-index:1; position:relative; }
-.cal-view-btn.ativo { background: var(--amber); border-color: var(--amber); color:#fff; font-weight:600; z-index:2; position:relative; }
+.cal-view-btn. { background: var(--amber); border-color: var(--amber); color:#fff; font-weight:600; z-index:2; position:relative; }
 
 /* ════════════════════════════════════════════════════════════
-   BOTÕES AD / CH / RE INTERATIVOS
+   BOTÕES AD / CH / RE INTERS
    ════════════════════════════════════════════════════════════ */
 .cal-checks-row { display: flex; gap: 3px; flex-wrap: nowrap; }
 .cal-checks-sm  { margin-top: 4px; }
@@ -328,7 +328,7 @@
   text-align: left; transition: background .14s, color .14s;
 }
 .btn-cal-sidebar:hover { background: #2d3748; color: #e2e8f0; }
-.btn-cal-sidebar.ativo { background: var(--teal); color: #fff; font-weight: 600; }
+.btn-cal-sidebar. { background: var(--teal); color: #fff; font-weight: 600; }
 
 /* ── Links de turma (clicável para abrir o diário) ────────── */
 .cal-turma-link {

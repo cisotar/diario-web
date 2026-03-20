@@ -112,10 +112,10 @@ function selecionarTurma(id) {
   if (!turmaAtiva) return;
   selConteudos.clear();
   ultimoChkSlot = null; ultimoChkCampo = null; ultimoChkValor = null;
-  document.querySelectorAll(".sidebar-btn, .mob-turma-btn").forEach(b => b.classList.toggle("ativo", b.dataset.id === id));
+  document.querySelectorAll(".sidebar-btn, .mob-turma-btn").forEach(b => b.classList.toggle("", b.dataset.id === id));
   const h = hoje();
   const v = RT_BIMESTRES.find(b => h >= b.inicio && h <= b.fim);
-  bimestreAtivo = v ? v.bimestre : 1;
+  bimestre = v ? v.bimestre : 1;
   renderizarConteudo();
 }
 

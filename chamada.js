@@ -32,7 +32,7 @@ async function _salvarChamadas(turmaKey) {
 
 // Data selecionada para chamada (padrão: hoje se for dia de aula, senão último passado)
 let _dataChamadaSel = null;
-// Bimestre selecionado na aba de chamada (independente do bimestreAtivo do cronograma)
+// Bimestre selecionado na aba de chamada (independente do bimestre do cronograma)
 let _bimestreChamadaSel = null;
 
 function _diasDeAulaNoBimestre(turmaId, bim) {
@@ -43,9 +43,9 @@ function _diasDeAulaNoBimestre(turmaId, bim) {
 // Retorna true se o aluno deve receber chamada numa data específica.
 // Alunos com situação inativa (TR, AB, etc.) param de receber chamada
 // a partir de situacaoData (data em que a situação foi registrada na tala).
-function _alunoAtivoNaData(aluno, data) {
+function _alunoNaData(aluno, data) {
   if (!_SITS_INATIVAS.includes(aluno.situacao)) return true;
-  // Se não temos a data de mudança, considera inativo em todas as datas
+  // Se não temos a data de mudança, considera in em todas as datas
   if (!aluno.situacaoData) return false;
   return data < aluno.situacaoData;
 }
@@ -61,8 +61,8 @@ async function renderizarChamadaFrequencia() {
   const chamadas = await _carregarChamadas(turmaKey);
   const hoje_str = hoje();
 
-  // Inicializa bimestre da chamada com o bimestre ativo do cronograma
-  if (!_bimestreChamadaSel) _bimestreChamadaSel = bimestreAtivo;
+  // Inicializa bimestre da chamada com o bimestre  do cronograma
+  if (!_bimestreChamadaSel) _bimestreChamadaSel = bimestre;
   const bimObj = RT_BIMESTRES.find(b => b.bimestre === _bimestreChamadaSel) || RT_BIMESTRES[0];
 
   // Todos os dias de aula do bimestre selecionado
@@ -117,19 +117,19 @@ async function renderizarChamadaFrequencia() {
   // ── Linhas de alunos ──
   const SITUACAO_LABEL = {
     "":"Matriculado","AB":"Abandonou","NC":"Não compareceu",
-    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado"
+    "TR":"tr","RM":"Remanejado","RC":"rc"
   };
 
   const rows = alunos.map(a => {
-    let totalAulas = 0;  // datas passadas em que o aluno estava ativo
+    let totalAulas = 0;  // datas passadas em que o aluno estava 
     let totalFaltas = 0;
 
     const tds = datasVisiveis.map(d => {
       const isPast  = d <= hoje_str;
-      const ativo   = _alunoAtivoNaData(a, d);
+      const    = _alunoNaData(a, d);
 
-      // Aluno inativo nesta data: célula vazia com traço
-      if (!ativo) {
+      // Aluno in nesta data: célula vazia com traço
+      if (!) {
         return `<td style="text-align:center;color:var(--text-muted);font-size:.7rem">—</td>`;
       }
 
@@ -184,7 +184,7 @@ async function renderizarChamadaFrequencia() {
 
   // Abas de bimestre
   const tabsBimChamada = RT_BIMESTRES.map(b =>
-    `<button type="button" class="tab-bim ${b.bimestre === _bimestreChamadaSel ? "ativo" : ""}"
+    `<button type="button" class="tab-bim ${b.bimestre === _bimestreChamadaSel ? "" : ""}"
       onclick="_bimestreChamadaSel=${b.bimestre};_dataChamadaSel=null;renderizarChamadaFrequencia()">${b.label}</button>`
   ).join("");
 
@@ -240,9 +240,9 @@ async function chamadaTodosData(turmaKey, data, valor) {
     _carregarChamadas(turmaKey),
   ]);
   if (!chamadas[data]) chamadas[data] = {};
-  // Marca apenas alunos que estavam ativos nessa data
+  // Marca apenas alunos que estavam s nessa data
   for (const a of alunos) {
-    if (_alunoAtivoNaData(a, data)) chamadas[data][a.num] = valor;
+    if (_alunoNaData(a, data)) chamadas[data][a.num] = valor;
   }
   await _salvarChamadas(turmaKey);
   renderizarChamadaFrequencia();

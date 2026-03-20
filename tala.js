@@ -11,13 +11,13 @@ async function renderizarTala() {
   const alunos   = await _carregarAlunos(turmaKey);
   const adm      = _isAdmin(_userAtual?.email);
   const SITUACOES = ["","AB","NC","TR","RM","RC"];
-  const SITUACAO_LABEL = { "":"Matriculado","AB":"Abandonou","NC":"Não compareceu","TR":"Transferido","RM":"Remanejado","RC":"Reclassificado" };
+  const SITUACAO_LABEL = { "":"Matriculado","AB":"Abandonou","NC":"Não compareceu","TR":"tr","RM":"Remanejado","RC":"rc" };
 
   const rows = alunos.map((a, idx) => {
     const sitOpts = SITUACOES.map(s =>
       `<option value="${s}" ${(a.situacao||"") === s?"selected":""}>${s||"—"} ${SITUACAO_LABEL[s]||""}</option>`
     ).join("");
-    return `<tr class="${a.situacao?"aluno-inativo":""}">
+    return `<tr class="${a.situacao?"aluno-in":""}">
       <td class="td-numero">${a.num}</td>
       <td>${adm
         ? `<input class="gi" value="${(a.nome||"").replace(/"/g,'&quot;')}"

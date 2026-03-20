@@ -11,11 +11,11 @@ const _DEV_USERS = {
 };
 
 
-let _offlineAtivo = false;
+let _offline = false;
 async function _ativarOffline() {
   if (_DEV) return;
-  if (_offlineAtivo) return;
-  _offlineAtivo = true;
+  if (_offline) return;
+  _offline = true;
   try {
     // Usa a API moderna (evita aviso de depreciação do enablePersistence)
     firebase.firestore().settings({
@@ -143,7 +143,7 @@ function salvarTudo() {
     localStorage.setItem(`RT_CONTEUDOS_${uid}`,  JSON.stringify(RT_CONTEUDOS));
     localStorage.setItem(`RT_TURMAS_${uid}`,     JSON.stringify(RT_TURMAS));
   } catch(e) { console.warn("localStorage cheio ou indisponível:", e); }
-  // Persistência principal: Firestore (com suporte offline nativo)
+  // Persistência principal: Firestore (com suporte offline n)
   // Debounce de 800 ms para agrupar alterações rápidas em uma única escrita
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(() => _salvarFirestore(), 800);
@@ -274,13 +274,13 @@ async function _carregarDiariosAssociados(uids) {
   }
 }
 
-let _listenerAtivo = false;
-let _listenerBimAtivo = false;
+let _listener = false;
+let _listenerBim = false;
 function _ativarListenerFirestore() {
-  if (_listenerAtivo) return;
+  if (_listener) return;
   const doc = _initFirebase();
   if (!doc) return;
-  _listenerAtivo = true;
+  _listener = true;
   let _ultimoAtualizado = null; // timestamp do último save LOCAL
   doc.onSnapshot(snap => {
     if (!snap.exists) return;
@@ -311,8 +311,8 @@ function _ativarListenerFirestore() {
   }, err => console.warn("onSnapshot erro:", err));
 
   // Listener separado para bimestres globais (atualiza em tempo real para todos)
-  if (!_listenerBimAtivo) {
-    _listenerBimAtivo = true;
+  if (!_listenerBim) {
+    _listenerBim = true;
     const cfg = _dbConfig();
     if (!cfg) return;
     let _primeiroBimSnap = true;

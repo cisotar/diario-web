@@ -409,7 +409,7 @@ const CONTEUDOS = {
   "1_Geografia_b3": [
     "Aula 1 - Introdução à Cartografia",
     "Aula 2 - Diferentes Cartografias",
-    "Aula 3 - Mapas quantitativos e qualitativos",
+    "Aula 3 - Mapas quantits e qualits",
     "Aula 4 - Cartografia Tátil",
     "Aula 5 - Fusos horários",
     "Aula 6 - Sensoriamento remoto",
@@ -433,7 +433,7 @@ const CONTEUDOS = {
     "Aula 8 - Economia global e desigualdades",
     "Aula 9 - Trabalho e emprego no mundo contemporâneo",
     "Aula 10 - Sustentabilidade e desenvolvimento sustentável",
-    "Aula 11 - Modelos alternativos de economia",
+    "Aula 11 - Modelos alterns de economia",
     "Aula 12 - Formas de produzir para o futuro",
     "Aula 13 - Projeto de sustentabilidade na escola",
     "Aula 14 - Projeto de sustentabilidade na escola: planos de ação"

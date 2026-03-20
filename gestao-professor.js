@@ -279,12 +279,12 @@ function htmlGestaoConteudos() {
 
   // Botões de disciplina
   const discBtns = bases.map(b => `
-    <button type="button" class="gtab-cont ${b===baseAtiva?"ativo":""}" onclick="selecionarBaseGCont('${b}')">${b}</button>`
+    <button type="button" class="gtab-cont ${b===baseAtiva?"":""}" onclick="selecionarBaseGCont('${b}')">${b}</button>`
   ).join("");
 
   // Abas de bimestre
   const bimBtns = (RT_BIMESTRES || []).map(b => `
-    <button type="button" class="gtab-cont gtab-bim ${b.bimestre===bim?"ativo":""}" onclick="selecionarBimGCont(${b.bimestre})">${b.label}</button>`
+    <button type="button" class="gtab-cont gtab-bim ${b.bimestre===bim?"":""}" onclick="selecionarBimGCont(${b.bimestre})">${b.label}</button>`
   ).join("");
 
   const lista = chaveAtiva ? RT_CONTEUDOS[chaveAtiva] : [];

@@ -87,7 +87,7 @@ function _abrirPainelCoordenador() {
 // ── Motor genérico de painel com abas ───────────────────────────
 function _renderizarPainel(titulo, tabs, abaAtiva, extraBtns) {
   const tabsHtml = tabs.map(t =>
-    `<button class="gtab${t.id===abaAtiva?" ativo":""}"
+    `<button class="gtab${t.id===abaAtiva?" ":""}"
        onclick="_trocarAba(this,'g-${t.id}','${t.id}')">${t.label}</button>`
   ).join("");
 
@@ -116,9 +116,9 @@ function _renderizarPainel(titulo, tabs, abaAtiva, extraBtns) {
 }
 
 function _trocarAba(btn, secId, abaId) {
-  document.querySelectorAll(".gtab").forEach(b => b.classList.remove("ativo"));
+  document.querySelectorAll(".gtab").forEach(b => b.classList.remove(""));
   document.querySelectorAll(".gestao-secao").forEach(s => s.classList.remove("ativa"));
-  btn.classList.add("ativo");
+  btn.classList.add("");
   const sec = document.getElementById(secId);
   sec.classList.add("ativa");
   if (sec.dataset.loaded === "1") return;
@@ -164,7 +164,7 @@ function abrirDiarioProf(uid, turmaId) {
   if (!t) { alert("Turma não encontrada no diário."); return; }
 
   turmaAtiva     = t;
-  bimestreAtivo  = RT_BIMESTRES[0]?.bimestre || 1;
+  bimestre  = RT_BIMESTRES[0]?.bimestre || 1;
 
   // Renderiza o cronograma em modo leitura
   renderizarConteudo();

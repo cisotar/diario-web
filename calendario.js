@@ -37,7 +37,7 @@ function calAulasNoDia(isoDate) {
   return lista;
 }
 
-// ── Toggle — NÃO depende de turmaAtiva/bimestreAtivo ──────────
+// ── Toggle — NÃO depende de turmaAtiva/bimestre ──────────
 function calToggle(turmaId, bimestre, slotId, campo, novoVal, inputEl) {
   if (!_autenticado) {
     if (inputEl) inputEl.checked = !novoVal;
@@ -79,19 +79,19 @@ function _calConteudo(turma, slot, bim) {
 function abrirCalendario() {
   calDataRef = new Date();
   calView    = window.innerWidth <= 860 ? "dia" : "semana";
-  document.querySelectorAll(".sidebar-btn").forEach(b => b.classList.remove("ativo"));
-  document.getElementById("btn-calendario")?.classList.add("ativo");
+  document.querySelectorAll(".sidebar-btn").forEach(b => b.classList.remove(""));
+  document.getElementById("btn-calendario")?.classList.add("");
   _calRender();
 }
 
 function fecharCalendario() {
-  document.getElementById("btn-calendario")?.classList.remove("ativo");
+  document.getElementById("btn-calendario")?.classList.remove("");
   if (turmaAtiva) renderizarConteudo();
   else            renderizarBemVindo();
 }
 
 function calIrTurma(turmaId) {
-  document.getElementById("btn-calendario")?.classList.remove("ativo");
+  document.getElementById("btn-calendario")?.classList.remove("");
   selecionarTurma(turmaId);
 }
 
@@ -131,7 +131,7 @@ function _calRender() {
 
 function _calAtivarViewBtn() {
   document.querySelectorAll(".cal-view-btn").forEach(b =>
-    b.classList.toggle("ativo", b.dataset.view === calView)
+    b.classList.toggle("", b.dataset.view === calView)
   );
 }
 

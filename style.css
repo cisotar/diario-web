@@ -160,9 +160,9 @@ body {
 
 .sidebar-btn:hover { background: #2d3748; color: #fff; }
 
-.sidebar-btn.ativo { background: var(--amber); color: #fff; font-weight: 600; }
+.sidebar-btn. { background: var(--amber); color: #fff; font-weight: 600; }
 
-.sidebar-btn.ativo .sidebar-btn-disc { background: rgba(255,255,255,.2); color: #fff; }
+.sidebar-btn. .sidebar-btn-disc { background: rgba(255,255,255,.2); color: #fff; }
 
 .sidebar-btn-label { flex: 1; }
 
@@ -197,7 +197,7 @@ body {
   width: 100%;
 }
 .btn-cal-sidebar:hover { background: #0d9488; }
-.btn-cal-sidebar.ativo { background: #0d9488; outline: 2px solid #5eead4; }
+.btn-cal-sidebar. { background: #0d9488; outline: 2px solid #5eead4; }
 
 .btn-gestao-sidebar {
   padding: 10px 14px;
@@ -308,7 +308,7 @@ body {
 
 .tab-bim:hover { border-color: var(--amber); color: var(--amber); }
 
-.tab-bim.ativo {
+.tab-bim. {
   background: var(--amber); border-color: var(--amber);
   color: #fff; font-weight: 600;
 }
@@ -491,9 +491,9 @@ body {
 }
 .sel-btn:active { cursor: grabbing; }
 .sel-btn:hover { background: var(--amber-pale); border-color: var(--amber); color: var(--amber); }
-.sel-btn.sel-btn-ativo { background: var(--amber); border-color: var(--amber); color: #fff; }
-.sel-btn.sel-btn-ativo:active { cursor: grabbing; }
-tr:hover .sel-btn:not(.sel-btn-ativo) { color: var(--text-mid); border-color: var(--border); }
+.sel-btn.sel-btn- { background: var(--amber); border-color: var(--amber); color: #fff; }
+.sel-btn.sel-btn-:active { cursor: grabbing; }
+tr:hover .sel-btn:not(.sel-btn-) { color: var(--text-mid); border-color: var(--border); }
 
 .tag-eventual {
   display: inline-block;
@@ -608,7 +608,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 
 .checkbox-wrapper input:checked + .checkmark::after { border-color: #fff; }
 
-/* Checkmarks alternativos (chamada=teal, entregue=blue) */
+/* Checkmarks alterns (chamada=teal, entregue=blue) */
 .checkmark-alt { border-radius: 50%; }
 
 .checkbox-wrapper input:checked + .checkmark-alt {
@@ -752,7 +752,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 
 .gtab:hover { border-color: var(--amber); color: var(--amber); }
 
-.gtab.ativo {
+.gtab. {
   background: var(--amber); border-color: var(--amber);
   color: #fff; font-weight: 600;
 }
@@ -850,7 +850,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 
 .gtab-cont:hover { border-color: var(--amber); color: var(--amber); }
 
-.gtab-cont.ativo {
+.gtab-cont. {
   background: var(--amber); border-color: var(--amber);
   color: #fff; font-weight: 600;
 }
@@ -930,7 +930,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   transition: background .13s, color .13s;
 }
 .mob-nav-acao:hover       { background: #2d3748; color: #fff; }
-.mob-nav-acao.ativo       { background: #2d3748; color: #fff; }
+.mob-nav-acao.       { background: #2d3748; color: #fff; }
 .mob-nav-cal              { color: #5eead4; }
 .mob-nav-gestao           { border-top: 1px solid #2d3748; color: #e2e8f0; }
 
@@ -962,14 +962,14 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   transition: background .13s, color .13s;
 }
 .mob-turma-btn:hover { background: #252f3f; color: #fff; }
-.mob-turma-btn.ativo { background: var(--amber); color: #fff; font-weight: 600; }
+.mob-turma-btn. { background: var(--amber); color: #fff; font-weight: 600; }
 
 .mob-turma-sigla {
   font-size: .62rem; font-weight: 700; letter-spacing: .07em;
   background: #0d9488; color: #fff;
   padding: 2px 6px; border-radius: 4px; flex-shrink: 0;
 }
-.mob-turma-btn.ativo .mob-turma-sigla { background: rgba(255,255,255,.2); color: #fff; }
+.mob-turma-btn. .mob-turma-sigla { background: rgba(255,255,255,.2); color: #fff; }
 
 /* ─────────────────────────────────────────────────────────────
    RESPONSIVE — abaixo de 860px
@@ -1516,7 +1516,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   cursor: pointer;
   border-bottom-color: transparent;
 }
-.tab-aba.ativo {
+.tab-aba. {
   background: var(--bg);
   color: var(--text);
   font-weight: 600;
@@ -1538,7 +1538,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .badge-sit-rm  { background: #f3e8fd; color: #7b1fa2; }
 .badge-sit-rc  { background: #fce8f3; color: #c2185b; }
 
-.aluno-inativo td { opacity: .55; }
+.aluno-in td { opacity: .55; }
 
 /* ── Chamada: botões C/F ─────────────────────────────────────── */
 .btn-cf {
