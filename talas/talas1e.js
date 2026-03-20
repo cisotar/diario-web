@@ -1,6 +1,53 @@
 // alunos_1e.js — Lista de alunos da turma 1E
 // Situação: "" = matriculado | AB = Abandonou | NC = Não compareceu | TR = Transferido | RM = Remanejado | RC = Reclassificado
 
-var ALUNOS_1E = [
+// var ALUNOS_1E = [
   // { num: 1, nome: "Nome do Aluno", matricula: "2026001", situacao: "" },
-];
+//];
+
+_registrarAlunos("1E", [
+  { num: 1,  nome: "ALEX BISPO CARNEIRO",                matricula: "0001135483656",  situacao: "Ativo" },
+  { num: 2,  nome: "ÁLVARO BERTOLDI DE OLIVEIRA",        matricula: "0001142970668",  situacao: "Remanejamento" },
+  { num: 3,  nome: "BERNARDO FURTADO SAILER",            matricula: "0001146270227",  situacao: "Transferido" },
+  { num: 4,  nome: "BIANCA DA SILVA ROCHA",              matricula: "0001137410498",  situacao: "Ativo" },
+  { num: 5,  nome: "CAIO HENRIQUE PEREIRA DE SOUZA",     matricula: "0001134638772",  situacao: "Ativo" },
+  { num: 6,  nome: "DANIEL MARQUES RAMOS",               matricula: "0001213571315",  situacao: "BAIXA - TRANSFERÊNCIA" },
+  { num: 7,  nome: "ELOÁ DE ANDRADE MARQUES",            matricula: "0001137443157",  situacao: "BAIXA - TRANSFERÊNCIA" },
+  { num: 8,  nome: "EMILY MENUCI DE LIMA",               matricula: "000112521739X",  situacao: "BAIXA - TRANSFERÊNCIA" },
+  { num: 9,  nome: "ENZO FRANCO DO CARMO DESTAOLE",      matricula: "0001138789379",  situacao: "BAIXA - TRANSFERÊNCIA" },
+  { num: 10, nome: "GABRIEL HENRIQUE DE SOUZA BELO",     matricula: "000112301436X",  situacao: "Ativo" },
+  { num: 11, nome: "GIOVANNY SOARES BARBOSA",            matricula: "0001137427802",  situacao: "BAIXA - TRANSFERÊNCIA" },
+  { num: 12, nome: "JESSICA THAYNA ARAUJO SILVA",        matricula: "000111179425X",  situacao: "Ativo" },
+  { num: 13, nome: "JONATHAN BISPO CARNEIRO",            matricula: "0001135483371",  situacao: "Ativo" },
+  { num: 14, nome: "JORGE MANOEL FERREIRA",              matricula: "000114534690X",  situacao: "Ativo" },
+  { num: 15, nome: "JULIA VITORIA DA SILVA BARROS",      matricula: "000112239780X",  situacao: "Ativo" },
+  { num: 16, nome: "KAUAN ERNESTO CANDIDO PEREIRA",      matricula: "0001127259118",  situacao: "Transferido" },
+  { num: 17, nome: "MARIVALDO VICTOR PEREIRA MARTINS",   matricula: "0001143354618",  situacao: "BAIXA - TRANSFERÊNCIA" },
+  { num: 18, nome: "MATHEUS HENRIQUE DE MORAIS ATANAZIO", matricula: "0001097106172", situacao: "Ativo" },
+  { num: 19, nome: "NATHAN DE MORAES",                   matricula: "0001142957846",  situacao: "Ativo" },
+  { num: 20, nome: "NATHAN HENRIQUE DA SILVA BARBOSA",   matricula: "0001112546984",  situacao: "Ativo" },
+  { num: 21, nome: "NICOLAS ASSIS CIRICO",               matricula: "0001111795939",  situacao: "BAIXA - TRANSFERÊNCIA" },
+  { num: 22, nome: "NICOLAS DA SILVA SOUZA",             matricula: "0001142957871",  situacao: "Ativo" },
+  { num: 23, nome: "PEDRO HENRIQUE DE PAULA REIS",       matricula: "0001143378210",  situacao: "Transferido" },
+  { num: 24, nome: "PIETRO MIGUEL VERONESI",             matricula: "0001142957858",  situacao: "Transferido" },
+  { num: 25, nome: "PRYSCILA VITÓRIA THIS DE SOUZA",     matricula: "0001137763504",  situacao: "BAIXA - TRANSFERÊNCIA" },
+  { num: 26, nome: "RYAN ROBERTO DOS SANTOS FERRAZ",     matricula: "0001143663676",  situacao: "Transferido" },
+  { num: 27, nome: "VALENTINA GUARIGLIA BERNARDO DE OLIVEIRA", matricula: "0001128505770", situacao: "BAIXA - TRANSFERÊNCIA" },
+  { num: 28, nome: "VICTOR HUGO ROSA LIMA",              matricula: "0001113422439",  situacao: "Transferido" },
+  { num: 29, nome: "VICTOR MARGARIDO DOS SANTOS",        matricula: "0001110448004",  situacao: "BAIXA - TRANSFERÊNCIA" },
+  { num: 30, nome: "VITÓRIA APARECIDA FRANCO DE OLIVEIRA", matricula: "0001136699910", situacao: "BAIXA - TRANSFERÊNCIA" },
+  { num: 31, nome: "WILIANS PEREIRA FERNANDES",          matricula: "0001146166291",  situacao: "Ativo" },
+  { num: 32, nome: "YASMIN VITÓRIA BUENO DA SILVA",      matricula: "0001107611210",  situacao: "Ativo" },
+  { num: 33, nome: "JAQUELINE MELICIA OLIVEIRA NASCIMENTO", matricula: "0001208056487", situacao: "Ativo" },
+  { num: 34, nome: "ISABELLY CRISTINA MESSIAS BATISTA",  matricula: "000111612337X",  situacao: "Ativo" },
+  { num: 35, nome: "BRYAN GODOI DE OLIVEIRA",            matricula: "0001262714436",  situacao: "Ativo" },
+  { num: 36, nome: "MARIA CLARA BUENO DE SOUZA",         matricula: "000113852945X",  situacao: "BAIXA - TRANSFERÊNCIA" },
+  { num: 37, nome: "RUAN GUILHERME GARCIA VIEIRA DE SOUSA", matricula: "0001136044206", situacao: "Transferido" },
+  { num: 38, nome: "JOAO VICTOR OLIVEIRA DA SILVA",      matricula: "0001116987776",  situacao: "Ativo" },
+  { num: 39, nome: "LAVINYA ALVES NEVES",                matricula: "000112851588X",  situacao: "Remanejamento" },
+  { num: 40, nome: "EDUARDO MIGUEL GOULART PIZA",        matricula: "0001117109471",  situacao: "BAIXA - TRANSFERÊNCIA" },
+  { num: 41, nome: "KAIQUE MARCOLINO CRUZ",              matricula: "0001122103621",  situacao: "Transferido" },
+  { num: 42, nome: "PAULO RODRIGO DE SOUZA DIAS",        matricula: "0001127948489",  situacao: "Ativo" },
+  { num: 43, nome: "ÁLVARO BERTOLDI DE OLIVEIRA",        matricula: "0001142970668",  situacao: "Ativo" },
+  { num: 44, nome: "LAVÍNIA APARECIDA JACINTO",          matricula: "0001137272363",  situacao: "Ativo" },
+]);
