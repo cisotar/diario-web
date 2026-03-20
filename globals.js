@@ -9,7 +9,7 @@
 // ============================================================
 
 let turmaAtiva    = null;
-let bimestreAtivo = null;
+let bimestre = null;
 let visaoDetalhada = false;
 let RT_ALUNOS = {};  // { "1A": [{num,nome,matricula,situacao},...], ... }
 
@@ -113,7 +113,7 @@ function getOrdem(turmaId, bim, total) {
 }
 
 function salvarOrdem(ordem) {
-  ordemConteudos[chaveOrdem(turmaAtiva.id, bimestreAtivo)] = ordem;
+  ordemConteudos[chaveOrdem(turmaAtiva.id, bimestre)] = ordem;
   salvarTudo();
 }
 
@@ -122,7 +122,7 @@ function getEventuais(turmaId, bim) {
 }
 
 function salvarEventuais(lista) {
-  linhasEventuais[chaveEventuais(turmaAtiva.id, bimestreAtivo)] = lista;
+  linhasEventuais[chaveEventuais(turmaAtiva.id, bimestre)] = lista;
   salvarTudo();
 }
 

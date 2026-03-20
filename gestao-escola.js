@@ -164,7 +164,7 @@ function abrirDiarioProf(uid, turmaId) {
   if (!t) { alert("Turma não encontrada no diário."); return; }
 
   turmaAtiva     = t;
-  bimestreAtivo  = RT_BIMESTRES[0]?.bimestre || 1;
+  bimestre  = RT_BIMESTRES[0]?.bimestre || 1;
 
   // Renderiza o cronograma em modo leitura
   renderizarConteudo();
