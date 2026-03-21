@@ -11,11 +11,14 @@
 let RT_NOTAS = {};
 
 const _COLUNAS_PADRAO = [
-  { id: "AM", sigla: "AM", editavel: true,  tipo: "fixo" },
-  { id: "TP", sigla: "TP", editavel: true,  tipo: "fixo" },
-  { id: "PP", sigla: "PP", editavel: true,  tipo: "fixo" },
-  { id: "RC", sigla: "RC", editavel: true,  tipo: "fixo" },
+  { id: "AM", sigla: "AM", editavel: true, tipo: "fixo" },
+  { id: "TP", sigla: "TP", editavel: true, tipo: "fixo" },
+  { id: "PP", sigla: "PP", editavel: true, tipo: "fixo" },
+  { id: "RC", sigla: "RC", editavel: true, tipo: "fixo" },
 ];
+
+// Pesos padrão (% de cada coluna na MT) — PP fixo em 30%
+const _PESOS_PADRAO = { PP: 30 };
 
 const _MEDIA_MINIMA  = 5.0;
 const _MEDIA_MAX_REC = 5.0;
@@ -32,7 +35,9 @@ async function _carregarNotas(turmaKey) {
       if (snap.exists) {
         RT_NOTAS[turmaKey] = snap.data();
         RT_NOTAS[turmaKey].colunas = RT_NOTAS[turmaKey].colunas || JSON.parse(JSON.stringify(_COLUNAS_PADRAO));
-        RT_NOTAS[turmaKey].pesos   = RT_NOTAS[turmaKey].pesos   || {};
+        RT_NOTAS[turmaKey].pesos   = Object.keys(RT_NOTAS[turmaKey].pesos || {}).length
+          ? RT_NOTAS[turmaKey].pesos
+          : JSON.parse(JSON.stringify(_PESOS_PADRAO));
         RT_NOTAS[turmaKey].notas   = RT_NOTAS[turmaKey].notas   || {};
         return RT_NOTAS[turmaKey];
       }
@@ -40,7 +45,7 @@ async function _carregarNotas(turmaKey) {
   }
   RT_NOTAS[turmaKey] = {
     colunas: JSON.parse(JSON.stringify(_COLUNAS_PADRAO)),
-    pesos:   {},
+    pesos:   JSON.parse(JSON.stringify(_PESOS_PADRAO)),
     notas:   {},
   };
   return RT_NOTAS[turmaKey];
@@ -172,14 +177,17 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
         : ""}
     </th>`).join("");
 
-  // Linha de pesos
+  // Linha de pesos (em %)
   const tdPesos = colunas.map(col => `
     <td class="td-peso">
-      <input type="number" class="input-peso" min="0" max="100" step="0.5"
-        placeholder="peso"
-        value="${pesos[col.id] !== undefined ? pesos[col.id] : ""}"
-        onchange="salvarPesoNota('${turmaKey}','${col.id}',this.value)"
-        title="Peso desta coluna na média (vazio = igual para todas)" />
+      <div style="display:flex;align-items:center;justify-content:center;gap:2px">
+        <input type="number" class="input-peso" min="0" max="100" step="1"
+          placeholder="—"
+          value="${pesos[col.id] !== undefined ? pesos[col.id] : ""}"
+          onchange="salvarPesoNota('${turmaKey}','${col.id}',this.value)"
+          title="Peso em % desta coluna na MT (vazio = igual para todas)" />
+        <span style="font-size:.65rem;color:#94a3b8">%</span>
+      </div>
     </td>`).join("");
 
   // Linhas de alunos
@@ -190,15 +198,18 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
     const emRec     = mt !== null && mt < _MEDIA_MINIMA;
     const reprovado = mb !== null && mb < _MEDIA_MINIMA;
 
-    const sitLabel = a.situacao ? a.situacao : "✓";
-    const sitClass = a.situacao ? `badge-sit-${a.situacao.toLowerCase()}` : "badge-sit-ok";
+    const sitLabel  = a.situacao ? a.situacao : "✓";
+    const sitClass  = a.situacao ? `badge-sit-${a.situacao.toLowerCase()}` : "badge-sit-ok";
+    // Alunos inativos têm campos readonly
+    const alunoInativo = _SITS_INATIVAS.includes(a.situacao);
 
     const tdNotas = colunas.map(col => {
       const val = notasAluno[col.id] ?? "";
       return `<td class="td-nota">
-        <input type="number" class="input-nota" min="0" max="10" step="0.1"
+        <input type="number" class="input-nota${alunoInativo ? " input-nota-inativo" : ""}"
+          min="0" max="10" step="0.1"
           value="${val}"
-          ${!col.editavel ? "readonly" : ""}
+          ${alunoInativo ? "readonly" : ""}
           onchange="salvarNotaAluno('${turmaKey}','${bimStr}',${a.num},'${col.id}',this.value)"
           placeholder="—" />
       </td>`;
@@ -210,8 +221,10 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
 
     const tdRec = emRec
       ? `<td class="td-nota td-rec">
-          <input type="number" class="input-nota input-rec" min="0" max="10" step="0.1"
+          <input type="number" class="input-nota input-rec${alunoInativo ? " input-nota-inativo" : ""}"
+            min="0" max="10" step="0.1"
             value="${notasAluno.rec ?? ""}"
+            ${alunoInativo ? "readonly" : ""}
             onchange="salvarNotaAluno('${turmaKey}','${bimStr}',${a.num},'rec',this.value)"
             placeholder="—" />
         </td>`

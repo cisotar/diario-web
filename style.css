@@ -1705,11 +1705,13 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   outline: none;
   background: #fff;
 }
-.input-nota[readonly] {
+.input-nota[readonly],
+.input-nota-inativo {
   background: #e2e8f0;
-  color: #64748b;
+  color: #94a3b8;
   cursor: default;
   border-style: dashed;
+  border-color: #cbd5e1;
 }
 .input-rec {
   border-color: #f59e0b;
