@@ -167,10 +167,22 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
     "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado"
   };
 
-  // Cabeçalho de colunas (sem descrição)
+  // Cabeçalho de colunas — sigla editável (exceto PP), drag & drop para reordenar
   const thColunas = colunas.map((col, ci) => `
-    <th class="th-nota">
-      ${col.sigla}
+    <th class="th-nota th-col-drag" draggable="true"
+      ondragstart="notasDragStart(event,${ci})"
+      ondragover="notasDragOver(event)"
+      ondrop="notasDrop(event,'${turmaKey}',${ci})"
+      ondragleave="notasDragLeave(event)"
+      title="Arraste para reordenar">
+      ${col.id === "PP"
+        ? `<span class="th-col-sigla-fixed">${col.sigla}</span>`
+        : `<input type="text" class="input-col-sigla" maxlength="6"
+             value="${col.sigla}"
+             onchange="renomearColunaNotas('${turmaKey}',${ci},this.value)"
+             onclick="event.stopPropagation()"
+             title="Clique para editar a sigla" />`
+      }
       ${col.tipo === "custom"
         ? `<button type="button" class="btn-del-col" title="Remover coluna"
              onclick="removerColunaNotas('${turmaKey}',${ci})">×</button>`
@@ -433,6 +445,68 @@ async function removerColunaNotas(turmaKey, colIdx) {
   for (const bim of Object.values(dados.notas))
     for (const aluno of Object.values(bim))
       delete aluno[col.id];
+  await _salvarNotas(turmaKey);
+  renderizarNotas();
+}
+
+// ── Drag & Drop de colunas ────────────────────────────────────
+
+let _notasDragSrcIdx = null;
+
+function notasDragStart(e, colIdx) {
+  _notasDragSrcIdx = colIdx;
+  e.dataTransfer.effectAllowed = "move";
+  e.currentTarget.classList.add("th-col-dragging");
+}
+
+function notasDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "move";
+  e.currentTarget.classList.add("th-col-drag-over");
+}
+
+function notasDragLeave(e) {
+  e.currentTarget.classList.remove("th-col-drag-over");
+}
+
+async function notasDrop(e, turmaKey, destIdx) {
+  e.preventDefault();
+  e.currentTarget.classList.remove("th-col-drag-over");
+  if (_notasDragSrcIdx === null || _notasDragSrcIdx === destIdx) return;
+  const dados = await _carregarNotas(turmaKey);
+  const cols = dados.colunas;
+  const [moved] = cols.splice(_notasDragSrcIdx, 1);
+  cols.splice(destIdx, 0, moved);
+  _notasDragSrcIdx = null;
+  await _salvarNotas(turmaKey);
+  renderizarNotas();
+}
+
+// ── Renomear sigla de coluna ──────────────────────────────────
+
+async function renomearColunaNotas(turmaKey, colIdx, novaSignla) {
+  const sigla = novaSignla.trim().toUpperCase();
+  if (!sigla) return;
+  const dados = await _carregarNotas(turmaKey);
+  const col = dados.colunas[colIdx];
+  if (!col || col.id === "PP") return;
+  // Migra pesos e notas para nova sigla se mudou
+  if (col.sigla !== sigla) {
+    if (dados.pesos[col.id] !== undefined) {
+      dados.pesos[sigla] = dados.pesos[col.id];
+      delete dados.pesos[col.id];
+    }
+    for (const bim of Object.values(dados.notas)) {
+      for (const aluno of Object.values(bim)) {
+        if (aluno[col.id] !== undefined) {
+          aluno[sigla] = aluno[col.id];
+          delete aluno[col.id];
+        }
+      }
+    }
+    col.id    = sigla;
+    col.sigla = sigla;
+  }
   await _salvarNotas(turmaKey);
   renderizarNotas();
 }

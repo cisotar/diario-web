@@ -1757,6 +1757,39 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   vertical-align: middle;
 }
 .btn-del-col:hover { opacity: 1; }
+/* Cabeçalho de coluna arrastável */
+.th-col-drag {
+  cursor: grab;
+  user-select: none;
+  transition: background .15s;
+  position: relative;
+}
+.th-col-drag:active { cursor: grabbing; }
+.th-col-dragging    { opacity: .4; }
+.th-col-drag-over   { background: rgba(13,148,136,.25) !important; }
+/* Input de sigla editável no cabeçalho */
+.input-col-sigla {
+  width: 48px;
+  text-align: center;
+  font-size: .8rem;
+  font-weight: 800;
+  background: rgba(255,255,255,.08);
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: #e2e8f0;
+  padding: 2px 3px;
+  display: block;
+  margin: 0 auto 2px;
+}
+.input-col-sigla:hover { border-color: rgba(255,255,255,.2); }
+.input-col-sigla:focus { border-color: #0d9488; outline: none; background: rgba(255,255,255,.12); }
+.th-col-sigla-fixed {
+  font-size: .8rem;
+  font-weight: 800;
+  color: #e2e8f0;
+  display: block;
+  text-align: center;
+}
 
 /* Legenda */
 .notas-legenda {
