@@ -254,6 +254,7 @@ function _atualizarTagline() {
 }
 
 function _turmasVisiveis() {
+  if (!Array.isArray(RT_TURMAS)) return [];
   if (_isAdmin(_userAtual?.email)) return RT_TURMAS;
   const uid = _userAtual?.uid;
   // Turmas explicitamente do professor
