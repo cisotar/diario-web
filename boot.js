@@ -1,303 +1,239 @@
-// NOTAS.JS — Digitação de notas por bimestre
-// Dependências: globals.js, db.js, auth.js
+// BOOT.JS — Configuração de períodos, carregamento inicial, migração, DOMContentLoaded
+// Dependências: todos os outros módulos (deve ser o último script carregado)
 
-// ── Estrutura de dados ────────────────────────────────────────
-// RT_NOTAS[turmaKey] = {
-//   colunas: [ { id, sigla, label, editavel, tipo } ],  // tipo: "fixo"|"custom"
-//   pesos:   { [colId]: number },                        // pesos por coluna
-//   notas:   { [bimestre]: { [numAluno]: { [colId]: value, rec: value } } }
-// }
+const PERIODOS_PADRAO = _gerarPeriodosDeConfig({
+  manha:  { inicio: "07:00", duracao: 50, intervalos: [{ apos: 3, duracao: 20 }], qtd: 5 },
+  tarde:  { inicio: "14:30", duracao: 50, intervalos: [{ apos: 3, duracao: 20 }], qtd: 5 },
+});
 
-let RT_NOTAS = {};
-
-const _COLUNAS_PADRAO = [
-  { id: "AM", sigla: "AM", label: "Avaliação Mensal",     editavel: true,  tipo: "fixo" },
-  { id: "TP", sigla: "TP", label: "Tarefas Paulista",     editavel: true,  tipo: "fixo" },
-  { id: "PP", sigla: "PP", label: "Prova Paulista",       editavel: true,  tipo: "fixo" },
-  { id: "RC", sigla: "RC", label: "Recuperação Contínua", editavel: true,  tipo: "fixo" },
-];
-
-const _MEDIA_MINIMA   = 5.0;
-const _MEDIA_MAX_REC  = 5.0;
-
-// ── Firestore ─────────────────────────────────────────────────
-
-async function _carregarNotas(turmaKey) {
-  if (RT_NOTAS[turmaKey]) return RT_NOTAS[turmaKey];
-  if (!_DEV) {
-    try {
-      const snap = await firebase.firestore()
-        .collection("notas").doc(turmaKey).get();
-      if (snap.exists) {
-        RT_NOTAS[turmaKey] = snap.data();
-        // Garante estrutura mínima
-        RT_NOTAS[turmaKey].colunas = RT_NOTAS[turmaKey].colunas || JSON.parse(JSON.stringify(_COLUNAS_PADRAO));
-        RT_NOTAS[turmaKey].pesos   = RT_NOTAS[turmaKey].pesos   || {};
-        RT_NOTAS[turmaKey].notas   = RT_NOTAS[turmaKey].notas   || {};
-        return RT_NOTAS[turmaKey];
-      }
-    } catch(e) { console.warn("Erro ao carregar notas:", e); }
-  }
-  RT_NOTAS[turmaKey] = {
-    colunas: JSON.parse(JSON.stringify(_COLUNAS_PADRAO)),
-    pesos:   {},
-    notas:   {},
-  };
-  return RT_NOTAS[turmaKey];
+// Gera array de períodos a partir de uma config manhã/tarde
+function _gerarPeriodosDeConfig(cfg) {
+  const res = [];
+  ["manha","tarde"].forEach(turno => {
+    const c = cfg[turno];
+    if (!c) return;
+    let [h, m] = c.inicio.split(":").map(Number);
+    const toMin = (hh, mm) => hh * 60 + mm;
+    const toStr = (mins) => {
+      const hh = String(Math.floor(mins / 60)).padStart(2,"0");
+      const mm = String(mins % 60).padStart(2,"0");
+      return `${hh}:${mm}`;
+    };
+    let cur = toMin(h, m);
+    const prefixo = turno === "manha" ? "m" : "t";
+    for (let i = 1; i <= (c.qtd || 5); i++) {
+      const fim = cur + (c.duracao || 50);
+      res.push({ aula: `${prefixo}${i}`, label: `${i}ª aula (${turno==="manha"?"manhã":"tarde"})`, inicio: toStr(cur), fim: toStr(fim), turno });
+      cur = fim;
+      // Aplica intervalo se houver após esta aula
+      (c.intervalos || []).forEach(iv => {
+        if (iv.apos === i) {
+          if (iv.inicio) {
+            // Horário fixo: avança para o horário de fim do intervalo
+            const [ih, im] = iv.inicio.split(":").map(Number);
+            cur = ih * 60 + im + (iv.duracao || 0);
+          } else {
+            cur += (iv.duracao || 0);
+          }
+        }
+      });
+    }
+  });
+  return res;
 }
 
-async function _salvarNotas(turmaKey) {
-  if (_DEV) { console.log("[DEV] _salvarNotas — apenas memória"); return; }
+async function carregarTudo() {
+  RT_BIMESTRES = JSON.parse(JSON.stringify(BIMESTRES));
+  // Professor começa com lista vazia — só vê as turmas que ele mesmo criou (no Firestore)
+  // Admin herda TURMAS do turmas.js como ponto de partida
+  RT_TURMAS    = _isAdmin(_userAtual?.email)
+    ? JSON.parse(JSON.stringify(TURMAS))
+    : [];
+  RT_CONTEUDOS = JSON.parse(JSON.stringify(CONTEUDOS));
+  // Períodos: tenta usar PERIODOS do periodos.js, senão usa config de RT_CONFIG, senão padrão
+  RT_PERIODOS = (typeof PERIODOS !== "undefined" && Array.isArray(PERIODOS) && PERIODOS.length)
+    ? JSON.parse(JSON.stringify(PERIODOS))
+    : RT_CONFIG?.configPeriodos
+      ? _gerarPeriodosDeConfig(RT_CONFIG.configPeriodos)
+      : JSON.parse(JSON.stringify(PERIODOS_PADRAO));
+
+  // DEV: pula todas as leituras do Firestore
+  if (_DEV) {
+    // Inicializa RT_CONFIG com valores padrão para testes locais
+    RT_CONFIG = {
+      nomeEscola:          "Escola (DEV)",
+      disciplinasPorSerie: {},
+      areasConhecimento:   JSON.parse(JSON.stringify(AREAS_CONHECIMENTO)),
+      turmasBase:          JSON.parse(JSON.stringify((TURMAS_BASE||[]).map(t=>({nivel:t.nivel||"medio",...t})))),
+      configPeriodos:      null,
+    };
+    _ativarListenerFirestore();
+    return;
+  }
+
+  // Carrega bimestres globais do Firestore (compartilhados entre todos)
   try {
-    await firebase.firestore().collection("notas").doc(turmaKey)
-      .set({ ...RT_NOTAS[turmaKey], _atualizado: new Date().toISOString() },
-           { merge: true });
-    _mostrarIndicadorSync("✓ Notas salvas");
-  } catch(e) {
-    console.warn("Erro ao salvar notas:", e);
-    _mostrarIndicadorSync("⚠ Erro ao salvar notas");
-  }
-}
+    const cfgSnap = await _dbConfig().get();
+    if (cfgSnap.exists && cfgSnap.data().bimestres) {
+      const bim = JSON.parse(cfgSnap.data().bimestres);
+      if (Array.isArray(bim) && bim.length) RT_BIMESTRES = bim;
+    }
+  } catch(e) { console.warn("Bimestres globais indisponíveis, usando padrão:", e); }
 
-// ── Cálculo de média ──────────────────────────────────────────
+  // Carrega configuração global da escola (nome e lista de matérias)
+  try {
+    const escolaSnap = await _dbConfigEscola().get();
+    if (escolaSnap.exists) {
+      const d = escolaSnap.data();
+      RT_CONFIG = { nomeEscola: "", disciplinasPorSerie: {}, turmasBase: null, configPeriodos: null, ...d };
+      // Migra turmasBase sem nivel (legado)
+      if (Array.isArray(RT_CONFIG.turmasBase)) RT_CONFIG.turmasBase = RT_CONFIG.turmasBase.map(t => ({ nivel: t.nivel||"medio", ...t }));
+      if (typeof RT_CONFIG.disciplinasPorSerie === "string") {
+        try { RT_CONFIG.disciplinasPorSerie = JSON.parse(RT_CONFIG.disciplinasPorSerie); } catch { RT_CONFIG.disciplinasPorSerie = {}; }
+      }
+      // Regenera períodos se há config personalizada no Firestore
+      if (RT_CONFIG.configPeriodos) {
+        RT_PERIODOS = _gerarPeriodosDeConfig(RT_CONFIG.configPeriodos);
+      }
+    }
+  } catch(e) { console.warn("Config escola indisponível:", e); }
 
-function _calcularMB(notasAluno, colunas, pesos) {
-  let somaNotas  = 0;
-  let somaPesos  = 0;
-  let temAlguma  = false;
-
-  for (const col of colunas) {
-    const val = parseFloat(notasAluno?.[col.id]);
-    if (isNaN(val)) continue;
-    temAlguma = true;
-    const peso = parseFloat(pesos?.[col.id]) || 1;
-    somaNotas += val * peso;
-    somaPesos += peso;
-  }
-
-  if (!temAlguma || somaPesos === 0) return null;
-  return somaNotas / somaPesos;
-}
-
-function _calcularMF(mb, rec) {
-  if (mb === null) return null;
-  if (mb >= _MEDIA_MINIMA) return mb;               // aprovado sem rec
-  const recVal = parseFloat(rec);
-  if (isNaN(recVal)) return mb;                      // rec não digitada
-  return Math.min(Math.max(mb, recVal), _MEDIA_MAX_REC);
-}
-
-function _fmtNota(val) {
-  if (val === null || val === undefined || val === "") return "—";
-  const n = parseFloat(val);
-  if (isNaN(n)) return "—";
-  return n.toFixed(1).replace(".", ",");
-}
-
-// ── Renderização ──────────────────────────────────────────────
-
-let _bimestreNotasSel = null;
-
-async function renderizarNotas() {
-  const t     = turmaAtiva;
-  if (!t) return;
-  const secao = document.getElementById("secao-notas");
-  if (!secao) return;
-  secao.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted)">⏳ Carregando…</div>';
-
-  const turmaKey = t.serie + t.turma;
-  const [alunos, dadosNotas] = await Promise.all([
-    _carregarAlunos(turmaKey),
-    _carregarNotas(turmaKey),
-  ]);
-
-  if (!_bimestreNotasSel) _bimestreNotasSel = bimestreAtivo;
-  const bimStr = String(_bimestreNotasSel);
-
-  const colunas = dadosNotas.colunas;
-  const pesos   = dadosNotas.pesos;
-  const notas   = dadosNotas.notas[bimStr] || {};
-
-  const SITUACAO_LABEL = {
-    "":"Matriculado","AB":"Abandonou","NC":"Não compareceu",
-    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado"
-  };
-
-  // ── Abas de bimestre ──
-  const tabsBim = RT_BIMESTRES.map(b =>
-    `<button type="button" class="tab-bim ${b.bimestre === _bimestreNotasSel ? "ativo" : ""}"
-      onclick="_bimestreNotasSel=${b.bimestre};renderizarNotas()">${b.label}</button>`
-  ).join("");
-
-  // ── Cabeçalho de colunas ──
-  const thColunas = colunas.map((col, ci) => `
-    <th class="th-nota" title="${col.label}">
-      <div class="th-nota-sigla">${col.sigla}</div>
-      <div class="th-nota-label">${col.label}</div>
-      ${col.tipo === "custom"
-        ? `<button type="button" class="btn-del-col" title="Remover coluna"
-             onclick="removerColunaNotas('${turmaKey}',${ci})">×</button>`
-        : ""}
-    </th>`).join("");
-
-  // ── Linha de pesos ──
-  const tdPesos = colunas.map(col => `
-    <td class="td-peso">
-      <input type="number" class="input-peso" min="0" max="100" step="0.5"
-        placeholder="peso"
-        value="${pesos[col.id] !== undefined ? pesos[col.id] : ""}"
-        onchange="salvarPesoNota('${turmaKey}','${col.id}',this.value)"
-        title="Peso desta coluna na média (vazio = igual para todas)" />
-    </td>`).join("");
-
-  // ── Linhas de alunos ──
-  const rows = alunos.map(a => {
-    const notasAluno = notas[a.num] || {};
-    const mb  = _calcularMB(notasAluno, colunas, pesos);
-    const mf  = _calcularMF(mb, notasAluno.rec);
-    const emRec     = mb !== null && mb < _MEDIA_MINIMA;
-    const reprovado = mf !== null && mf < _MEDIA_MINIMA;
-
-    const sitLabel = a.situacao ? a.situacao : "✓";
-    const sitClass = a.situacao ? `badge-sit-${a.situacao.toLowerCase()}` : "badge-sit-ok";
-    const sitTitle = SITUACAO_LABEL[a.situacao || ""] || "";
-
-    const tdNotas = colunas.map(col => {
-      const val = notasAluno[col.id] ?? "";
-      return `<td class="td-nota">
-        <input type="number" class="input-nota" min="0" max="10" step="0.1"
-          value="${val}"
-          ${!col.editavel ? "readonly" : ""}
-          onchange="salvarNotaAluno('${turmaKey}','${bimStr}',${a.num},'${col.id}',this.value)"
-          placeholder="—" />
-      </td>`;
-    }).join("");
-
-    const tdMB = `<td class="td-nota td-mb ${emRec ? "nota-em-rec" : (mb !== null && mb >= _MEDIA_MINIMA ? "nota-ok" : "")}">
-      ${_fmtNota(mb)}
-    </td>`;
-
-    const tdRec = emRec
-      ? `<td class="td-nota td-rec">
-          <input type="number" class="input-nota input-rec" min="0" max="10" step="0.1"
-            value="${notasAluno.rec ?? ""}"
-            onchange="salvarNotaAluno('${turmaKey}','${bimStr}',${a.num},'rec',this.value)"
-            placeholder="—" />
-        </td>`
-      : `<td class="td-nota td-rec" style="color:var(--text-muted);text-align:center">—</td>`;
-
-    const tdMF = `<td class="td-nota td-mf ${reprovado ? "nota-reprovado" : (mf !== null ? "nota-ok" : "")}">
-      ${_fmtNota(mf)}
-    </td>`;
-
-    return `<tr class="${reprovado ? "row-reprovado" : (emRec ? "row-em-rec" : "")}">
-      <td class="td-numero">${a.num}</td>
-      <td class="td-nome">${a.nome||"—"}</td>
-      <td style="text-align:center">
-        <span class="badge-situacao ${sitClass}" title="${sitTitle}">${sitLabel}</span>
-      </td>
-      ${tdNotas}
-      ${tdMB}
-      ${tdRec}
-      ${tdMF}
-    </tr>`;
-  }).join("");
-
-  secao.innerHTML = `
-    <div class="gestao-bloco">
-      <div class="gestao-bloco-header" style="flex-wrap:wrap;gap:8px">
-        <h3>Notas — ${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""} · ${t.disciplina}</h3>
-        <button type="button" class="btn-add" onclick="adicionarColunaNotas('${turmaKey}')">
-          + Coluna
-        </button>
-      </div>
-      <div class="tabs-bimestre" style="margin-bottom:8px">${tabsBim}</div>
-      <div class="notas-legenda">
-        ${colunas.map(c => `<span><strong>${c.sigla}</strong> ${c.label}</span>`).join(" · ")}
-        · <span><strong>MB${_bimestreNotasSel}</strong> Média Bimestral</span>
-        · <span><strong>REC</strong> Recuperação (MB &lt; ${_MEDIA_MINIMA.toFixed(1)})</span>
-        · <span><strong>MF${_bimestreNotasSel}</strong> Média Final</span>
-      </div>
-      <div style="overflow-x:auto">
-        <table class="tabela-gestao tabela-notas" style="min-width:0">
-          <thead>
-            <tr>
-              <th style="width:36px" rowspan="2">Nº</th>
-              <th rowspan="2">Nome</th>
-              <th rowspan="2" style="width:48px;text-align:center">Sit.</th>
-              ${thColunas}
-              <th class="th-nota th-mb" rowspan="2">MB${_bimestreNotasSel}</th>
-              <th class="th-nota th-rec" rowspan="2">REC</th>
-              <th class="th-nota th-mf" rowspan="2">MF${_bimestreNotasSel}</th>
-              <th style="width:32px" rowspan="2"></th>
-            </tr>
-            <tr class="tr-pesos">
-              ${tdPesos}
-            </tr>
-          </thead>
-          <tbody>
-            ${rows || '<tr><td colspan="10" class="td-vazio">Nenhum aluno cadastrado.</td></tr>'}
-          </tbody>
-        </table>
-      </div>
-    </div>`;
-}
-
-// ── Ações ─────────────────────────────────────────────────────
-
-async function salvarNotaAluno(turmaKey, bimStr, numAluno, colId, valor) {
-  const dados = await _carregarNotas(turmaKey);
-  if (!dados.notas[bimStr]) dados.notas[bimStr] = {};
-  if (!dados.notas[bimStr][numAluno]) dados.notas[bimStr][numAluno] = {};
-  const val = valor.trim() === "" ? "" : parseFloat(valor);
-  if (valor.trim() === "") {
-    delete dados.notas[bimStr][numAluno][colId];
-  } else {
-    dados.notas[bimStr][numAluno][colId] = isNaN(val) ? "" : Math.min(10, Math.max(0, val));
-  }
-  await _salvarNotas(turmaKey);
-  renderizarNotas();
-}
-
-async function salvarPesoNota(turmaKey, colId, valor) {
-  const dados = await _carregarNotas(turmaKey);
-  if (valor.trim() === "") {
-    delete dados.pesos[colId];
-  } else {
-    const val = parseFloat(valor);
-    dados.pesos[colId] = isNaN(val) ? 1 : Math.max(0, val);
-  }
-  await _salvarNotas(turmaKey);
-  renderizarNotas();
-}
-
-async function adicionarColunaNotas(turmaKey) {
-  const sigla = prompt("Sigla da nova coluna (ex: AT):")?.trim().toUpperCase();
-  if (!sigla) return;
-  const label = prompt(`Nome completo da coluna "${sigla}":`)?.trim();
-  if (!label) return;
-  const dados = await _carregarNotas(turmaKey);
-  if (dados.colunas.find(c => c.id === sigla)) {
-    alert(`Já existe uma coluna com a sigla "${sigla}".`); return;
-  }
-  dados.colunas.push({ id: sigla, sigla, label, editavel: true, tipo: "custom" });
-  await _salvarNotas(turmaKey);
-  renderizarNotas();
-}
-
-async function removerColunaNotas(turmaKey, colIdx) {
-  const dados = await _carregarNotas(turmaKey);
-  const col   = dados.colunas[colIdx];
-  if (!col || col.tipo === "fixo") return;
-  if (!confirm(`Remover a coluna "${col.label}"? As notas salvas nela serão perdidas.`)) return;
-  dados.colunas.splice(colIdx, 1);
-  delete dados.pesos[col.id];
-  // Remove os valores da coluna de todos os bimestres
-  for (const bim of Object.values(dados.notas)) {
-    for (const aluno of Object.values(bim)) {
-      delete aluno[col.id];
+  // Chave de cache isolada por UID para evitar colisão entre professores
+  const uidKey = _userAtual ? (_isAdmin(_userAtual.email) ? "global" : _userAtual.uid) : "anonimo";
+  const seedKey = `_aulasSeed_${uidKey}`;
+  const doc = _initFirebase();
+  if (doc) {
+    try {
+      const snap = await doc.get();
+      if (snap.exists) {
+        const d = snap.data();
+        // Sincroniza cache local com Firestore
+        if (d.aulaEstado)    localStorage.setItem(`aulaEstado_${uidKey}`,    d.aulaEstado);
+        if (d.aulaOrdem)     localStorage.setItem(`aulaOrdem_${uidKey}`,     d.aulaOrdem);
+        if (d.aulaEventuais) localStorage.setItem(`aulaEventuais_${uidKey}`, d.aulaEventuais);
+        if (d.RT_CONTEUDOS)  localStorage.setItem(`RT_CONTEUDOS_${uidKey}`,  d.RT_CONTEUDOS);
+        if (d.RT_TURMAS)     localStorage.setItem(`RT_TURMAS_${uidKey}`,     d.RT_TURMAS);
+        localStorage.setItem(seedKey, "1");
+        // Aplica dados do Firestore nas variáveis em memória antes de checar emergência
+        try { estadoAulas     = JSON.parse(d.aulaEstado)    || {}; } catch {}
+        try { ordemConteudos  = JSON.parse(d.aulaOrdem)     || {}; } catch {}
+        try { linhasEventuais = JSON.parse(d.aulaEventuais) || {}; } catch {}
+        try { const rc = JSON.parse(d.RT_CONTEUDOS); if (rc) RT_CONTEUDOS = rc; } catch {}
+        try { const rt = JSON.parse(d.RT_TURMAS); if (Array.isArray(rt)) RT_TURMAS = rt; } catch {}
+        // Verifica se há backup de emergência mais recente
+        _restaurarEmergenciaSeNecessario(d);
+      }
+    } catch (e) {
+      console.warn("Firestore inacessível (offline?), usando cache local:", e);
     }
   }
-  await _salvarNotas(turmaKey);
-  renderizarNotas();
+  try { estadoAulas     = JSON.parse(localStorage.getItem(`aulaEstado_${uidKey}`))    || {}; } catch { estadoAulas = {}; }
+  try { ordemConteudos  = JSON.parse(localStorage.getItem(`aulaOrdem_${uidKey}`))     || {}; } catch { ordemConteudos = {}; }
+  try { linhasEventuais = JSON.parse(localStorage.getItem(`aulaEventuais_${uidKey}`)) || {}; } catch { linhasEventuais = {}; }
+  try {
+    const rc = JSON.parse(localStorage.getItem(`RT_CONTEUDOS_${uidKey}`));
+    if (rc && typeof rc === "object") RT_CONTEUDOS = rc;
+  } catch {}
+  try {
+    const rt = JSON.parse(localStorage.getItem(`RT_TURMAS_${uidKey}`));
+    if (Array.isArray(rt) && rt.length) RT_TURMAS = rt;
+  } catch {}
+  if (!localStorage.getItem(seedKey)) {
+    if (typeof ESTADO !== "undefined" && Object.keys(ESTADO).length > 0)
+      estadoAulas = Object.assign({}, ESTADO, estadoAulas);
+    if (typeof ORDEM !== "undefined" && Object.keys(ORDEM).length > 0)
+      ordemConteudos = Object.assign({}, ORDEM, ordemConteudos);
+    localStorage.setItem(seedKey, "1");
+    localStorage.setItem(`aulaEstado_${uidKey}`, JSON.stringify(estadoAulas));
+    localStorage.setItem(`aulaOrdem_${uidKey}`,  JSON.stringify(ordemConteudos));
+  }
+  // Professor: garante que RT_TURMAS só contém as turmas dele
+  // (sanitiza dados legados que possam ter sido salvos com turmas de outros)
+  if (!_isAdmin(_userAtual?.email) && !_ehCoordenador()) {
+    const uid = _userAtual?.uid;
+    RT_TURMAS = RT_TURMAS.filter(t => !t.profUid || t.profUid === uid);
+  }
+
+  // Migração automática de RT_TURMAS: corrige periodo e horários legados
+  _migrarTurmas();
+
+  // Coordenador: pré-carrega diários dos professores associados (somente leitura)
+  if (_ehCoordenador() && Array.isArray(_perfilProf?.professoresAssociados)) {
+    await _carregarDiariosAssociados(_perfilProf.professoresAssociados);
+  }
+  _ativarListenerFirestore();
 }
+
+// ── Migração automática de RT_TURMAS ─────────────────────────
+// Corrige: periodo baseado em turmas_global.js + horários a1-a7 → t1-t7
+function _migrarTurmas() {
+  if (!Array.isArray(RT_TURMAS) || !RT_TURMAS.length) return;
+
+  // Mapa de periodo correto por serie+turma (vindo de TURMAS_BASE)
+  const periodoCorreto = {};
+  for (const tb of (typeof TURMAS_BASE !== "undefined" ? TURMAS_BASE : [])) {
+    periodoCorreto[tb.serie + tb.turma] = tb.periodo || "tarde";
+  }
+
+  let alterou = false;
+  for (const t of RT_TURMAS) {
+    const chave = t.serie + t.turma;
+
+    // 1. Corrige periodo se diferente do turmas_global.js
+    if (periodoCorreto[chave] && t.periodo !== periodoCorreto[chave]) {
+      console.log(`[migração] ${t.id}: periodo ${t.periodo} → ${periodoCorreto[chave]}`);
+      t.periodo = periodoCorreto[chave];
+      alterou = true;
+    }
+
+    // 2. Migra horários com turno errado ou formato legado
+    const turnoCorreto = (t.periodo || "tarde") === "manha" ? "m" : "t";
+    const turnoErrado  = turnoCorreto === "m" ? "t" : "m";
+    if (Array.isArray(t.horarios)) {
+      for (const h of t.horarios) {
+        // Formato legado: a1–a7 → tN ou mN conforme periodo
+        if (/^a\d+$/.test(h.aula)) {
+          const num = h.aula.replace("a", "");
+          console.log(`[migração] ${t.id}: ${h.aula} → ${turnoCorreto}${num}`);
+          h.aula = turnoCorreto + num;
+          alterou = true;
+        }
+        // Turno errado: mX em turma tarde, ou tX em turma manhã
+        else if (new RegExp(`^${turnoErrado}\\d+$`).test(h.aula)) {
+          const num = h.aula.replace(/^[mt]/, "");
+          console.log(`[migração] ${t.id}: ${h.aula} → ${turnoCorreto}${num} (turno corrigido)`);
+          h.aula = turnoCorreto + num;
+          alterou = true;
+        }
+      }
+    }
+  }
+
+  if (alterou) {
+    salvarTudo();
+    console.log("[migração] RT_TURMAS atualizado e salvo");
+  }
+}
+
+// Diários dos professores associados ao coordenador (somente leitura)
+
+document.addEventListener("DOMContentLoaded", async () => {
+  _mostrarCarregando(true);
+  await _ativarOffline();          // 0º: habilitar cache offline antes de qualquer leitura
+  _iniciarMonitorConexao();        // 0º: monitorar conexão
+  await _verificarSessao();        // 1º: saber quem está logado
+  const ok = await _verificarAcessoProfessor(); // 2º: checar status
+  if (!ok) { _mostrarCarregando(false); return; } // tela de aguardo já renderizada
+  await carregarTudo();
+  _mostrarCarregando(false);
+  renderizarSidebar();
+  _atualizarTagline();
+  iniciarTooltips();
+  _initClickFora();
+  _initPrevenirSelecaoShift();
+  if (window.innerWidth <= 860) {
+    renderizarHomeMobile();
+  } else {
+    abrirCalendario();
+  }
+});
