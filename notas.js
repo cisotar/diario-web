@@ -11,10 +11,9 @@
 let RT_NOTAS = {};
 
 const _COLUNAS_PADRAO = [
-  { id: "AM", sigla: "AM", editavel: true, tipo: "fixo" },
-  { id: "TP", sigla: "TP", editavel: true, tipo: "fixo" },
-  { id: "PP", sigla: "PP", editavel: true, tipo: "fixo" },
-  { id: "RC", sigla: "RC", editavel: true, tipo: "fixo" },
+  { id: "AM", sigla: "AM", label: "Avaliação Mensal",  editavel: true, tipo: "fixo" },
+  { id: "TP", sigla: "TP", label: "Tarefas Paulista",  editavel: true, tipo: "fixo" },
+  { id: "PP", sigla: "PP", label: "Prova Paulista",    editavel: true, tipo: "fixo" },
 ];
 
 // Pesos padrão (% de cada coluna na MT) — PP fixo em 30%
@@ -167,27 +166,36 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
     "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado"
   };
 
-  // Cabeçalho de colunas — sigla editável (exceto PP), drag & drop para reordenar
+  // Cabeçalho de colunas — sigla editável (exceto PP), drag & drop, tooltip com label
   const thColunas = colunas.map((col, ci) => `
     <th class="th-nota th-col-drag" draggable="true"
       ondragstart="notasDragStart(event,${ci})"
       ondragover="notasDragOver(event)"
       ondrop="notasDrop(event,'${turmaKey}',${ci})"
       ondragleave="notasDragLeave(event)"
-      title="Arraste para reordenar">
+      title="${col.label || col.sigla}">
       ${col.id === "PP"
         ? `<span class="th-col-sigla-fixed">${col.sigla}</span>`
         : `<input type="text" class="input-col-sigla" maxlength="6"
              value="${col.sigla}"
              onchange="renomearColunaNotas('${turmaKey}',${ci},this.value)"
              onclick="event.stopPropagation()"
-             title="Clique para editar a sigla" />`
+             title="${col.label || col.sigla}" />`
       }
       ${col.tipo === "custom"
         ? `<button type="button" class="btn-del-col" title="Remover coluna"
              onclick="removerColunaNotas('${turmaKey}',${ci})">×</button>`
         : ""}
     </th>`).join("");
+
+  // Legenda das colunas (abaixo da tabela)
+  const legendaColunas = `
+    <div class="notas-legenda" style="margin-top:8px">
+      ${colunas.map(c => `<span title="${c.label||c.sigla}"><strong>${c.sigla}</strong> ${c.label||""}</span>`).join(" · ")}
+      · <span><strong>MT${_bimestreNotasSel}</strong> Média Temporária</span>
+      · <span><strong>REC</strong> Recuperação (MT &lt; ${_MEDIA_MINIMA.toFixed(1)})</span>
+      · <span><strong>MB${_bimestreNotasSel}</strong> Média Bimestral</span>
+    </div>`;
 
   // Linha de pesos (em %)
   const tdPesos = colunas.map(col => `
@@ -222,7 +230,9 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
           min="0" max="10" step="0.1"
           value="${val}"
           ${alunoInativo ? "readonly" : ""}
-          onchange="salvarNotaAluno('${turmaKey}','${bimStr}',${a.num},'${col.id}',this.value)"
+          data-turma="${turmaKey}" data-bim="${bimStr}" data-num="${a.num}" data-col="${col.id}"
+          oninput="_notaInput(this)"
+          onkeydown="_notaKeydown(event,this)"
           placeholder="—" />
       </td>`;
     }).join("");
@@ -237,7 +247,9 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
             min="0" max="10" step="0.1"
             value="${notasAluno.rec ?? ""}"
             ${alunoInativo ? "readonly" : ""}
-            onchange="salvarNotaAluno('${turmaKey}','${bimStr}',${a.num},'rec',this.value)"
+            data-turma="${turmaKey}" data-bim="${bimStr}" data-num="${a.num}" data-col="rec"
+            oninput="_notaInput(this)"
+            onkeydown="_notaKeydown(event,this)"
             placeholder="—" />
         </td>`
       : `<td class="td-nota td-rec nota-vazia">—</td>`;
@@ -274,15 +286,16 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
               <th rowspan="2">Nome</th>
               <th class="th-nota" rowspan="2">Sit.</th>
               ${thColunas}
-              <th class="th-nota th-mt" rowspan="2" title="Média Temporária">MT${_bimestreNotasSel}</th>
-              <th class="th-nota th-rec" rowspan="2" title="Recuperação Contínua">REC</th>
-              <th class="th-nota th-mb" rowspan="2" title="Média Bimestral">MB${_bimestreNotasSel}</th>
+              <th class="th-nota th-mt" rowspan="2" title="Média Temporária — média ponderada das colunas">MT${_bimestreNotasSel}</th>
+              <th class="th-nota th-rec" rowspan="2" title="Recuperação — aparece quando MT < ${_MEDIA_MINIMA}">REC</th>
+              <th class="th-nota th-mb" rowspan="2" title="Média Bimestral — nota final após recuperação">MB${_bimestreNotasSel}</th>
             </tr>
             <tr class="tr-pesos">${tdPesos}</tr>
           </thead>
           <tbody>${rows || '<tr><td colspan="10" class="td-vazio">Nenhum aluno cadastrado.</td></tr>'}</tbody>
         </table>
       </div>
+      ${legendaColunas}
     </div>`;
 }
 
@@ -395,7 +408,127 @@ async function _renderizarConceitoFinal(secao, t, turmaKey, alunos, dadosNotas, 
 
 // ── Ações ─────────────────────────────────────────────────────
 
+// Debounce para salvar no Firestore (evita escrita a cada tecla)
+let _notaSaveTimer = null;
+function _debounceSalvarNotas(turmaKey) {
+  clearTimeout(_notaSaveTimer);
+  _notaSaveTimer = setTimeout(() => _salvarNotas(turmaKey), 800);
+}
+
+// Chamado a cada input — atualiza memória e DOM sem re-render
+function _notaInput(inputEl) {
+  const turmaKey = inputEl.dataset.turma;
+  const bimStr   = inputEl.dataset.bim;
+  const numAluno = inputEl.dataset.num;
+  const colId    = inputEl.dataset.col;
+  const valor    = inputEl.value;
+
+  // Atualiza RT_NOTAS em memória
+  const dados = RT_NOTAS[turmaKey];
+  if (!dados) return;
+  if (!dados.notas[bimStr]) dados.notas[bimStr] = {};
+  if (!dados.notas[bimStr][numAluno]) dados.notas[bimStr][numAluno] = {};
+
+  if (valor.trim() === "") {
+    delete dados.notas[bimStr][numAluno][colId];
+  } else {
+    const val = parseFloat(valor);
+    dados.notas[bimStr][numAluno][colId] = isNaN(val) ? "" : Math.min(10, Math.max(0, val));
+  }
+
+  // Atualiza células calculadas da linha no DOM (sem re-render)
+  _atualizarCelulasCalc(turmaKey, bimStr, numAluno, dados);
+
+  // Salva no Firestore com debounce
+  _debounceSalvarNotas(turmaKey);
+}
+
+// Atualiza MT, REC e MB de uma linha no DOM sem recriar a tabela
+function _atualizarCelulasCalc(turmaKey, bimStr, numAluno, dados) {
+  const notasAluno = dados.notas[bimStr]?.[numAluno] || {};
+  const colunas    = dados.colunas;
+  const pesos      = dados.pesos;
+
+  const mt = _calcularMT(notasAluno, colunas, pesos);
+  const mb = _calcularMB(mt, notasAluno.rec);
+  const emRec     = mt !== null && mt < _MEDIA_MINIMA;
+  const reprovado = mb !== null && mb < _MEDIA_MINIMA;
+
+  // Encontra a linha pelo data-num de qualquer input da linha
+  const anyInput = document.querySelector(
+    `.input-nota[data-turma="${turmaKey}"][data-bim="${bimStr}"][data-num="${numAluno}"]`
+  );
+  if (!anyInput) return;
+  const tr = anyInput.closest("tr");
+  if (!tr) return;
+
+  // MT
+  const tdMT = tr.querySelector(".td-mt");
+  if (tdMT) {
+    tdMT.textContent = _fmtNota(mt);
+    tdMT.className = `td-nota td-mt ${emRec ? "nota-em-rec" : (mt !== null && mt >= _MEDIA_MINIMA ? "nota-ok" : "")}`;
+  }
+
+  // REC — aparece/desaparece conforme MT
+  const tdRec = tr.querySelector(".td-rec");
+  if (tdRec) {
+    if (emRec) {
+      const alunoInativo = _SITS_INATIVAS.includes(
+        (RT_ALUNOS[turmaKey] || []).find(a => String(a.num) === String(numAluno))?.situacao
+      );
+      if (!tdRec.querySelector("input")) {
+        tdRec.className = "td-nota td-rec";
+        tdRec.innerHTML = `<input type="number" class="input-nota input-rec${alunoInativo ? " input-nota-inativo" : ""}"
+          min="0" max="10" step="0.1"
+          value="${notasAluno.rec ?? ""}"
+          ${alunoInativo ? "readonly" : ""}
+          data-turma="${turmaKey}" data-bim="${bimStr}" data-num="${numAluno}" data-col="rec"
+          oninput="_notaInput(this)"
+          onkeydown="_notaKeydown(event,this)"
+          placeholder="—" />`;
+      } else {
+        const recInput = tdRec.querySelector("input");
+        if (document.activeElement !== recInput) recInput.value = notasAluno.rec ?? "";
+      }
+    } else {
+      tdRec.className = "td-nota td-rec nota-vazia";
+      tdRec.textContent = "—";
+    }
+  }
+
+  // MB
+  const tdMB = tr.querySelector(".td-mb");
+  if (tdMB) {
+    tdMB.textContent = _fmtNota(mb);
+    tdMB.className = `td-nota td-mb ${reprovado ? "nota-reprovado" : (mb !== null ? "nota-ok" : "")}`;
+  }
+
+  // Highlight da linha
+  tr.className = reprovado ? "row-reprovado" : (emRec ? "row-em-rec" : "");
+}
+
+// Navega entre inputs com Tab (próxima linha, mesma coluna)
+function _notaKeydown(e, inputEl) {
+  if (e.key !== "Tab") return;
+  e.preventDefault();
+  const turmaKey = inputEl.dataset.turma;
+  const bimStr   = inputEl.dataset.bim;
+  const colId    = inputEl.dataset.col;
+
+  // Todos os inputs da mesma coluna, em ordem de linha
+  const todos = [...document.querySelectorAll(
+    `.input-nota[data-turma="${turmaKey}"][data-bim="${bimStr}"][data-col="${colId}"]`
+  )];
+  const idx  = todos.indexOf(inputEl);
+  const prox = e.shiftKey ? todos[idx - 1] : todos[idx + 1];
+  if (prox) {
+    prox.focus();
+    prox.select();
+  }
+}
+
 async function salvarNotaAluno(turmaKey, bimStr, numAluno, colId, valor) {
+  // Mantido para compatibilidade (chamadas legacy), mas agora _notaInput é o caminho principal
   const dados = await _carregarNotas(turmaKey);
   if (!dados.notas[bimStr]) dados.notas[bimStr] = {};
   if (!dados.notas[bimStr][numAluno]) dados.notas[bimStr][numAluno] = {};
@@ -406,7 +539,6 @@ async function salvarNotaAluno(turmaKey, bimStr, numAluno, colId, valor) {
     dados.notas[bimStr][numAluno][colId] = isNaN(val) ? "" : Math.min(10, Math.max(0, val));
   }
   await _salvarNotas(turmaKey);
-  renderizarNotas();
 }
 
 async function salvarPesoNota(turmaKey, colId, valor) {
@@ -430,7 +562,7 @@ async function adicionarColunaNotas(turmaKey) {
   if (dados.colunas.find(c => c.id === sigla)) {
     alert(`Já existe uma coluna com a sigla "${sigla}".`); return;
   }
-  dados.colunas.push({ id: sigla, sigla, editavel: true, tipo: "custom" });
+  dados.colunas.push({ id: sigla, sigla, label, editavel: true, tipo: "custom" });
   await _salvarNotas(turmaKey);
   renderizarNotas();
 }

@@ -24,13 +24,28 @@ function renderizarConteudo() {
   const pct = totalReg > 0 ? Math.round(feitas/totalReg*100) : 0;
   const tabsBim = RT_BIMESTRES.map(b => `
     <button class="tab-bim ${b.bimestre===bimestreAtivo?"ativo":""}" onclick="mudarBimestre(${b.bimestre})">${b.label}</button>`).join("");
-  const abaAtiva = window._abaCronograma || "cronograma";
+  const abaAtiva = window._abaCronograma || "tala";
+
+  // Barra de info do bimestre — versão completa (cronograma) e simplificada (demais abas)
+  const bimInfoCronograma = `
+    <div class="bimestre-info" id="bimestre-info-cron" style="${abaAtiva!=="cronograma"?"display:none":""}">
+      <span>📅 ${bimObj.label}: ${fmtData(bimObj.inicio)} → ${fmtData(bimObj.fim)}</span>
+      <div class="bimestre-info-right">
+        <span class="hint-drag">✎ Clique no conteúdo para editar &nbsp;·&nbsp; ⠿ Clique para selecionar · Shift+⠿ seleciona intervalo · Arraste para reorganizar</span>
+        <span class="pct-badge">${pct}% concluído</span>
+      </div>
+    </div>`;
+  const bimInfoSimples = `
+    <div class="bimestre-info bimestre-info-simples" id="bimestre-info-simples" style="${abaAtiva==="cronograma"?"display:none":""}">
+      <span>📅 ${bimObj.label}: ${fmtData(bimObj.inicio)} → ${fmtData(bimObj.fim)}</span>
+    </div>`;
+
   main.innerHTML = `
     <div class="header-turma">
       <div class="header-turma-info">
         <div class="header-turma-badge">${t.sigla}</div>
         <div>
-          <h1 class="header-turma-nome">Cronograma — ${labelTurma}</h1>
+          <h1 class="header-turma-nome">Diário de Classe — ${t.serie}ª ${t.turma}</h1>
           <p class="header-turma-disc">${t.disciplina}</p>
         </div>
       </div>
@@ -56,35 +71,22 @@ function renderizarConteudo() {
       </div>
     </div>
     <div class="tabs-cronograma-aba">
-      <button type="button" class="tab-aba ${abaAtiva==="cronograma"?"ativo":""}"
-        onclick="trocarAbaCronograma('cronograma')">📅 Cronograma</button>
       <button type="button" class="tab-aba ${abaAtiva==="tala"?"ativo":""}"
         onclick="trocarAbaCronograma('tala')">👥 Tala</button>
       <button type="button" class="tab-aba ${abaAtiva==="chamada"?"ativo":""}"
         onclick="trocarAbaCronograma('chamada')">✅ Chamada</button>
+      <button type="button" class="tab-aba ${abaAtiva==="cronograma"?"ativo":""}"
+        onclick="trocarAbaCronograma('cronograma')">📅 Cronograma</button>
       <button type="button" class="tab-aba ${abaAtiva==="notas"?"ativo":""}"
         onclick="trocarAbaCronograma('notas')">🎯 Notas</button>
     </div>
-    <div class="tabs-bimestre" style="${(abaAtiva==="chamada"||abaAtiva==="tala")?"display:none":""}">${tabsBim}</div>
-    <div class="bimestre-info">
-      <span>📅 ${bimObj.label}: ${fmtData(bimObj.inicio)} → ${fmtData(bimObj.fim)}</span>
-      <div class="bimestre-info-right">
-        <span class="hint-drag">✎ Clique no conteúdo para editar &nbsp;·&nbsp; ⠿ Clique para selecionar · Shift+⠿ seleciona intervalo · Arraste para reorganizar</span>
-        <span class="pct-badge">${pct}% concluído</span>
-      </div>
-    </div>
-    <div id="secao-tala" style="${abaAtiva==="tala"?"":"display:none"}">
-      <div style="padding:20px;text-align:center;color:var(--text-muted)">⏳ Carregando lista de alunos…</div>
-    </div>
-    <div id="secao-chamada" style="${abaAtiva==="chamada"?"":"display:none"}">
-      <div style="padding:20px;text-align:center;color:var(--text-muted)">⏳ Carregando chamada…</div>
-    </div>
-    <div id="secao-notas" style="${abaAtiva==="notas"?"":"display:none"}">
-      <div style="padding:20px;text-align:center;color:var(--text-muted)">⏳ Carregando notas…</div>
-    </div>
-      <div style="padding:20px;text-align:center;color:var(--text-muted)">⏳ Carregando lista de alunos…</div>
-    </div>
-    <div id="secao-cronograma" style="${abaAtiva==="chamada"?"display:none":""}">
+    <div class="tabs-bimestre" style="${abaAtiva!=="cronograma"?"display:none":""}">${tabsBim}</div>
+    ${bimInfoCronograma}
+    ${bimInfoSimples}
+    <div id="secao-tala" style="${abaAtiva==="tala"?"":"display:none"}"></div>
+    <div id="secao-chamada" style="${abaAtiva==="chamada"?"":"display:none"}"></div>
+    <div id="secao-notas" style="${abaAtiva==="notas"?"":"display:none"}"></div>
+    <div id="secao-cronograma" style="${abaAtiva!=="cronograma"?"display:none":""}">
     <div class="tabela-wrapper">
       ${total === 0
         ? `<div class="sem-aulas">Nenhuma aula prevista neste bimestre.</div>`
@@ -155,7 +157,10 @@ function renderizarConteudo() {
         </div>
       </div>
     </div>`;
-  if (total > 0) renderizarLinhas(slots);
+  if (abaAtiva === "tala")    renderizarTala();
+  if (abaAtiva === "chamada") renderizarChamadaFrequencia();
+  if (abaAtiva === "notas")   renderizarNotas();
+  if (abaAtiva === "cronograma" && total > 0) renderizarLinhas(slots);
 }
 
 // ── Sistema de Chamadas ───────────────────────────────────────
@@ -168,6 +173,8 @@ function trocarAbaCronograma(aba) {
   const secCham  = document.getElementById("secao-chamada");
   const secNotas = document.getElementById("secao-notas");
   const tabsBim  = document.querySelector(".tabs-bimestre");
+  const bimCron  = document.getElementById("bimestre-info-cron");
+  const bimSimp  = document.getElementById("bimestre-info-simples");
   const btns     = document.querySelectorAll(".tab-aba");
   btns.forEach(b => b.classList.remove("ativo"));
   document.querySelector(`.tab-aba[onclick*="'${aba}'"]`)?.classList.add("ativo");
@@ -177,6 +184,8 @@ function trocarAbaCronograma(aba) {
   if (secCham)  secCham.style.display  = aba === "chamada"    ? "" : "none";
   if (secNotas) secNotas.style.display = aba === "notas"      ? "" : "none";
   if (tabsBim)  tabsBim.style.display  = aba === "cronograma" ? "" : "none";
+  if (bimCron)  bimCron.style.display  = aba === "cronograma" ? "" : "none";
+  if (bimSimp)  bimSimp.style.display  = aba === "cronograma" ? "none" : "";
 
   if (aba === "tala")    renderizarTala();
   if (aba === "chamada") renderizarChamadaFrequencia();

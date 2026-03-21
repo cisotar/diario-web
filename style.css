@@ -326,6 +326,7 @@ body {
 }
 
 .bimestre-info-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bimestre-info-simples { justify-content: flex-start; }
 
 .hint-drag { font-size: .72rem; color: var(--text-muted); font-style: italic; font-weight: 500; }
 
