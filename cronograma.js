@@ -62,6 +62,8 @@ function renderizarConteudo() {
         onclick="trocarAbaCronograma('tala')">👥 Tala</button>
       <button type="button" class="tab-aba ${abaAtiva==="chamada"?"ativo":""}"
         onclick="trocarAbaCronograma('chamada')">✅ Chamada</button>
+      <button type="button" class="tab-aba ${abaAtiva==="notas"?"ativo":""}"
+        onclick="trocarAbaCronograma('notas')">🎯 Notas</button>
     </div>
     <div class="tabs-bimestre" style="${(abaAtiva==="chamada"||abaAtiva==="tala")?"display:none":""}">${tabsBim}</div>
     <div class="bimestre-info">
@@ -76,6 +78,9 @@ function renderizarConteudo() {
     </div>
     <div id="secao-chamada" style="${abaAtiva==="chamada"?"":"display:none"}">
       <div style="padding:20px;text-align:center;color:var(--text-muted)">⏳ Carregando chamada…</div>
+    </div>
+    <div id="secao-notas" style="${abaAtiva==="notas"?"":"display:none"}">
+      <div style="padding:20px;text-align:center;color:var(--text-muted)">⏳ Carregando notas…</div>
     </div>
       <div style="padding:20px;text-align:center;color:var(--text-muted)">⏳ Carregando lista de alunos…</div>
     </div>
@@ -158,21 +163,24 @@ function renderizarConteudo() {
 
 function trocarAbaCronograma(aba) {
   window._abaCronograma = aba;
-  const secCron = document.getElementById("secao-cronograma");
-  const secTala = document.getElementById("secao-tala");
-  const secCham = document.getElementById("secao-chamada");
-  const tabsBim = document.querySelector(".tabs-bimestre");
-  const btns    = document.querySelectorAll(".tab-aba");
+  const secCron  = document.getElementById("secao-cronograma");
+  const secTala  = document.getElementById("secao-tala");
+  const secCham  = document.getElementById("secao-chamada");
+  const secNotas = document.getElementById("secao-notas");
+  const tabsBim  = document.querySelector(".tabs-bimestre");
+  const btns     = document.querySelectorAll(".tab-aba");
   btns.forEach(b => b.classList.remove("ativo"));
   document.querySelector(`.tab-aba[onclick*="'${aba}'"]`)?.classList.add("ativo");
 
-  if (secCron) secCron.style.display = aba === "cronograma" ? "" : "none";
-  if (secTala) secTala.style.display = aba === "tala"       ? "" : "none";
-  if (secCham) secCham.style.display = aba === "chamada"    ? "" : "none";
-  if (tabsBim) tabsBim.style.display = aba === "cronograma" ? "" : "none";
+  if (secCron)  secCron.style.display  = aba === "cronograma" ? "" : "none";
+  if (secTala)  secTala.style.display  = aba === "tala"       ? "" : "none";
+  if (secCham)  secCham.style.display  = aba === "chamada"    ? "" : "none";
+  if (secNotas) secNotas.style.display = aba === "notas"      ? "" : "none";
+  if (tabsBim)  tabsBim.style.display  = aba === "cronograma" ? "" : "none";
 
   if (aba === "tala")    renderizarTala();
   if (aba === "chamada") renderizarChamadaFrequencia();
+  if (aba === "notas")   renderizarNotas();
 }
 
 
