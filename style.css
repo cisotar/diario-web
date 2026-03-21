@@ -1636,72 +1636,113 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   background: rgba(239, 68, 68, 0.15) !important;
 }
 
+
 /* ── Tabela de Notas ──────────────────────────────────────── */
 .tabela-notas .th-nota {
   text-align: center;
+  font-size: .78rem;
+  font-weight: 700;
+  padding: 5px 6px;
+  white-space: nowrap;
+  min-width: 58px;
+  vertical-align: middle;
+}
+.tabela-notas .th-mt  { background: #1a2a40; color: #93c5fd; }
+.tabela-notas .th-rec { background: #2a1f10; color: #fbbf24; }
+.tabela-notas .th-mb  { background: #0f2a1e; color: #4ade80; }
+.tabela-notas .th-tf  { background: #1e1a2e; color: #c4b5fd; }
+.tabela-notas .th-pct { background: #1e1a2e; color: #c4b5fd; }
+.tabela-notas .th-mf  { background: #1a2a10; color: #86efac; }
+.th-bim-grupo {
+  text-align: center;
   font-size: .72rem;
   font-weight: 700;
+  background: #1a2235;
+  color: #7dd3fc;
   padding: 4px 6px;
-  white-space: nowrap;
-  min-width: 70px;
+  border-bottom: 1px solid var(--border);
 }
-.tabela-notas .th-nota-sigla {
-  font-size: .8rem;
-  font-weight: 800;
-  color: #e2e8f0;
-}
-.tabela-notas .th-nota-label {
-  font-size: .6rem;
-  color: #94a3b8;
-  font-weight: 500;
-  white-space: normal;
-  max-width: 70px;
-  line-height: 1.2;
-}
-.tabela-notas .th-mb  { background: #1a3040; color: #7dd3fc; }
-.tabela-notas .th-rec { background: #2a1f10; color: #fbbf24; }
-.tabela-notas .th-mf  { background: #0f2a1e; color: #4ade80; }
 .tabela-notas .tr-pesos td { background: #141c27; }
+
+/* Inputs de nota — fundo claro, texto escuro */
 .input-peso {
-  width: 54px;
+  width: 52px;
   text-align: center;
   font-size: .75rem;
-  background: #1e293b;
-  border: 1px dashed var(--border);
-  border-radius: 4px;
-  color: #94a3b8;
-  padding: 2px 4px;
-}
-.input-peso:focus { border-color: #0d9488; color: #e2e8f0; outline: none; }
-.td-nota { text-align: center; padding: 4px 6px; }
-.input-nota {
-  width: 58px;
-  text-align: center;
-  font-size: .82rem;
   font-weight: 600;
-  background: #1e293b;
-  border: 1px solid var(--border);
+  background: #f1f5f9;
+  border: 1px dashed #94a3b8;
   border-radius: 4px;
-  color: #e2e8f0;
-  padding: 3px 4px;
+  color: #334155;
+  padding: 2px 4px;
+  display: block;
+  margin: 0 auto;
 }
-.input-nota:focus  { border-color: #0d9488; outline: none; }
-.input-nota[readonly] { opacity: .6; cursor: default; }
-.input-rec { border-color: #f59e0b; }
-.input-rec:focus { border-color: #fbbf24; }
-.td-mb, .td-rec, .td-mf {
+.input-peso:focus { border-color: #0d9488; outline: none; background: #fff; }
+
+.td-nota {
+  text-align: center;
+  padding: 3px 4px;
+  vertical-align: middle;
+}
+.input-nota {
+  width: 56px;
+  text-align: center;
   font-size: .85rem;
   font-weight: 700;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  color: #1e293b;
+  padding: 3px 4px;
+  display: block;
+  margin: 0 auto;
+  transition: border-color .15s, box-shadow .15s;
+}
+.input-nota:focus {
+  border-color: #0d9488;
+  box-shadow: 0 0 0 2px rgba(13,148,136,.15);
+  outline: none;
+  background: #fff;
+}
+.input-nota[readonly] {
+  background: #e2e8f0;
+  color: #64748b;
+  cursor: default;
+  border-style: dashed;
+}
+.input-rec {
+  border-color: #f59e0b;
+  background: #fffbeb;
+  color: #92400e;
+}
+.input-rec:focus {
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 2px rgba(251,191,36,.15);
+  background: #fff;
+}
+
+/* Células calculadas */
+.td-mt, .td-mb, .td-mf, .td-rec,
+.td-tf, .td-tf-total, .td-pct-faltas {
   text-align: center;
+  font-size: .88rem;
+  font-weight: 700;
+  vertical-align: middle;
   white-space: nowrap;
 }
-.nota-ok       { color: #4ade80; }
-.nota-em-rec   { color: #f59e0b; }
-.nota-reprovado{ color: #f87171; }
-.row-em-rec td  { background: rgba(245,158,11,.06) !important; }
+.nota-ok        { color: #16a34a; }
+.nota-em-rec    { color: #d97706; }
+.nota-reprovado { color: #dc2626; }
+.nota-vazia     { color: var(--text-muted); text-align: center; }
+
+/* Linhas destacadas */
+.row-em-rec td    { background: rgba(245,158,11,.07) !important; }
 .row-reprovado td { background: rgba(239,68,68,.08) !important; }
-.row-em-rec:hover td   { background: rgba(245,158,11,.12) !important; }
-.row-reprovado:hover td{ background: rgba(239,68,68,.14) !important; }
+.row-em-rec:hover td    { background: rgba(245,158,11,.13) !important; }
+.row-reprovado:hover td { background: rgba(239,68,68,.14) !important; }
+
+/* Botão remover coluna custom */
 .btn-del-col {
   background: transparent;
   border: none;
@@ -1710,15 +1751,18 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   cursor: pointer;
   padding: 0 2px;
   line-height: 1;
-  opacity: .6;
+  opacity: .55;
+  vertical-align: middle;
 }
 .btn-del-col:hover { opacity: 1; }
+
+/* Legenda */
 .notas-legenda {
   font-size: .72rem;
   color: var(--text-muted);
   margin-bottom: 8px;
-  flex-wrap: wrap;
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 .notas-legenda strong { color: #94a3b8; }
