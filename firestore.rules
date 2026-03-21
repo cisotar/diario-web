@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email in [
+        'protarciso@gmail.com',
+        'contato.tarciso@gmail.com',
+        'tarciso@prof.educacao.sp.gov.br'
+      ];
+    }
+    function isCoord() {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/professores/$(request.auth.uid)).data.papel == 'coordenador' &&
+        get(/databases/$(database)/documents/professores/$(request.auth.uid)).data.status == 'aprovado';
+    }
+    function isApproved() {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/professores/$(request.auth.uid)).data.status == 'aprovado';
+    }
+
+    // Diário: professor lê/escreve o seu; admin lê/escreve tudo;
+    // coordenador lê qualquer diário (filtro de associação feito no cliente)
+    match /diario/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if isAdmin();
+      allow read: if isCoord();
+    }
+
+    // Perfis: qualquer autenticado lê/escreve o próprio; admin tudo
+    match /professores/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if isAdmin();
+      allow read: if isCoord();
+    }
+
+    // Bimestres e config global: todos aprovados leem, só admin escreve
+    match /config/{doc} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
+    }
+
+    // Chamadas: professor aprovado lê/escreve; admin tudo; coordenador lê
+    match /chamadas/{turmaKey} {
+      allow read, write: if isApproved();
+      allow read, write: if isAdmin();
+      allow read: if isCoord();
+    }
+
+    // Alunos: professor aprovado lê/escreve; admin tudo; coordenador lê
+    match /alunos/{turmaKey} {
+      allow read, write: if isApproved();
+      allow read, write: if isAdmin();
+      allow read: if isCoord();
+    }
+  }
+}

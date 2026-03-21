@@ -9,5 +9,8 @@
       "README.md",
       "*.sh"
     ]
+  },
+  "firestore": {
+    "rules": "firestore.rules"
   }
 }
