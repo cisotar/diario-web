@@ -17,10 +17,6 @@ async function _ativarOffline() {
   if (_offlineAtivo) return;
   _offlineAtivo = true;
   try {
-    // Usa a API moderna (evita aviso de depreciação do enablePersistence)
-    firebase.firestore().settings({
-      cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED,
-    });
     await firebase.firestore().enableMultiTabIndexedDbPersistence();
     console.info("Firestore: persistência offline ativa");
   } catch(e) {
