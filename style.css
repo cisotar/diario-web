@@ -1561,9 +1561,77 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   font-size: .7rem;
   font-weight: 700;
   letter-spacing: .04em;
-  padding: 4px 6px;
+  padding: 2px 4px;
   background: #1a2235;
   color: #7dd3fc;
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
+}
+/* Botão de mês no cabeçalho da tabela */
+.btn-mes-chamada {
+  background: transparent;
+  border: none;
+  color: #7dd3fc;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 4px;
+  transition: background .15s, color .15s;
+  white-space: nowrap;
+}
+.btn-mes-chamada:hover { background: rgba(125,211,252,.15); }
+.btn-mes-chamada.ativo { background: #0d9488; color: #fff; }
+/* Barra de filtro de mês acima da tabela */
+.filtro-meses-chamada {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  padding: 4px 2px;
+}
+.btn-mes-filtro {
+  background: var(--surface2, #1e2530);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: .75rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.btn-mes-filtro:hover { border-color: #7dd3fc; color: #7dd3fc; }
+.btn-mes-filtro.ativo { background: #0d9488; border-color: #0d9488; color: #fff; }
+/* Colunas de frequência TF / %F */
+.th-freq {
+  text-align: center;
+  font-size: .72rem;
+  font-weight: 700;
+  padding: 4px 6px;
+  background: #1a2235;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+.td-freq-total, .td-freq-pct {
+  text-align: center;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+.freq-critica {
+  color: #f87171;
+  font-weight: 700;
+}
+/* Linha destacada: aluno com mais de 20% de faltas */
+.row-alta-falta td {
+  background: rgba(239, 68, 68, 0.08) !important;
+}
+.row-alta-falta:hover td {
+  background: rgba(239, 68, 68, 0.15) !important;
 }
