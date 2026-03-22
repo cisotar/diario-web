@@ -187,14 +187,24 @@ async function _renderizarChamadaDesktop() {
       }
 
       // EE: sempre C, botão desabilitado
-      const val = isEE ? "C" : ((chamadas[d] || {})[a.num] || (isPast ? "C" : ""));
+      // Chave do slot atual; default = valor do slot anterior do mesmo dia (se existir)
+      const slotKey = _chaveSlotChamada(d, s.aula);
+      let val;
+      if (isEE) {
+        val = "C";
+      } else if ((chamadas[slotKey] || {})[a.num] !== undefined) {
+        val = chamadas[slotKey][a.num]; // registro independente
+      } else {
+        // Herda do primeiro slot do dia (ou "C" se passado)
+        val = (chamadas[d] || {})[a.num] || (isPast ? "C" : "");
+      }
       if (!val) return `<td></td>`;
       const cls = val === "F" ? "chk-falta" : "chk-comp";
       return `<td style="text-align:center">
         <button type="button" class="btn-cf ${cls}"
           ${isEE
             ? `disabled title="Educação Especial — presença automática" style="opacity:.6;cursor:default"`
-            : `onclick="toggleChamada('${turmaKey}','${d}',${a.num})"`
+            : `onclick="toggleChamadaSlot('${turmaKey}','${slotKey}','${d}',${a.num})"`
           }>${val}</button>
       </td>`;
     }).join("");
@@ -319,14 +329,19 @@ async function _renderizarChamadaDesktop() {
 }
 
 async function toggleChamada(turmaKey, data, numAluno) {
+  // Compatibilidade — usa slotKey = data (sem aula)
+  return toggleChamadaSlot(turmaKey, data, data, numAluno);
+}
+
+async function toggleChamadaSlot(turmaKey, slotKey, data, numAluno) {
   const [chamadas, alunos] = await Promise.all([
     _carregarChamadas(turmaKey),
     _carregarAlunos(turmaKey),
   ]);
   const aluno = alunos.find(a => a.num === numAluno || String(a.num) === String(numAluno));
-  if (aluno?.situacao === "EE") return; // EE nunca recebe F
-  if (!chamadas[data]) chamadas[data] = {};
-  chamadas[data][numAluno] = (chamadas[data][numAluno] === "F") ? "C" : "F";
+  if (aluno?.situacao === "EE") return;
+  if (!chamadas[slotKey]) chamadas[slotKey] = {};
+  chamadas[slotKey][numAluno] = (chamadas[slotKey][numAluno] === "F") ? "C" : "F";
   await _salvarChamadas(turmaKey);
   renderizarChamadaFrequencia();
 }
