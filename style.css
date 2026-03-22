@@ -1907,3 +1907,98 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   gap: 10px;
 }
 .notas-legenda strong { color: #94a3b8; }
+
+/* ── Grade de Horários (Painel Professor) ────────────────── */
+.grade-wrap   { margin-bottom: 24px; }
+.grade-titulo {
+  font-size: .88rem; font-weight: 700;
+  color: var(--text); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 6px;
+}
+.grade-tabela {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: .8rem;
+  table-layout: fixed;
+}
+.grade-tabela th {
+  background: #1e2530;
+  color: #94a3b8;
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  padding: 8px 6px;
+  text-align: center;
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.grade-th-hora { width: 58px; }
+.grade-periodo {
+  background: #141c27;
+  text-align: center;
+  padding: 6px 4px;
+  border: 1px solid var(--border);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.grade-aula-num {
+  font-size: .82rem; font-weight: 700; color: #e2e8f0; line-height: 1.2;
+}
+.grade-aula-hr { font-size: .65rem; color: var(--text-muted); }
+.grade-cell {
+  border: 1px solid var(--border);
+  text-align: center;
+  vertical-align: middle;
+  padding: 4px 4px;
+  height: 52px;
+  position: relative;
+  min-width: 70px;
+}
+.grade-vazia {
+  cursor: pointer;
+  transition: background .15s;
+  color: #334155;
+}
+.grade-vazia:hover { background: rgba(13,148,136,.12); }
+.grade-vazio-txt { font-size: .8rem; }
+.grade-ocupada {
+  background: rgba(201,125,32,.1);
+  border-color: rgba(201,125,32,.3);
+}
+.grade-ocupada-outro {
+  background: rgba(100,116,139,.1);
+  cursor: not-allowed;
+}
+.grade-ocupada-outro .grade-disc  { color: #64748b; }
+.grade-ocupada-outro .grade-turma { color: #475569; }
+.grade-disc  { font-size: .78rem; font-weight: 700; color: var(--amber); line-height: 1.2; }
+.grade-turma { font-size: .68rem; color: var(--text-muted); line-height: 1.2; }
+.grade-del-btn {
+  display: none;
+  position: absolute;
+  top: 2px; right: 3px;
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  font-size: .85rem;
+  cursor: pointer;
+  line-height: 1;
+  opacity: .7;
+  padding: 0;
+}
+.grade-del-btn:hover { opacity: 1; }
+.grade-ocupada:hover .grade-del-btn { display: block; }
+.grade-intervalo td {
+  background: #0f1620 !important;
+  height: 6px !important;
+  padding: 0 !important;
+  border-color: #0f1620 !important;
+}
+.grade-hint {
+  font-size: .78rem;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.grade-hint strong { color: var(--amber); }
+.grade-hint .cinza { color: #64748b; font-weight: 600; }
