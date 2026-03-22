@@ -17,13 +17,50 @@ function renderizarConteudo() {
   const slots  = getSlotsCompletos(t.id, bimestreAtivo);
   const total  = slots.length;
   const labelTurma = t.subtitulo ? `${t.serie}ª Série ${t.turma} — ${t.subtitulo}` : `${t.serie}ª Série ${t.turma}`;
+
+  // ── Contagem do bimestre ativo (para pct-badge) ──
   let feitas = 0, totalReg = 0;
   for (const s of slots) {
     if (!s.eventual) { totalReg++; if (estadoAulas[chaveSlot(t.id,bimestreAtivo,s.slotId)]?.feita) feitas++; }
   }
   const pct = totalReg > 0 ? Math.round(feitas/totalReg*100) : 0;
-  const tabsBim = RT_BIMESTRES.map(b => `
-    <button class="tab-bim ${b.bimestre===bimestreAtivo?"ativo":""}" onclick="mudarBimestre(${b.bimestre})">${b.label}</button>`).join("");
+
+  // ── Contagem TOTAL (todos os bimestres) para o círculo do header ──
+  let totalFeitasGeral = 0, totalRegGeral = 0;
+  for (const b of RT_BIMESTRES) {
+    const slotsB = getSlotsCompletos(t.id, b.bimestre);
+    for (const s of slotsB) {
+      if (!s.eventual) {
+        totalRegGeral++;
+        if (estadoAulas[chaveSlot(t.id, b.bimestre, s.slotId)]?.feita) totalFeitasGeral++;
+      }
+    }
+  }
+  const pctGeral = totalRegGeral > 0 ? Math.round(totalFeitasGeral/totalRegGeral*100) : 0;
+
+  // ── Abas de bimestre com mini-indicador ──
+  const tabsBim = RT_BIMESTRES.map(b => {
+    let f = 0, r = 0;
+    for (const s of getSlotsCompletos(t.id, b.bimestre)) {
+      if (!s.eventual) { r++; if (estadoAulas[chaveSlot(t.id,b.bimestre,s.slotId)]?.feita) f++; }
+    }
+    const p = r > 0 ? Math.round(f/r*100) : 0;
+    const circum = 2 * Math.PI * 5; // r=5 → 31.42
+    const dash   = (p / 100 * circum).toFixed(2);
+    return `
+    <button class="tab-bim tab-bim-stat ${b.bimestre===bimestreAtivo?"ativo":""}"
+      onclick="mudarBimestre(${b.bimestre})"
+      title="${b.label}: ${f}/${r} aulas dadas (${p}%)">
+      <svg class="tab-bim-svg" viewBox="0 0 14 14">
+        <circle class="tab-bim-bg"   cx="7" cy="7" r="5"/>
+        <circle class="tab-bim-prog ${p===100?"tab-bim-done":""}" cx="7" cy="7" r="5"
+          stroke-dasharray="${dash} ${circum.toFixed(2)}"
+          stroke-dashoffset="${(circum/4).toFixed(2)}"/>
+      </svg>
+      <span>${b.label}</span>
+      <span class="tab-bim-frac">${f}/${r}</span>
+    </button>`; }).join("");
+
   const abaAtiva = window._abaCronograma || "tala";
 
   // Barra de info do bimestre — versão completa (cronograma) e simplificada (demais abas)
@@ -58,15 +95,15 @@ function renderizarConteudo() {
           ${visaoDetalhada ? "📋 Visão Padrão" : "📋 Visão Detalhada"}
         </button>
       </div>
-      <div class="stat-circulo">
+      <div class="stat-circulo" title="Total do ano: ${totalFeitasGeral}/${totalRegGeral} aulas dadas (${pctGeral}%)">
         <svg viewBox="0 0 36 36" class="stat-svg">
           <path class="stat-bg"   d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
-          <path class="stat-prog" stroke-dasharray="${pct},100"
+          <path class="stat-prog" stroke-dasharray="${pctGeral},100"
             d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
         </svg>
         <div class="stat-texto">
-          <span class="stat-num">${feitas}/${totalReg}</span>
-          <span class="stat-label">aulas dadas</span>
+          <span class="stat-num">${totalFeitasGeral}/${totalRegGeral}</span>
+          <span class="stat-label">total ano</span>
         </div>
       </div>
     </div>

@@ -313,6 +313,41 @@ body {
   color: #fff; font-weight: 600;
 }
 
+/* Aba de bimestre com mini-indicador de progresso */
+.tab-bim-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px 5px 8px;
+}
+.tab-bim-svg {
+  width: 14px; height: 14px;
+  flex-shrink: 0;
+  transform: rotate(-90deg);
+}
+.tab-bim-bg {
+  fill: none;
+  stroke: rgba(255,255,255,.2);
+  stroke-width: 2;
+}
+.tab-bim-prog {
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 2;
+  stroke-linecap: round;
+  transition: stroke-dasharray .3s;
+}
+.tab-bim.ativo .tab-bim-bg   { stroke: rgba(255,255,255,.25); }
+.tab-bim.ativo .tab-bim-prog { stroke: #fff; }
+.tab-bim-done { stroke: #4ade80 !important; }
+.tab-bim.ativo .tab-bim-done { stroke: #bbf7d0 !important; }
+.tab-bim-frac {
+  font-size: .68rem;
+  opacity: .75;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
 /* ── Info bimestre ──────────────────────────────────────── */
 .bimestre-info {
   display: flex; align-items: center;
