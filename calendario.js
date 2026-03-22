@@ -1,436 +1,457 @@
-// CHAMADA.JS — Sistema de chamadas e frequência
-// Dependências: globals.js, db.js, auth.js
+// ============================================================
+//  CALENDARIO.JS — Visão Calendário do Diário de Aulas v3
+//  Depende de app.js:
+//  RT_TURMAS, RT_BIMESTRES, RT_PERIODOS, RT_CONTEUDOS,
+//  estadoAulas, getSlotsCompletos, getOrdem,
+//  chaveSlot, fmtData, hoje, salvarTudo
+// ============================================================
 
-const _SITS_INATIVAS = ["AB","TR","RM","RC","NC"];
-const _SITS_SEMPRE_C  = ["EE"];  // Educação Especial — presença sempre C, nunca F
+let calView    = "semana";
+let calDataRef = null;
 
-let RT_CHAMADAS = {};
+const _CAL_MESES    = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+                       "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+const _CAL_MESES_AB = ["Jan","Fev","Mar","Abr","Mai","Jun",
+                       "Jul","Ago","Set","Out","Nov","Dez"];
+const _CAL_DIAS     = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
 
-async function _carregarChamadas(turmaKey) {
-  if (RT_CHAMADAS[turmaKey]) return RT_CHAMADAS[turmaKey];
-  if (!_DEV) {
-    try {
-      const snap = await firebase.firestore()
-        .collection("chamadas").doc(turmaKey).get();
-      if (snap.exists) {
-        RT_CHAMADAS[turmaKey] = snap.data().registros || {};
-        return RT_CHAMADAS[turmaKey];
-      }
-    } catch(e) { console.warn("Erro ao carregar chamadas:", e); }
-  }
-  RT_CHAMADAS[turmaKey] = {};
-  return RT_CHAMADAS[turmaKey];
+function calIso(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
 
-async function _salvarChamadas(turmaKey) {
-  if (_DEV) { console.log("[DEV] _salvarChamadas — apenas memória"); return; }
+function calAulasNoDia(isoDate) {
+  const lista = [];
+  for (const t of (_turmasVisiveis ? _turmasVisiveis() : (RT_TURMAS || []))) {
+    for (const bim of (RT_BIMESTRES || [])) {
+      if (isoDate < bim.inicio || isoDate > bim.fim) continue;
+      const slots = getSlotsCompletos(t.id, bim.bimestre);
+      for (const slot of slots) {
+        if (slot.data !== isoDate) continue;
+        const ch  = chaveSlot(t.id, bim.bimestre, slot.slotId);
+        const est = estadoAulas[ch] || {};
+        lista.push({ turma: t, bim: bim.bimestre, slot, ch, est });
+      }
+    }
+  }
+  lista.sort((a,b) => (a.slot.inicio||"").localeCompare(b.slot.inicio||""));
+  return lista;
+}
+
+// ── Toggle — NÃO depende de turmaAtiva/bimestreAtivo ──────────
+function calToggle(turmaId, bimestre, slotId, campo, novoVal, inputEl) {
+  if (!_autenticado) {
+    if (inputEl) inputEl.checked = !novoVal;
+    _abrirModalGoogle();
+    return;
+  }
+  if (_ehCoordenador()) {
+    if (inputEl) inputEl.checked = !novoVal;
+    _mostrarIndicadorSync("⛔ Somente leitura");
+    return;
+  }
+  const ch = chaveSlot(turmaId, bimestre, slotId);
+  if (!estadoAulas[ch]) estadoAulas[ch] = {};
+  estadoAulas[ch][campo] = novoVal;
+  if (campo === "feita") estadoAulas[ch].dataFeita = novoVal ? hoje() : null;
+  salvarTudo();
+  _calRenderCorpo();
+}
+
+// ── Conteúdo textual de uma aula ──────────────────────────────
+// Tenta primeiro chave específica por bimestre, depois chave genérica
+function _calConteudo(turma, slot, bim) {
+  const est = estadoAulas[chaveSlot(turma.id, bim, slot.slotId)] || {};
+  if (est.conteudoEditado) return est.conteudoEditado;
+  if (slot.eventual) return slot.descricao || "";
   try {
-    await firebase.firestore().collection("chamadas").doc(turmaKey)
-      .set({ registros: RT_CHAMADAS[turmaKey], _atualizado: new Date().toISOString() },
-           { merge: true });
-    _mostrarIndicadorSync("✓ Chamada salva");
-  } catch(e) {
-    console.warn("Erro ao salvar chamadas:", e);
-    _mostrarIndicadorSync("⚠ Erro ao salvar chamada");
-  }
+    const slotsReg = getSlotsCompletos(turma.id, bim).filter(s => !s.eventual);
+    const ordem    = getOrdem(turma.id, bim, slotsReg.length);
+    const ri       = slotsReg.findIndex(s => s.slotId === slot.slotId);
+    const ci       = ri >= 0 ? ordem[ri] : null;
+    const conts    = RT_CONTEUDOS[`${turma.serie}_${turma.disciplina}_b${bim}`]
+                  || RT_CONTEUDOS[`${turma.serie}_${turma.disciplina}`] || [];
+    return (ci != null && conts[ci]) ? conts[ci] : "";
+  } catch { return ""; }
 }
 
-// Data selecionada para chamada (padrão: hoje se for dia de aula, senão último passado)
-let _dataChamadaSel     = null;
-// Bimestre selecionado na aba de chamada (independente do bimestreAtivo do cronograma)
-let _bimestreChamadaSel = null;
-// Mês filtrado na chamada ("YYYY-MM" ou null = todos)
-let _mesChamadaSel      = null;
-
-function _diasDeAulaNoBimestre(turmaId, bim) {
-  const slots = getSlotsCompletos(turmaId, bim).filter(s => !s.eventual);
-  return [...new Set(slots.map(s => s.data))].sort();
+// ── Abre o calendário
+// No mobile usa visão "dia"; no desktop usa "semana"
+function abrirCalendario() {
+  calDataRef = new Date();
+  calView    = window.innerWidth <= 860 ? "dia" : "semana";
+  document.querySelectorAll(".sidebar-btn").forEach(b => b.classList.remove("ativo"));
+  document.getElementById("btn-calendario")?.classList.add("ativo");
+  _calRender();
 }
 
-// Retorna true se o aluno deve receber chamada numa data específica.
-function _alunoAtivoNaData(aluno, data) {
-  if (!_SITS_INATIVAS.includes(aluno.situacao)) return true;
-  if (!aluno.situacaoData) return false;
-  return data < aluno.situacaoData;
+function fecharCalendario() {
+  document.getElementById("btn-calendario")?.classList.remove("ativo");
+  if (turmaAtiva) renderizarConteudo();
+  else            renderizarBemVindo();
 }
 
-async function _renderizarChamadaDesktop() {
-  const t     = turmaAtiva;
-  if (!t) return;
-  const secao = document.getElementById("secao-chamada");
-  if (!secao) return;
+function calIrTurma(turmaId) {
+  document.getElementById("btn-calendario")?.classList.remove("ativo");
+  selecionarTurma(turmaId);
+}
 
-  const turmaKey = t.serie + t.turma;
-  const alunos   = await _carregarAlunos(turmaKey);
-  const chamadas = await _carregarChamadas(turmaKey);
-  const hoje_str = hoje();
+// ── Estrutura HTML fixa ───────────────────────────────────────
+function _calRender() {
+  document.getElementById("conteudo-principal").innerHTML = `
+    <div class="cal-painel">
+      <div class="cal-header">
+        <div class="cal-header-esq">
+          <h1 class="cal-titulo">Calendário de Aulas</h1>
+          <div class="cal-legenda">
+            <span class="cal-leg-item"><span class="cal-leg cal-leg-ad"></span>AD — Aula dada</span>
+            <span class="cal-leg-item"><span class="cal-leg cal-leg-ch"></span>CH — Chamada</span>
+            <span class="cal-leg-item"><span class="cal-leg cal-leg-re"></span>RE — Registro</span>
+          </div>
+        </div>
+        <button class="btn-voltar" onclick="fecharCalendario()">← Voltar</button>
+      </div>
+      <div class="cal-toolbar">
+        <div class="cal-nav">
+          <button class="cal-btn-nav" onclick="calAnterior()">&#8249;</button>
+          <span class="cal-nav-label" id="cal-label"></span>
+          <button class="cal-btn-nav" onclick="calProximo()">&#8250;</button>
+          <button class="cal-btn-hoje" onclick="calHoje()">Hoje</button>
+        </div>
+        <div class="cal-views-bar">
+          <button class="cal-view-btn" data-view="mes"    onclick="calMudarView('mes')">Mês</button>
+          <button class="cal-view-btn" data-view="semana" onclick="calMudarView('semana')">Semana</button>
+          <button class="cal-view-btn" data-view="dia"    onclick="calMudarView('dia')">Dia</button>
+        </div>
+      </div>
+      <div id="cal-corpo"></div>
+    </div>`;
+  _calAtivarViewBtn();
+  _calRenderCorpo();
+}
 
-  if (!_bimestreChamadaSel) _bimestreChamadaSel = bimestreAtivo;
-  const bimObj = RT_BIMESTRES.find(b => b.bimestre === _bimestreChamadaSel) || RT_BIMESTRES[0];
+function _calAtivarViewBtn() {
+  document.querySelectorAll(".cal-view-btn").forEach(b =>
+    b.classList.toggle("ativo", b.dataset.view === calView)
+  );
+}
 
-  // Todas as datas de aula do bimestre (sem corte por hoje)
-  const todasDatas = _diasDeAulaNoBimestre(t.id, _bimestreChamadaSel)
-    .filter(d => d >= bimObj.inicio && d <= bimObj.fim);
+function _calRenderCorpo() {
+  if (calView === "mes")    _calRenderMes();
+  if (calView === "semana") _calRenderSemana();
+  if (calView === "dia")    _calRenderDia();
+}
 
-  const datasPassadas = todasDatas.filter(d => d <= hoje_str);
+// ── Navegação ─────────────────────────────────────────────────
+function calAnterior() {
+  if (calView === "mes")    calDataRef.setMonth(calDataRef.getMonth() - 1);
+  if (calView === "semana") calDataRef.setDate(calDataRef.getDate() - 7);
+  if (calView === "dia")    calDataRef.setDate(calDataRef.getDate() - 1);
+  _calRenderCorpo();
+}
+function calProximo() {
+  if (calView === "mes")    calDataRef.setMonth(calDataRef.getMonth() + 1);
+  if (calView === "semana") calDataRef.setDate(calDataRef.getDate() + 7);
+  if (calView === "dia")    calDataRef.setDate(calDataRef.getDate() + 1);
+  _calRenderCorpo();
+}
+function calHoje()       { calDataRef = new Date(); _calRenderCorpo(); }
+function calMudarView(v) { calView = v; _calAtivarViewBtn(); _calRenderCorpo(); }
+function calIrDia(isoDate) {
+  const [y,m,d] = isoDate.split("-").map(Number);
+  calDataRef = new Date(y, m-1, d);
+  calView = "dia";
+  _calAtivarViewBtn();
+  _calRenderCorpo();
+}
 
-  if (!_dataChamadaSel || !todasDatas.includes(_dataChamadaSel)) {
-    _dataChamadaSel = todasDatas.includes(hoje_str)
-      ? hoje_str
-      : [...datasPassadas].reverse()[0] || todasDatas[0] || hoje_str;
-  }
+// ════════════════════════════════════════════════════════════
+//  Botões AD / CH / RE
+// ════════════════════════════════════════════════════════════
+function _calChecks(item, modo) {
+  const { turma, bim, slot, est } = item;
+  const ad  = !!est.feita;
+  const ch  = !!est.chamada;
+  const reg = !!est.conteudoEntregue;
+  const tid = turma.id, b = bim, sid = slot.slotId;
 
-  // Datas visíveis: filtradas por mês se houver filtro ativo
-  const datasVisiveis = _mesChamadaSel
-    ? todasDatas.filter(d => d.startsWith(_mesChamadaSel))
-    : todasDatas;
+  const passada = slot.data < hoje();
+  const btn = (campo, val, label, tipo) => {
+    let cls;
+    if (val)          cls = `cal-chk-on cal-chk-on-${tipo}`;
+    else if (passada) cls = "cal-chk-off cal-chk-passada";
+    else              cls = "cal-chk-off cal-chk-fut";
+    const ico   = val ? "✓" : "○";
+    const title = `${label}: ${val ? "feito — clique para desmarcar" : "não feito — clique para marcar"}`;
+    return `<button class="cal-chk cal-chk-${modo} ${cls}"
+      title="${title}"
+      onclick="event.stopPropagation(); calToggle('${tid}',${b},'${sid}','${campo}',${!val})"
+    ><span class="cal-chk-ico">${ico}</span><span class="cal-chk-lbl">${label}</span></button>`;
+  };
 
-  // ── Meses únicos do bimestre (para filtro) ──
-  const todosMeses = [];
-  for (const d of todasDatas) {
-    const [ano, mes] = d.split("-");
-    const chave = `${ano}-${mes}`;
-    if (!todosMeses.find(m => m.chave === chave)) {
-      const label = NOMES_MES[+mes - 1].charAt(0).toUpperCase()
-        + NOMES_MES[+mes - 1].slice(1) + "/" + ano;
-      todosMeses.push({ chave, label });
-    }
-  }
+  return `<div class="cal-checks-row cal-checks-${modo}">
+    ${btn("feita",            ad,  "AD", "ad")}
+    ${btn("chamada",          ch,  "CH", "ch")}
+    ${btn("conteudoEntregue", reg, "RE", "re")}
+  </div>`;
+}
 
-  // ── Cabeçalho linha 1: meses com colspan — títulos são links de filtro ──
-  const gruposMes = [];
-  for (const d of datasVisiveis) {
-    const [ano, mes] = d.split("-");
-    const chave = `${ano}-${mes}`;
-    const label = NOMES_MES[+mes - 1].charAt(0).toUpperCase()
-      + NOMES_MES[+mes - 1].slice(1) + "/" + ano;
-    if (!gruposMes.length || gruposMes[gruposMes.length - 1].chave !== chave) {
-      gruposMes.push({ chave, label, count: 1 });
-    } else {
-      gruposMes[gruposMes.length - 1].count++;
-    }
-  }
+// ════════════════════════════════════════════════════════════
+//  CHIP COMPACTO — visão mês
+// ════════════════════════════════════════════════════════════
+function _calChipMes(item) {
+  const { turma, slot, est } = item;
+  const ad  = !!est.feita, ch = !!est.chamada, reg = !!est.conteudoEntregue;
+  const passada = slot.data < hoje();
+  const cor = ad ? "chip-cor-ad" : (passada ? "chip-cor-pend" : "chip-cor-fut");
+  return `<div class="cal-chip-mes ${cor}"
+    title="${turma.serie}ª ${turma.turma}${turma.subtitulo?" "+turma.subtitulo:""} · ${turma.sigla}&#10;${slot.label||slot.aula||""} ${slot.inicio}–${slot.fim}">
+    <span class="cpm-turma">${turma.serie}ª${turma.turma}<em>${turma.sigla}</em></span>
+    <span class="cpm-hora">${slot.inicio||""}</span>
+    <span class="cpm-dots">
+      <span class="dot ${ad  ? "dot-ad"  : "dot-off"}" title="AD">●</span>
+      <span class="dot ${ch  ? "dot-ch"  : "dot-off"}" title="CH">●</span>
+      <span class="dot ${reg ? "dot-reg" : "dot-off"}" title="RE">●</span>
+    </span>
+  </div>`;
+}
 
-  const thMeses = gruposMes.map(m => {
-    const ativo   = _mesChamadaSel === m.chave;
-    const onclick = ativo
-      ? `_mesChamadaSel=null;renderizarChamadaFrequencia()`
-      : `_mesChamadaSel='${m.chave}';renderizarChamadaFrequencia()`;
-    return `<th colspan="${m.count}" class="th-mes-chamada">
-      <button type="button" class="btn-mes-chamada${ativo ? " ativo" : ""}"
-        onclick="${onclick}"
-        title="${ativo ? "Ver todos os meses" : "Filtrar este mês"}">
-        ${m.label}${ativo ? " ×" : ""}
+// ════════════════════════════════════════════════════════════
+//  CARD SEMANA
+// ════════════════════════════════════════════════════════════
+function _calCardSem(item) {
+  const { turma, slot, est } = item;
+  const ad  = !!est.feita;
+  const passada = slot.data < hoje();
+  const cor = ad ? "chip-cor-ad" : (passada ? "chip-cor-pend" : "chip-cor-fut");
+  return `<div class="cal-card-sem ${cor}">
+    <button class="ccs-topo cal-turma-link" onclick="calIrTurma('${turma.id}')" title="Abrir diário de classe: ${turma.serie}ª ${turma.turma} ${turma.disciplina}">
+      <span class="ccs-sigla">${turma.sigla}</span>
+      <span class="ccs-nome">${turma.serie}ª${turma.turma}${turma.subtitulo ? " "+turma.subtitulo : ""}</span>
+      <span class="ccs-link-ico">↗</span>
+    </button>
+    ${_calChecks(item, "sm")}
+  </div>`;
+}
+
+// ════════════════════════════════════════════════════════════
+//  CARD DIA
+// ════════════════════════════════════════════════════════════
+function _calCardDia(item) {
+  const { turma, slot, est, bim } = item;
+  const ad      = !!est.feita;
+  const passada = slot.data < hoje();
+  const cor     = ad ? "card-ad" : (passada ? "card-pend" : "card-fut");
+  const status  = ad
+    ? `✓ Dada${est.dataFeita ? " em " + fmtData(est.dataFeita) : ""}`
+    : (passada ? "⚠ Pendente" : "—");
+  const conteudo = _calConteudo(turma, slot, bim);
+
+  return `<div class="cal-card-dia ${cor}">
+    <div class="ccd-topo">
+      <button class="ccd-info cal-turma-link" onclick="calIrTurma('${turma.id}')" title="Abrir diário de classe: ${turma.serie}ª ${turma.turma} ${turma.disciplina}">
+        <span class="ccd-sigla-badge">${turma.sigla}</span>
+        <div class="ccd-nomes">
+          <span class="ccd-nome-turma">${turma.serie}ª Série ${turma.turma}${turma.subtitulo?" — "+turma.subtitulo:""}</span>
+          <span class="ccd-disciplina">${turma.disciplina}</span>
+        </div>
+        <span class="ccd-link-ico">↗</span>
       </button>
-    </th>`;
-  }).join("");
+      <div class="ccd-status-pill ${ad?"pill-ad":(passada?"pill-pend":"pill-fut")}">${status}</div>
+    </div>
+    ${conteudo ? `<div class="ccd-conteudo">${conteudo}</div>` : ""}
+    ${_calChecks(item, "lg")}
+  </div>`;
+}
 
-  // ── Cabeçalho linha 2: número do dia (com popover C/F no hover) ──
-  const thDias = datasVisiveis.map(d => {
-    const isSel  = d === _dataChamadaSel;
-    const isPast = d <= hoje_str;
-    const dia    = d.split("-")[2];
-    return `<th class="th-data-chamada${isSel ? " th-data-sel" : ""}">
-      ${dia}
-      ${isPast ? `<div class="th-dia-popover">
-        <button type="button" class="btn-lote" style="font-size:.6rem;padding:2px 4px"
-          onclick="chamadaTodosData('${turmaKey}','${d}','C')">C</button>
-        <button type="button" class="btn-lote btn-lote-off" style="font-size:.6rem;padding:2px 4px"
-          onclick="chamadaTodosData('${turmaKey}','${d}','F')">F</button>
-      </div>` : ""}
-    </th>`;
-  }).join("");
+// ════════════════════════════════════════════════════════════
+//  VISÃO MÊS
+// ════════════════════════════════════════════════════════════
+function _calRenderMes() {
+  const ano = calDataRef.getFullYear(), mes = calDataRef.getMonth();
+  document.getElementById("cal-label").textContent = `${_CAL_MESES[mes]} ${ano}`;
 
-  // ── Linhas de alunos ──
-  const SITUACAO_LABEL = {
-    "":"Matriculado","AB":"Abandonou","NC":"Não compareceu",
-    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado",
-    "EE":"Educação Especial"
-  };
+  const dia1 = new Date(ano, mes, 1);
+  const cur  = new Date(dia1);
+  cur.setDate(1 - dia1.getDay());
+  const hojeIso = hoje();
 
-  const rows = alunos.map(a => {
-    // TF e %F calculados sobre todas as datas passadas do bimestre
-    let totalAulas  = 0;
-    let totalFaltas = 0;
-    const isEE = a.situacao === "EE";
-    for (const d of datasPassadas) {
-      if (!_alunoAtivoNaData(a, d)) continue;
-      totalAulas++;
-      // EE nunca tem falta
-      if (!isEE && (chamadas[d] || {})[a.num] === "F") totalFaltas++;
+  let html = `<div class="cal-mes">
+    <div class="cal-mes-header">${_CAL_DIAS.map(d=>`<div class="cal-mes-dh">${d}</div>`).join("")}</div>
+    <div class="cal-mes-grid">`;
+
+  for (let s = 0; s < 6; s++) {
+    for (let d = 0; d < 7; d++) {
+      const iso    = calIso(cur);
+      const doMes  = cur.getMonth() === mes;
+      const ehHoje = iso === hojeIso;
+      const aulas  = calAulasNoDia(iso);
+      const MAX    = 4;
+
+      html += `<div class="cal-dia-cel${doMes?"":" cal-outro-mes"}${ehHoje?" cal-hoje":""}"
+               onclick="calIrDia('${iso}')">
+        <div class="cal-dia-num-wrap">
+          <span class="cal-dia-num${ehHoje?" cal-hoje-num":""}">${cur.getDate()}</span>
+          ${aulas.length ? `<span class="cal-dia-count">${aulas.length}</span>` : ""}
+        </div>
+        <div class="cal-dia-chips">
+          ${aulas.slice(0,MAX).map(a=>_calChipMes(a)).join("")}
+          ${aulas.length>MAX?`<div class="cal-mais-link">+${aulas.length-MAX} mais</div>`:""}
+        </div>
+      </div>`;
+      cur.setDate(cur.getDate() + 1);
     }
+  }
+  html += `</div></div>`;
+  document.getElementById("cal-corpo").innerHTML = html;
+}
 
-    const tds = datasVisiveis.map(d => {
-      const isPast = d <= hoje_str;
-      const ativo  = _alunoAtivoNaData(a, d);
+// ── Número da semana ISO ──────────────────────────────────────
+function _isoWeek(d) {
+  const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dia  = tmp.getUTCDay() || 7;
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - dia);
+  const ano1 = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+  return Math.ceil((((tmp - ano1) / 86400000) + 1) / 7);
+}
 
-      if (!ativo) {
-        return `<td style="text-align:center;color:var(--text-muted);font-size:.7rem">—</td>`;
+// ════════════════════════════════════════════════════════════
+//  VISÃO SEMANA
+// ════════════════════════════════════════════════════════════
+function _calRenderSemana() {
+  const inicio = new Date(calDataRef);
+  inicio.setDate(calDataRef.getDate() - calDataRef.getDay());
+
+  const dias = Array.from({length:7}, (_,i) => {
+    const d = new Date(inicio);
+    d.setDate(inicio.getDate() + i);
+    return d;
+  });
+
+  const m0 = dias[0].getMonth(), m6 = dias[6].getMonth(), y = dias[0].getFullYear();
+  const semNum = _isoWeek(dias[1]);
+  document.getElementById("cal-label").textContent =
+    m0===m6 ? `${_CAL_MESES[m0]} ${y}` : `${_CAL_MESES_AB[m0]} – ${_CAL_MESES_AB[m6]} ${y}`;
+
+  const hojeIso = hoje();
+
+  const periodosSet = new Set();
+  dias.forEach(d => calAulasNoDia(calIso(d)).forEach(a => periodosSet.add(a.slot.aula || "eventual")));
+
+  const periodosOrdenados = (RT_PERIODOS || [])
+    .filter(p => periodosSet.has(p.aula))
+    .sort((a,b) => a.inicio.localeCompare(b.inicio));
+  if (periodosSet.has("eventual"))
+    periodosOrdenados.push({ aula:"eventual", label:"Eventual", inicio:"", fim:"" });
+
+  let html = `<div class="cal-semana">
+    <div class="cal-sem-cabec">
+      <div class="cal-sem-col-periodo cal-sem-corner">
+        <span class="cal-sem-week-num">sem.<br>${semNum}</span>
+      </div>
+      ${dias.map(d => {
+        const iso = calIso(d), eh = iso === hojeIso;
+        return `<div class="cal-sem-col-dia${eh?" cal-col-hoje":""}">
+          <span class="cal-sem-dow">${_CAL_DIAS[d.getDay()]}</span>
+          <span class="cal-sem-dn${eh?" cal-hoje-num":""}"
+                onclick="calIrDia('${iso}')">${d.getDate()}</span>
+        </div>`;
+      }).join("")}
+    </div>`;
+
+  if (periodosOrdenados.length === 0) {
+    html += `<div class="cal-sem-vazio">Nenhuma aula prevista nesta semana.</div>`;
+  } else {
+    html += `<div class="cal-sem-corpo">`;
+    for (const per of periodosOrdenados) {
+      html += `<div class="cal-sem-linha">
+        <div class="cal-sem-col-periodo">
+          <span class="cal-sem-per-nome">${per.label}</span>
+          ${per.inicio?`<span class="cal-sem-per-hora">${per.inicio}${per.fim?"–"+per.fim:""}</span>`:""}
+        </div>`;
+      for (const d of dias) {
+        const iso   = calIso(d), eh = iso === hojeIso;
+        const aulas = calAulasNoDia(iso).filter(a => (a.slot.aula||"eventual") === per.aula);
+        const dow = _CAL_DIAS[d.getDay()];
+        const dn  = d.getDate();
+        html += `<div class="cal-sem-cel${eh?" cal-col-hoje":""}" data-dow="${dow}" data-dn="${dn}">
+          ${aulas.map(a => _calCardSem(a)).join("")}
+        </div>`;
       }
-
-      // EE: sempre C, botão desabilitado
-      const val = isEE ? "C" : ((chamadas[d] || {})[a.num] || (isPast ? "C" : ""));
-      if (!val) return `<td></td>`;
-      const cls = val === "F" ? "chk-falta" : "chk-comp";
-      return `<td style="text-align:center">
-        <button type="button" class="btn-cf ${cls}"
-          ${isEE
-            ? `disabled title="Educação Especial — presença automática" style="opacity:.6;cursor:default"`
-            : `onclick="toggleChamada('${turmaKey}','${d}',${a.num})"`
-          }>${val}</button>
-      </td>`;
-    }).join("");
-
-    const pctFaltas = totalAulas > 0 ? (totalFaltas / totalAulas) * 100 : 0;
-    const altaFalta = pctFaltas > 20;
-
-    const sitLabel    = a.situacao ? a.situacao : "✓";
-    const sitClass    = a.situacao ? `badge-sit-${a.situacao.toLowerCase()}` : "badge-sit-ok";
-    const sitTitle    = SITUACAO_LABEL[a.situacao || ""] || "";
-    const sitDataHint = (a.situacao && a.situacaoData) ? ` · ${fmtData(a.situacaoData)}` : "";
-    const tdSit = `<td style="text-align:center">
-      <span class="badge-situacao ${sitClass}" title="${sitTitle}${sitDataHint}">${sitLabel}</span>
-    </td>`;
-
-    const tdTF  = `<td class="td-freq-total"
-      title="${totalFaltas} falta(s) em ${totalAulas} aula(s)">${totalFaltas}</td>`;
-    const tdPct = `<td class="td-freq-pct ${altaFalta ? "freq-critica" : ""}"
-      title="${pctFaltas.toFixed(1)}%">${totalAulas > 0 ? pctFaltas.toFixed(0)+"%" : "—"}</td>`;
-
-    return `<tr class="${altaFalta ? "row-alta-falta" : ""}">
-      <td class="td-numero">${a.num}</td>
-      <td class="td-nome" style="font-size:.82rem;white-space:nowrap">${a.nome||"—"}</td>
-      ${tdSit}
-      ${tds}
-      ${tdTF}
-      ${tdPct}
-    </tr>`;
-  }).join("");
-
-  // Seletor de data para marcar em lote (só datas passadas)
-  const datasOpts = datasPassadas.map(d =>
-    `<option value="${d}" ${d===_dataChamadaSel?"selected":""}>${fmtData(d)}</option>`
-  ).join("");
-
-  // Contagem de aulas dadas no bimestre (para barra de progresso)
-  let _feitasCham = 0, _totalRegCham = 0;
-  for (const s of getSlotsCompletos(turmaAtiva.id, _bimestreChamadaSel).filter(s=>!s.eventual)) {
-    _totalRegCham++;
-    if (estadoAulas[chaveSlot(turmaAtiva.id, _bimestreChamadaSel, s.slotId)]?.feita) _feitasCham++;
-  }
-  const _pctCham = _totalRegCham > 0 ? Math.round(_feitasCham/_totalRegCham*100) : 0;
-  const _corCham = _pctCham===100 ? "#4ade80" : _pctCham>50 ? "var(--amber)" : "var(--teal,#0d9488)";
-  const _bimProgBarChamada = (f, r, bimObj) => `
-    <div class="bim-prog-wrap" id="bim-prog-wrap" style="margin-bottom:4px">
-      <div class="bim-prog-info">
-        <span>📅 ${bimObj.label}: ${fmtData(bimObj.inicio)} → ${fmtData(bimObj.fim)}</span>
-        <span class="bim-prog-frac">${f}/${r} aulas dadas · ${r>0?Math.round(f/r*100):0}%</span>
-      </div>
-      <div class="bim-prog-bar-bg">
-        <div class="bim-prog-bar-fill" style="width:${r>0?Math.round(f/r*100):0}%;background:${_corCham}"></div>
-      </div>
-    </div>`;
-
-  // Abas de bimestre (ao trocar, limpa filtro de mês também)
-  const tabsBimChamada = RT_BIMESTRES.map(b =>
-    `<button type="button" class="tab-bim ${b.bimestre === _bimestreChamadaSel ? "ativo" : ""}"
-      onclick="_bimestreChamadaSel=${b.bimestre};_dataChamadaSel=null;_mesChamadaSel=null;renderizarChamadaFrequencia()">${b.label}</button>`
-  ).join("");
-
-  // Botões de filtro por mês (só aparece quando o bimestre tem mais de um mês)
-  const filtroMeses = todosMeses.length > 1 ? `
-    <div class="filtro-meses-chamada">
-      <span style="font-size:.75rem;color:var(--text-muted)">Mês:</span>
-      ${todosMeses.map(m => `
-        <button type="button" class="btn-mes-filtro${_mesChamadaSel===m.chave?" ativo":""}"
-          onclick="_mesChamadaSel=${_mesChamadaSel===m.chave?"null":"'"+m.chave+"'"};renderizarChamadaFrequencia()">
-          ${m.label}
-        </button>`).join("")}
-      ${_mesChamadaSel
-        ? `<button type="button" class="btn-mes-filtro"
-            onclick="_mesChamadaSel=null;renderizarChamadaFrequencia()">✕ Todos</button>`
-        : ""}
-    </div>` : "";
-
-  secao.innerHTML = `
-    <div class="gestao-bloco">
-      <div class="gestao-bloco-header" style="flex-wrap:wrap;gap:8px">
-        <h3>Chamada — ${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""}</h3>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <label style="font-size:.8rem">Marcar data:
-            <select class="gi gi-sm" onchange="_dataChamadaSel=this.value;renderizarChamadaFrequencia()">
-              ${datasOpts}
-            </select>
-          </label>
-          <button type="button" class="btn-add"
-            onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','C')">✓ Todos C</button>
-          <button type="button" class="btn-add" style="background:var(--text-muted)"
-            onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','F')">✗ Todos F</button>
-        </div>
-      </div>
-      <div class="tabs-bimestre" style="margin-bottom:4px">${tabsBimChamada}</div>
-      ${_bimProgBarChamada(_feitasCham, _totalRegCham, bimObj)}
-      ${filtroMeses}
-      <div style="overflow-x:auto">
-        <table class="tabela-gestao tabela-chamada" style="min-width:0">
-          <colgroup>
-            <col class="col-num">
-            <col class="col-nome">
-            <col class="col-sit">
-            ${datasVisiveis.map(() => `<col style="width:28px;min-width:28px;max-width:28px">`).join("")}
-            <col class="col-freq">
-            <col class="col-freq">
-          </colgroup>
-          <thead>
-            <tr>
-              <th style="width:36px" rowspan="2">Nº</th>
-              <th rowspan="2">Nome</th>
-              <th rowspan="2" style="width:48px;text-align:center" title="Situação">Sit.</th>
-              ${thMeses}
-              <th rowspan="2" class="th-freq" title="Total de faltas no bimestre">TF</th>
-              <th rowspan="2" class="th-freq" title="% de faltas — limite: 20%">%F</th>
-            </tr>
-            <tr>
-              ${thDias}
-            </tr>
-          </thead>
-          <tbody>${rows || '<tr><td colspan="10" class="td-vazio">Nenhum aluno cadastrado.</td></tr>'}</tbody>
-        </table>
-      </div>
-    </div>`;
-}
-
-async function toggleChamada(turmaKey, data, numAluno) {
-  const [chamadas, alunos] = await Promise.all([
-    _carregarChamadas(turmaKey),
-    _carregarAlunos(turmaKey),
-  ]);
-  const aluno = alunos.find(a => a.num === numAluno || String(a.num) === String(numAluno));
-  if (aluno?.situacao === "EE") return; // EE nunca recebe F
-  if (!chamadas[data]) chamadas[data] = {};
-  chamadas[data][numAluno] = (chamadas[data][numAluno] === "F") ? "C" : "F";
-  await _salvarChamadas(turmaKey);
-  renderizarChamadaFrequencia();
-}
-
-async function chamadaTodosData(turmaKey, data, valor) {
-  const [alunos, chamadas] = await Promise.all([
-    _carregarAlunos(turmaKey),
-    _carregarChamadas(turmaKey),
-  ]);
-  if (!chamadas[data]) chamadas[data] = {};
-  for (const a of alunos) {
-    if (_alunoAtivoNaData(a, data)) {
-      // EE nunca recebe F
-      chamadas[data][a.num] = (a.situacao === "EE") ? "C" : valor;
+      html += `</div>`;
     }
+    html += `</div>`;
   }
-  await _salvarChamadas(turmaKey);
-  renderizarChamadaFrequencia();
+  html += `</div>`;
+  document.getElementById("cal-corpo").innerHTML = html;
 }
 
+// ════════════════════════════════════════════════════════════
+//  VISÃO DIA
+// ════════════════════════════════════════════════════════════
+function _calRenderDia() {
+  const iso     = calIso(calDataRef);
+  const [y,m,d] = iso.split("-").map(Number);
+  const dt      = new Date(y, m-1, d);
+  const ehHoje  = iso === hoje();
 
-// ── Visão detalhada ──────────────────────────────────────────
+  document.getElementById("cal-label").textContent =
+    `${_CAL_DIAS[dt.getDay()]}, ${d} de ${_CAL_MESES[m-1]} de ${y}`;
 
-// ── Chamada Mobile — exibe apenas o dia atual ─────────────────
+  const aulas = calAulasNoDia(iso);
 
-async function renderizarChamadaFrequencia() {
-  // Redireciona para mobile se tela estreita e aba mobile ativa
-  if (window.innerWidth <= 860 && window._abaCronograma === "chamada_mobile") {
-    return _renderizarChamadaMobile();
+  if (aulas.length === 0) {
+    document.getElementById("cal-corpo").innerHTML = `
+      <div class="cal-dia-vazio">
+        <span class="cal-dia-vazio-ico">📭</span>
+        <p>Nenhuma aula prevista para ${ehHoje?"hoje":"este dia"}.</p>
+      </div>`;
+    return;
   }
-  return _renderizarChamadaDesktop();
-}
 
-async function _renderizarChamadaMobile() {
-  const t = turmaAtiva;
-  if (!t) return;
-  const secao = document.getElementById("secao-chamada");
-  if (!secao) return;
+  const grupos = new Map();
+  for (const item of aulas) {
+    const key = item.slot.aula || "eventual";
+    if (!grupos.has(key)) grupos.set(key, {
+      label: item.slot.label || key,
+      inicio: item.slot.inicio || "",
+      fim:    item.slot.fim    || "",
+      itens:  []
+    });
+    grupos.get(key).itens.push(item);
+  }
 
-  const turmaKey = t.serie + t.turma;
-  const [alunos, chamadas] = await Promise.all([
-    _carregarAlunos(turmaKey),
-    _carregarChamadas(turmaKey),
-  ]);
+  const nAd  = aulas.filter(a => a.est.feita).length;
+  const nCh  = aulas.filter(a => a.est.chamada).length;
+  const nReg = aulas.filter(a => a.est.conteudoEntregue).length;
 
-  if (!_bimestreChamadaSel) _bimestreChamadaSel = bimestreAtivo;
-  const hoje_str = hoje();
-
-  // Data do dia — se não for dia de aula, mostra aviso
-  const datas = _diasDeAulaNoBimestre(t.id, _bimestreChamadaSel);
-  const dataAtual = datas.includes(hoje_str) ? hoje_str
-    : [...datas].reverse().find(d => d <= hoje_str) || datas[0] || hoje_str;
-
-  if (!_dataChamadaSel) _dataChamadaSel = dataAtual;
-
-  const alunosAtivos = alunos.filter(a => _alunoAtivoNaData(a, _dataChamadaSel));
-
-  const SITUACAO_LABEL = {
-    "":"Matriculado","AB":"Abandonou","NC":"Não compareceu",
-    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado",
-    "EE":"Educação Especial"
-  };
-
-  const rows = alunosAtivos.map(a => {
-    const isEE  = a.situacao === "EE";
-    const val   = isEE ? "C" : ((chamadas[_dataChamadaSel] || {})[a.num] || "C");
-    const cls   = val === "F" ? "chk-falta" : "chk-comp";
-    const sitLabel = a.situacao ? a.situacao : "";
-    const sitClass = a.situacao ? `badge-sit-${a.situacao.toLowerCase()}` : "";
-    return `<tr>
-      <td class="td-numero">${a.num}</td>
-      <td style="font-size:.9rem">${a.nome||"—"}
-        ${sitLabel ? `<span class="badge-situacao ${sitClass}" style="margin-left:4px;font-size:.65rem">${sitLabel}</span>` : ""}
-      </td>
-      <td style="text-align:center;width:64px">
-        <button type="button" class="btn-cf-mob ${cls}"
-          ${isEE ? 'disabled title="Educação Especial — presença automática"' : `onclick="toggleChamadaMobile('${turmaKey}','${_dataChamadaSel}',${a.num},this)"`}>
-          ${val}
-        </button>
-      </td>
-    </tr>`;
-  }).join("");
-
-  const datasOpts = datas.filter(d => d <= hoje_str).reverse().map(d =>
-    `<option value="${d}" ${d===_dataChamadaSel?"selected":""}>${fmtData(d)}</option>`
-  ).join("");
-
-  secao.innerHTML = `
-    <div class="chamada-mobile-wrap">
-      <div class="chamada-mobile-header">
-        <label style="font-size:.85rem;font-weight:600">
-          📅 Data da chamada:
-          <select class="gi gi-sm" style="margin-left:6px"
-            onchange="_dataChamadaSel=this.value;_renderizarChamadaMobile()">
-            ${datasOpts}
-          </select>
-        </label>
-        <div style="display:flex;gap:8px;margin-top:8px">
-          <button type="button" class="btn-add"
-            onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','C')">✓ Todos C</button>
-          <button type="button" class="btn-add" style="background:var(--text-muted)"
-            onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','F')">✗ Todos F</button>
-        </div>
-      </div>
-      <table class="tabela-gestao chamada-mob-tabela">
-        <thead><tr>
-          <th style="width:36px">Nº</th>
-          <th>Nome</th>
-          <th style="width:64px;text-align:center">C / F</th>
-        </tr></thead>
-        <tbody>${rows || '<tr><td colspan="3" class="td-vazio">Nenhum aluno ativo.</td></tr>'}</tbody>
-      </table>
+  let html = `<div class="cal-dia${ehHoje?" cal-dia-hoje":""}">
+    <div class="cal-dia-resumo">
+      <span class="cdr-item"><span class="cdr-num">${aulas.length}</span> aulas no dia</span>
+      <span class="cdr-sep">·</span>
+      <span class="cdr-item cdr-ad"><span  class="cdr-num">${nAd}</span> AD</span>
+      <span class="cdr-sep">·</span>
+      <span class="cdr-item cdr-ch"><span  class="cdr-num">${nCh}</span> CH</span>
+      <span class="cdr-sep">·</span>
+      <span class="cdr-item cdr-reg"><span class="cdr-num">${nReg}</span> RE</span>
     </div>`;
+
+  for (const [, grupo] of grupos) {
+    html += `<div class="cal-dia-bloco">
+      <div class="cal-dia-bloco-header">
+        <span class="cdb-nome">${grupo.label}</span>
+        ${grupo.inicio?`<span class="cdb-hora">${grupo.inicio}${grupo.fim?" – "+grupo.fim:""}</span>`:""}
+        <span class="cdb-n">${grupo.itens.length} turma${grupo.itens.length>1?"s":""}</span>
+      </div>
+      <div class="cal-dia-cards">
+        ${grupo.itens.map(item => _calCardDia(item)).join("")}
+      </div>
+    </div>`;
+  }
+  html += `</div>`;
+  document.getElementById("cal-corpo").innerHTML = html;
 }
 
-async function toggleChamadaMobile(turmaKey, data, numAluno, btnEl) {
-  const chamadas = await _carregarChamadas(turmaKey);
-  if (!chamadas[data]) chamadas[data] = {};
-  const novo = chamadas[data][numAluno] === "F" ? "C" : "F";
-  chamadas[data][numAluno] = novo;
-  // Atualiza só o botão — sem re-render
-  btnEl.textContent = novo;
-  btnEl.className = `btn-cf-mob ${novo === "F" ? "chk-falta" : "chk-comp"}`;
-  await _salvarChamadas(turmaKey);
+// ── Home mobile: exibe visão dia (tela inicial no celular) ─────
+function renderizarHomeMobile() {
+  abrirCalendario();
 }
