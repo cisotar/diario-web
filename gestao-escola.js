@@ -798,3 +798,51 @@ function baixarTala(turmaKey) {
   const conteudo = `// talas/talas${turmaKey.toLowerCase()}.js — Lista de alunos da turma ${turmaKey}\n// Exportado em ${ts}\n// Situação: "" = matriculado | AB = Abandonou | NC = Não compareceu | TR = Transferido | RM = Remanejado | RC = Reclassificado\n\n_registrarAlunos("${turmaKey}", [\n${linhas}\n]);\n`;
   baixarArquivo(new Blob([conteudo], { type: "application/javascript;charset=utf-8;" }), `talas${turmaKey.toLowerCase()}.js`);
 }
+
+// ── Migração: copia turmas do admin de diario/global para diario/{uid} ──────
+// Executar uma única vez pelo admin no console: migrarTurmasAdminParaProfessor()
+async function migrarTurmasAdminParaProfessor() {
+  if (!_isAdmin(_userAtual?.email)) { alert("Apenas admin."); return; }
+  const uid = _userAtual.uid;
+  const db  = firebase.firestore();
+
+  // Lê o diário global
+  const globalSnap = await db.collection("diario").doc("global").get();
+  if (!globalSnap.exists) { alert("Diário global não encontrado."); return; }
+  const globalData = globalSnap.data();
+  const todasTurmas = globalData.RT_TURMAS ? JSON.parse(globalData.RT_TURMAS) : [];
+
+  // Separa turmas do professor (profUid === uid) das do global
+  const turmasProf   = todasTurmas.filter(t => t.profUid === uid);
+  const turmasGlobal = todasTurmas.filter(t => t.profUid !== uid);
+
+  if (!turmasProf.length) {
+    alert("Nenhuma turma com seu uid encontrada no diário global.");
+    return;
+  }
+
+  // Lê o diário pessoal (pode estar vazio)
+  const profSnap  = await db.collection("diario").doc(uid).get();
+  const profData  = profSnap.exists ? profSnap.data() : {};
+  const turmasJa  = profData.RT_TURMAS ? JSON.parse(profData.RT_TURMAS) : [];
+
+  // Merge: evita duplicatas
+  const ids = new Set(turmasJa.map(t => t.id));
+  const novas = turmasProf.filter(t => !ids.has(t.id));
+  const turmasMerged = [...turmasJa, ...novas];
+
+  // Salva no diário pessoal
+  await db.collection("diario").doc(uid).set({
+    ...profData,
+    RT_TURMAS: JSON.stringify(turmasMerged),
+    _atualizado: new Date().toISOString(),
+  }, { merge: true });
+
+  // Remove as turmas do professor do diário global (mantém só as globais)
+  await db.collection("diario").doc("global").update({
+    RT_TURMAS: JSON.stringify(turmasGlobal),
+    _atualizado: new Date().toISOString(),
+  });
+
+  alert(`✓ ${novas.length} turma(s) migrada(s) para seu diário pessoal.\nRecarregue a página.`);
+}
