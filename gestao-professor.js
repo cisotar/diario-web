@@ -372,9 +372,10 @@ function profRemoverHorario(turmaId, aula, diaSemana) {
   RT_TURMAS[ti].horarios = RT_TURMAS[ti].horarios.filter(
     h => !(h.aula === aula && h.diaSemana === diaSemana)
   );
+  // Remove a entrada de turma se ficou sem horários
+  // (mantém estadoAulas intacto — os registros de aulas não são perdidos)
   if (!RT_TURMAS[ti].horarios.length) {
-    const temEstado = Object.keys(estadoAulas).some(k => k.startsWith(turmaId));
-    if (!temEstado) RT_TURMAS.splice(ti, 1);
+    RT_TURMAS.splice(ti, 1);
   }
   salvarTudo();
   _invalidarHorariosCache();
