@@ -1,498 +1,436 @@
-/* ============================================================
-   CALENDARIO.CSS — Calendário do Diário de Aulas v3
-   Design system: ardósia #1e2530, âmbar #c97d20, DM Serif + DM Sans
-   ============================================================ */
+// CHAMADA.JS — Sistema de chamadas e frequência
+// Dependências: globals.js, db.js, auth.js
 
-.cal-painel { max-width: 1400px; animation: fadeUp .2s ease both; }
+const _SITS_INATIVAS = ["AB","TR","RM","RC","NC"];
+const _SITS_SEMPRE_C  = ["EE"];  // Educação Especial — presença sempre C, nunca F
 
-/* ── Header ─────────────────────────────────────────────── */
-.cal-header {
-  display: flex; align-items: flex-start;
-  justify-content: space-between; margin-bottom: 20px;
-  gap: 12px; flex-wrap: wrap;
-}
-.cal-header-esq { display: flex; flex-direction: column; gap: 8px; }
-.cal-titulo {
-  font-family: 'DM Serif Display', serif;
-  font-size: 1.75rem; color: var(--text); line-height: 1;
-}
-.cal-legenda  { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.cal-leg-item { display: flex; align-items: center; gap: 5px; font-size: .75rem; color: var(--text-muted); font-weight:500; }
-.cal-leg      { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
-.cal-leg-ad   { background: var(--green); }
-.cal-leg-ch   { background: var(--teal);  }
-.cal-leg-re   { background: var(--blue);  }
+let RT_CHAMADAS = {};
 
-/* ── Toolbar ─────────────────────────────────────────────── */
-.cal-toolbar {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; flex-wrap: wrap; margin-bottom: 18px; padding: 10px 14px;
-  background: var(--bg-paper); border: 1px solid var(--border);
-  border-radius: var(--radius); box-shadow: var(--shadow);
-}
-.cal-nav { display: flex; align-items: center; gap: 6px; }
-.cal-btn-nav {
-  width: 32px; height: 32px; border: 1.5px solid var(--border); border-radius: 7px;
-  background: var(--bg); color: var(--text-mid); font-size: 1.2rem; font-weight: 700;
-  cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: all .13s; line-height: 1;
-}
-.cal-btn-nav:hover { border-color: var(--amber); color: var(--amber); background: var(--amber-pale); }
-.cal-nav-label {
-  font-family: 'DM Serif Display', serif;
-  font-size: 1.1rem; color: var(--text); min-width: 190px; text-align: center;
-}
-.cal-btn-hoje {
-  padding: 6px 14px; border-radius: 7px; border: 1.5px solid var(--border);
-  background: var(--bg); color: var(--text-mid);
-  font-family: 'DM Sans', sans-serif; font-size: .78rem; font-weight: 600;
-  cursor: pointer; transition: all .13s;
-}
-.cal-btn-hoje:hover { border-color: var(--amber); color: var(--amber); }
-.cal-views-bar { display: flex; }
-.cal-view-btn {
-  padding: 7px 20px; border: 1.5px solid var(--border); background: transparent;
-  color: var(--text-mid); font-family: 'DM Sans', sans-serif;
-  font-size: .82rem; font-weight: 500; cursor: pointer; transition: all .13s;
-}
-.cal-view-btn:first-child { border-radius: 7px 0 0 7px; }
-.cal-view-btn:last-child  { border-radius: 0 7px 7px 0; margin-left: -1px; }
-.cal-view-btn:not(:first-child):not(:last-child) { margin-left: -1px; }
-.cal-view-btn:hover { border-color: var(--amber); color: var(--amber); z-index:1; position:relative; }
-.cal-view-btn.ativo { background: var(--amber); border-color: var(--amber); color:#fff; font-weight:600; z-index:2; position:relative; }
-
-/* ════════════════════════════════════════════════════════════
-   BOTÕES AD / CH / RE INTERATIVOS
-   ════════════════════════════════════════════════════════════ */
-.cal-checks-row { display: flex; gap: 3px; flex-wrap: nowrap; }
-.cal-checks-sm  { margin-top: 4px; }
-.cal-checks-lg  { margin-top: 2px; }
-
-/* Base */
-.cal-chk {
-  display: inline-flex; align-items: center; gap: 3px;
-  border: 1.5px solid #c8d0da; background: #edf0f4; color: #5a6a7e;
-  font-family: 'DM Sans', sans-serif; font-weight: 700; letter-spacing: .03em;
-  cursor: pointer; user-select: none; border-radius: 5px;
-  transition: all .13s; line-height: 1;
-}
-.cal-chk:hover { border-color: var(--amber); color: var(--amber); background: var(--amber-pale); }
-.cal-chk:active { transform: scale(.94); }
-
-/* Tamanho SM — semana */
-.cal-chk-sm { padding: 3px 6px; font-size: .63rem; }
-/* Tamanho LG — dia */
-.cal-chk-lg { padding: 6px 12px; font-size: .78rem; }
-
-/* Estado ON — marcado (verde sólido, fonte branca) */
-.cal-chk-on-ad,
-.cal-chk-on-ch,
-.cal-chk-on-re {
-  background: #1a7a4a !important;
-  border-color: #1a7a4a !important;
-  color: #fff !important;
-}
-
-/* Estado OFF — aula passada não marcada (vermelho sólido, fonte branca) */
-.cal-chk-passada {
-  background: #e05252 !important;
-  border-color: #c03030 !important;
-  color: #fff !important;
-}
-
-/* Estado OFF — aula futura (neutro) */
-.cal-chk-fut {
-  background: #edf0f4 !important;
-  border-color: #c8d0da !important;
-  color: #5a6a7e !important;
-}
-
-.cal-chk-ico { font-size: .95em; }
-.cal-chk-lbl { }
-
-/* ════════════════════════════════════════════════════════════
-   CORES BASE DOS CARDS
-   ════════════════════════════════════════════════════════════ */
-.chip-cor-ad   { background: var(--green-pale); border-left-color: var(--green) !important; }
-.chip-cor-pend { background: #fff5e5;           border-left-color: var(--amber) !important; }
-.chip-cor-fut  { background: var(--blue-pale);  border-left-color: #93b4e8    !important; }
-
-/* ════════════════════════════════════════════════════════════
-   VISÃO MÊS
-   ════════════════════════════════════════════════════════════ */
-.cal-mes {
-  background: var(--bg-paper); border: 1px solid var(--border);
-  border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
-}
-.cal-mes-header {
-  display: grid; grid-template-columns: repeat(7,1fr); background: #1e2530;
-}
-.cal-mes-dh {
-  padding: 10px 0; text-align: center; font-size: .63rem;
-  text-transform: uppercase; letter-spacing: .12em; color: #6a7a8e; font-weight: 600;
-}
-.cal-mes-grid {
-  display: grid; grid-template-columns: repeat(7,1fr); border-top: 1px solid var(--border);
-}
-.cal-dia-cel {
-  min-height: 118px; border-right: 1px solid var(--border);
-  border-bottom: 1px solid var(--border); padding: 7px 6px 5px;
-  cursor: pointer; transition: background .12s; overflow: hidden;
-}
-.cal-dia-cel:hover         { background: var(--amber-pale); }
-.cal-dia-cel:nth-child(7n) { border-right: none; }
-.cal-outro-mes { background: #f7f5f0; }
-.cal-outro-mes .cal-dia-num { color: #c9bfb0; }
-.cal-hoje      { background: #fffdf7 !important; }
-
-.cal-dia-num-wrap { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
-.cal-dia-num  { font-size: .82rem; font-weight: 700; color: var(--text-mid); line-height: 1; }
-.cal-hoje-num {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 22px; height: 22px; background: var(--amber); color: #fff;
-  border-radius: 50%; font-weight: 700; font-size: .78rem;
-}
-.cal-dia-count {
-  font-size: .58rem; font-weight: 700; background: #e8e2d8;
-  color: var(--text-muted); border-radius: 10px; padding: 1px 5px;
-}
-.cal-dia-chips { display: flex; flex-direction: column; gap: 2px; }
-
-/* Chip compacto mês */
-.cal-chip-mes {
-  display: flex; align-items: center; gap: 3px;
-  padding: 2px 5px; border-radius: 4px; border-left: 3px solid transparent;
-  font-size: .66rem; font-weight: 600; line-height: 1.35; cursor: default;
-}
-.cpm-turma { color: var(--text-mid); font-weight: 700; white-space: nowrap; font-size: .64rem; }
-.cpm-turma em { font-style: normal; font-weight: 400; margin-left: 2px; color: var(--text-muted); }
-.cpm-hora  { color: var(--text-muted); font-size: .6rem; margin-left: auto; white-space: nowrap; }
-.cpm-dots  { display: flex; gap: 1px; margin-left: 2px; }
-.dot       { font-size: .55rem; line-height: 1; }
-.dot-ad    { color: var(--green); }
-.dot-ch    { color: var(--teal);  }
-.dot-reg   { color: var(--blue);  }
-.dot-off   { color: #d0d8e2; }
-.cal-mais-link { font-size: .64rem; color: var(--amber); font-weight: 600; padding: 1px 4px; cursor: pointer; }
-.cal-mais-link:hover { text-decoration: underline; }
-
-/* ════════════════════════════════════════════════════════════
-   VISÃO SEMANA — desktop
-   ════════════════════════════════════════════════════════════ */
-.cal-semana {
-  background: var(--bg-paper); border: 1px solid var(--border);
-  border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
-}
-.cal-sem-cabec,
-.cal-sem-linha { display: grid; grid-template-columns: 88px repeat(7,minmax(140px,1fr)); }
-.cal-sem-cabec { background: #1e2530; border-bottom: 1px solid #2d3748; }
-.cal-sem-corner { border-right: 1px solid #2d3748; display:flex; align-items:center; justify-content:center; }
-
-/* Número da semana no corner */
-.cal-sem-week-num {
-  font-size: .6rem; font-weight: 700; text-transform: uppercase;
-  letter-spacing: .08em; color: #cbd5e1; text-align: center; line-height: 1.3;
-}
-
-.cal-sem-col-dia {
-  padding: 10px 0 8px; text-align: center; border-right: 1px solid #2d3748;
-}
-.cal-sem-col-dia:last-child { border-right: none; }
-.cal-sem-col-dia.cal-col-hoje { background: rgba(201,125,32,.1); }
-
-.cal-sem-dow {
-  display: block; font-size: .62rem; text-transform: uppercase;
-  letter-spacing: .12em; color: #94a3b8; font-weight: 600;
-}
-.cal-sem-dn {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 28px; height: 28px; font-size: 1rem; font-weight: 700; color: #e2e8f0;
-  border-radius: 50%; margin-top: 3px; transition: background .13s, color .13s; cursor: pointer;
-}
-.cal-sem-dn:hover             { background: var(--amber); color: #fff; }
-.cal-sem-dn.cal-hoje-num      { background: var(--amber); color: #fff; }
-
-.cal-sem-linha {
-  border-bottom: 1px solid var(--border); min-height: 76px;
-}
-.cal-sem-linha:last-child { border-bottom: none; }
-
-.cal-sem-col-periodo {
-  padding: 10px 8px; text-align: right; border-right: 1px solid var(--border);
-  background: #f8f6f1; display: flex; flex-direction: column;
-  justify-content: flex-start; gap: 2px;
-}
-.cal-sem-per-nome { font-size: .68rem; font-weight: 700; color: var(--text-mid); text-transform: uppercase; letter-spacing: .05em; }
-.cal-sem-per-hora { font-size: .62rem; color: var(--text-muted); }
-
-.cal-sem-cel {
-  padding: 5px; border-right: 1px solid var(--border);
-  display: flex; flex-direction: column; gap: 4px;
-}
-.cal-sem-cel:last-child       { border-right: none; }
-.cal-sem-cel.cal-col-hoje     { background: #fffdf7; }
-.cal-sem-vazio { padding: 40px; text-align: center; color: var(--text-muted); font-size: .9rem; }
-
-/* Card semana */
-.cal-card-sem {
-  padding: 6px 8px; border-radius: 6px; border-left: 3px solid transparent;
-}
-.ccs-topo { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
-.ccs-sigla {
-  font-size: .6rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-  background: #1e2530; color: #fff; padding: 1px 5px; border-radius: 3px;
-}
-.ccs-nome { font-size: .72rem; font-weight: 600; color: var(--text); }
-
-/* ════════════════════════════════════════════════════════════
-   VISÃO DIA
-   ════════════════════════════════════════════════════════════ */
-.cal-dia { display: flex; flex-direction: column; gap: 18px; }
-.cal-dia-hoje .cal-dia-bloco { border-color: var(--amber); }
-
-.cal-dia-resumo {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  padding: 10px 16px; background: var(--bg-paper);
-  border: 1px solid var(--border); border-radius: var(--radius);
-  box-shadow: var(--shadow); font-size: .8rem;
-}
-.cdr-sep  { color: var(--border); }
-.cdr-item { display: flex; align-items: center; gap: 4px; color: var(--text-muted); }
-.cdr-num  { font-family: 'DM Serif Display', serif; font-size: 1.1rem; color: var(--text); line-height: 1; }
-.cdr-ad  .cdr-num  { color: var(--green); }
-.cdr-ch  .cdr-num  { color: var(--teal);  }
-.cdr-reg .cdr-num  { color: var(--blue);  }
-
-.cal-dia-bloco {
-  background: var(--bg-paper); border: 1px solid var(--border);
-  border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
-}
-.cal-dia-bloco-header {
-  display: flex; align-items: center; gap: 10px; padding: 12px 18px;
-  background: #1e2530; border-bottom: 1px solid #2d3748;
-}
-.cdb-nome { font-family: 'DM Serif Display', serif; font-size: 1rem; color: #e2e8f0; }
-.cdb-hora { font-size: .78rem; color: var(--text-mid); }
-.cdb-n    { margin-left: auto; font-size: .7rem; color: #6a7a8e; text-transform: uppercase; letter-spacing: .07em; font-weight: 600; }
-
-.cal-dia-cards {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(270px,1fr));
-  gap: 1px; background: var(--border);
-}
-
-.cal-card-dia {
-  background: var(--bg-paper); padding: 15px 18px;
-  display: flex; flex-direction: column; gap: 10px;
-  border-left: 4px solid transparent;
-}
-.cal-card-dia.card-ad   { border-color: var(--green); }
-.cal-card-dia.card-pend { border-color: var(--amber); }
-.cal-card-dia.card-fut  { border-color: #93b4e8; }
-
-.ccd-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
-.ccd-info { display: flex; align-items: flex-start; gap: 8px; }
-.ccd-sigla-badge {
-  display: inline-block; background: #1e2530; color: #fff;
-  font-size: .58rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
-  padding: 1px 5px; border-radius: 3px; vertical-align: middle; margin-right: 3px;
-}
-.ccd-nomes { display: flex; flex-direction: column; gap: 1px; }
-.ccd-nome-turma { font-size: .86rem; font-weight: 600; color: var(--text); line-height: 1.3; }
-.ccd-disciplina { font-size: .74rem; color: var(--text-muted); }
-.ccd-status-pill {
-  flex-shrink: 0; font-size: .71rem; font-weight: 600;
-  padding: 4px 9px; border-radius: 20px; border: 1px solid var(--border); white-space: nowrap;
-}
-.pill-ad   { background: var(--green-pale); color: var(--green); border-color: #b2e0c6; }
-.pill-pend { background: #fff5e5;           color: var(--amber); border-color: #f0c890; }
-.pill-fut  { background: var(--blue-pale);  color: var(--blue);  border-color: #bfd3f5; }
-.ccd-conteudo {
-  font-size: .8rem; color: var(--text-mid); line-height: 1.5;
-  padding: 8px 10px; background: var(--bg); border-radius: 5px;
-  border: 1px solid var(--border); font-style: italic;
-}
-
-.cal-dia-vazio {
-  display: flex; flex-direction: column; align-items: center; justify-content: center;
-  min-height: 260px; text-align: center; color: var(--text-muted);
-}
-.cal-dia-vazio-ico { font-size: 2.8rem; margin-bottom: 14px; opacity: .35; }
-.cal-dia-vazio p   { font-size: .9rem; }
-
-/* ── Botão na sidebar ────────────────────────────────────── */
-.btn-cal-sidebar {
-  width: 100%; display: flex; align-items: center; justify-content: space-between;
-  padding: 8px 10px; margin-bottom: 6px; border: none; border-radius: 7px;
-  background: transparent; color: #b0bec9; cursor: pointer;
-  font-family: 'DM Sans', sans-serif; font-size: .83rem;
-  text-align: left; transition: background .14s, color .14s;
-}
-.btn-cal-sidebar:hover { background: #2d3748; color: #e2e8f0; }
-.btn-cal-sidebar.ativo { background: var(--teal); color: #fff; font-weight: 600; }
-
-/* ── Links de turma (clicável para abrir o diário) ────────── */
-.cal-turma-link {
-  background: none; border: none; padding: 0; margin: 0;
-  text-align: left; cursor: pointer; font-family: inherit;
-  display: flex; align-items: center; gap: 5px;
-  border-radius: 4px;
-  transition: opacity .13s;
-}
-.cal-turma-link:hover { opacity: .75; }
-.cal-turma-link:hover .ccs-sigla,
-.cal-turma-link:hover .ccd-sigla-badge { background: var(--teal); }
-
-/* Ícone de seta ↗ */
-.ccs-link-ico,
-.ccd-link-ico {
-  font-size: .7rem; opacity: 0; margin-left: 2px;
-  transition: opacity .13s; color: var(--teal);
-  flex-shrink: 0;
-}
-.cal-turma-link:hover .ccs-link-ico,
-.cal-turma-link:hover .ccd-link-ico { opacity: 1; }
-
-/* ════════════════════════════════════════════════════════════
-   RESPONSIVO — até 900px (tablet) — ajustes menores
-   ════════════════════════════════════════════════════════════ */
-@media (max-width: 900px) {
-  .cal-dia-cel  { min-height: 76px; }
-  .cal-chip-mes { font-size: .6rem; }
-  .cal-nav-label { min-width: 140px; font-size: .92rem; }
-  .cal-view-btn  { padding: 6px 12px; font-size: .78rem; }
-  .cal-dia-cards { grid-template-columns: 1fr; }
-}
-
-/* ════════════════════════════════════════════════════════════
-   RESPONSIVO — até 860px (mobile) — visão semana vertical
-   ════════════════════════════════════════════════════════════ */
-@media (max-width: 860px) {
-
-  /* ── Toolbar compacta ───────────────────────────────────── */
-  .cal-toolbar {
-    padding: 8px 10px;
-    gap: 8px;
+async function _carregarChamadas(turmaKey) {
+  if (RT_CHAMADAS[turmaKey]) return RT_CHAMADAS[turmaKey];
+  if (!_DEV) {
+    try {
+      const snap = await firebase.firestore()
+        .collection("chamadas").doc(turmaKey).get();
+      if (snap.exists) {
+        RT_CHAMADAS[turmaKey] = snap.data().registros || {};
+        return RT_CHAMADAS[turmaKey];
+      }
+    } catch(e) { console.warn("Erro ao carregar chamadas:", e); }
   }
-  .cal-nav { gap: 4px; }
-  .cal-nav-label { min-width: 0; font-size: .85rem; flex: 1; text-align: center; }
-  .cal-btn-nav   { width: 28px; height: 28px; font-size: 1rem; }
-  .cal-btn-hoje  { padding: 5px 10px; font-size: .72rem; }
-  .cal-view-btn  { padding: 6px 10px; font-size: .72rem; }
+  RT_CHAMADAS[turmaKey] = {};
+  return RT_CHAMADAS[turmaKey];
+}
 
-  /* ── Header do calendário ───────────────────────────────── */
-  .cal-titulo { font-size: 1.25rem; }
-  .cal-legenda { gap: 8px; }
-  .cal-leg-item { font-size: .68rem; }
+async function _salvarChamadas(turmaKey) {
+  if (_DEV) { console.log("[DEV] _salvarChamadas — apenas memória"); return; }
+  try {
+    await firebase.firestore().collection("chamadas").doc(turmaKey)
+      .set({ registros: RT_CHAMADAS[turmaKey], _atualizado: new Date().toISOString() },
+           { merge: true });
+    _mostrarIndicadorSync("✓ Chamada salva");
+  } catch(e) {
+    console.warn("Erro ao salvar chamadas:", e);
+    _mostrarIndicadorSync("⚠ Erro ao salvar chamada");
+  }
+}
 
-  /* ══════════════════════════════════════════════════════════
-     VISÃO SEMANA — mobile: empilha os dias verticalmente
-     Um card por dia com todas as aulas do dia dentro
-     ══════════════════════════════════════════════════════════ */
+// Data selecionada para chamada (padrão: hoje se for dia de aula, senão último passado)
+let _dataChamadaSel     = null;
+// Bimestre selecionado na aba de chamada (independente do bimestreAtivo do cronograma)
+let _bimestreChamadaSel = null;
+// Mês filtrado na chamada ("YYYY-MM" ou null = todos)
+let _mesChamadaSel      = null;
 
-  /* Oculta a grade normal e usa layout de lista */
-  .cal-semana {
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    overflow: visible;
+function _diasDeAulaNoBimestre(turmaId, bim) {
+  const slots = getSlotsCompletos(turmaId, bim).filter(s => !s.eventual);
+  return [...new Set(slots.map(s => s.data))].sort();
+}
+
+// Retorna true se o aluno deve receber chamada numa data específica.
+function _alunoAtivoNaData(aluno, data) {
+  if (!_SITS_INATIVAS.includes(aluno.situacao)) return true;
+  if (!aluno.situacaoData) return false;
+  return data < aluno.situacaoData;
+}
+
+async function _renderizarChamadaDesktop() {
+  const t     = turmaAtiva;
+  if (!t) return;
+  const secao = document.getElementById("secao-chamada");
+  if (!secao) return;
+
+  const turmaKey = t.serie + t.turma;
+  const alunos   = await _carregarAlunos(turmaKey);
+  const chamadas = await _carregarChamadas(turmaKey);
+  const hoje_str = hoje();
+
+  if (!_bimestreChamadaSel) _bimestreChamadaSel = bimestreAtivo;
+  const bimObj = RT_BIMESTRES.find(b => b.bimestre === _bimestreChamadaSel) || RT_BIMESTRES[0];
+
+  // Todas as datas de aula do bimestre (sem corte por hoje)
+  const todasDatas = _diasDeAulaNoBimestre(t.id, _bimestreChamadaSel)
+    .filter(d => d >= bimObj.inicio && d <= bimObj.fim);
+
+  const datasPassadas = todasDatas.filter(d => d <= hoje_str);
+
+  if (!_dataChamadaSel || !todasDatas.includes(_dataChamadaSel)) {
+    _dataChamadaSel = todasDatas.includes(hoje_str)
+      ? hoje_str
+      : [...datasPassadas].reverse()[0] || todasDatas[0] || hoje_str;
   }
 
-  /* Cabeçalho da semana (linha com os dias) — oculto no mobile;
-     substituído pelos títulos dentro de cada bloco de dia */
-  .cal-sem-cabec { display: none; }
+  // Datas visíveis: filtradas por mês se houver filtro ativo
+  const datasVisiveis = _mesChamadaSel
+    ? todasDatas.filter(d => d.startsWith(_mesChamadaSel))
+    : todasDatas;
 
-  /* Linha de período: vira uma lista vertical de cards por dia */
-  .cal-sem-corpo {
-    display: flex;
-    flex-direction: column;
-    gap: 0;
+  // ── Meses únicos do bimestre (para filtro) ──
+  const todosMeses = [];
+  for (const d of todasDatas) {
+    const [ano, mes] = d.split("-");
+    const chave = `${ano}-${mes}`;
+    if (!todosMeses.find(m => m.chave === chave)) {
+      const label = NOMES_MES[+mes - 1].charAt(0).toUpperCase()
+        + NOMES_MES[+mes - 1].slice(1) + "/" + ano;
+      todosMeses.push({ chave, label });
+    }
   }
 
-  /* Cada linha de período vira um bloco de dia completo */
-  .cal-sem-linha {
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    margin-bottom: 10px;
-    overflow: hidden;
-    box-shadow: var(--shadow);
-    min-height: 0;
+  // ── Cabeçalho linha 1: meses com colspan — títulos são links de filtro ──
+  const gruposMes = [];
+  for (const d of datasVisiveis) {
+    const [ano, mes] = d.split("-");
+    const chave = `${ano}-${mes}`;
+    const label = NOMES_MES[+mes - 1].charAt(0).toUpperCase()
+      + NOMES_MES[+mes - 1].slice(1) + "/" + ano;
+    if (!gruposMes.length || gruposMes[gruposMes.length - 1].chave !== chave) {
+      gruposMes.push({ chave, label, count: 1 });
+    } else {
+      gruposMes[gruposMes.length - 1].count++;
+    }
   }
 
-  /* Coluna de período: vira cabeçalho horizontal do bloco */
-  .cal-sem-col-periodo {
-    text-align: left;
-    padding: 8px 14px;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-    background: #1e2530;
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
+  const thMeses = gruposMes.map(m => {
+    const ativo   = _mesChamadaSel === m.chave;
+    const onclick = ativo
+      ? `_mesChamadaSel=null;renderizarChamadaFrequencia()`
+      : `_mesChamadaSel='${m.chave}';renderizarChamadaFrequencia()`;
+    return `<th colspan="${m.count}" class="th-mes-chamada">
+      <button type="button" class="btn-mes-chamada${ativo ? " ativo" : ""}"
+        onclick="${onclick}"
+        title="${ativo ? "Ver todos os meses" : "Filtrar este mês"}">
+        ${m.label}${ativo ? " ×" : ""}
+      </button>
+    </th>`;
+  }).join("");
+
+  // ── Cabeçalho linha 2: número do dia (com popover C/F no hover) ──
+  const thDias = datasVisiveis.map(d => {
+    const isSel  = d === _dataChamadaSel;
+    const isPast = d <= hoje_str;
+    const dia    = d.split("-")[2];
+    return `<th class="th-data-chamada${isSel ? " th-data-sel" : ""}">
+      ${dia}
+      ${isPast ? `<div class="th-dia-popover">
+        <button type="button" class="btn-lote" style="font-size:.6rem;padding:2px 4px"
+          onclick="chamadaTodosData('${turmaKey}','${d}','C')">C</button>
+        <button type="button" class="btn-lote btn-lote-off" style="font-size:.6rem;padding:2px 4px"
+          onclick="chamadaTodosData('${turmaKey}','${d}','F')">F</button>
+      </div>` : ""}
+    </th>`;
+  }).join("");
+
+  // ── Linhas de alunos ──
+  const SITUACAO_LABEL = {
+    "":"Matriculado","AB":"Abandonou","NC":"Não compareceu",
+    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado",
+    "EE":"Educação Especial"
+  };
+
+  const rows = alunos.map(a => {
+    // TF e %F calculados sobre todas as datas passadas do bimestre
+    let totalAulas  = 0;
+    let totalFaltas = 0;
+    const isEE = a.situacao === "EE";
+    for (const d of datasPassadas) {
+      if (!_alunoAtivoNaData(a, d)) continue;
+      totalAulas++;
+      // EE nunca tem falta
+      if (!isEE && (chamadas[d] || {})[a.num] === "F") totalFaltas++;
+    }
+
+    const tds = datasVisiveis.map(d => {
+      const isPast = d <= hoje_str;
+      const ativo  = _alunoAtivoNaData(a, d);
+
+      if (!ativo) {
+        return `<td style="text-align:center;color:var(--text-muted);font-size:.7rem">—</td>`;
+      }
+
+      // EE: sempre C, botão desabilitado
+      const val = isEE ? "C" : ((chamadas[d] || {})[a.num] || (isPast ? "C" : ""));
+      if (!val) return `<td></td>`;
+      const cls = val === "F" ? "chk-falta" : "chk-comp";
+      return `<td style="text-align:center">
+        <button type="button" class="btn-cf ${cls}"
+          ${isEE
+            ? `disabled title="Educação Especial — presença automática" style="opacity:.6;cursor:default"`
+            : `onclick="toggleChamada('${turmaKey}','${d}',${a.num})"`
+          }>${val}</button>
+      </td>`;
+    }).join("");
+
+    const pctFaltas = totalAulas > 0 ? (totalFaltas / totalAulas) * 100 : 0;
+    const altaFalta = pctFaltas > 20;
+
+    const sitLabel    = a.situacao ? a.situacao : "✓";
+    const sitClass    = a.situacao ? `badge-sit-${a.situacao.toLowerCase()}` : "badge-sit-ok";
+    const sitTitle    = SITUACAO_LABEL[a.situacao || ""] || "";
+    const sitDataHint = (a.situacao && a.situacaoData) ? ` · ${fmtData(a.situacaoData)}` : "";
+    const tdSit = `<td style="text-align:center">
+      <span class="badge-situacao ${sitClass}" title="${sitTitle}${sitDataHint}">${sitLabel}</span>
+    </td>`;
+
+    const tdTF  = `<td class="td-freq-total"
+      title="${totalFaltas} falta(s) em ${totalAulas} aula(s)">${totalFaltas}</td>`;
+    const tdPct = `<td class="td-freq-pct ${altaFalta ? "freq-critica" : ""}"
+      title="${pctFaltas.toFixed(1)}%">${totalAulas > 0 ? pctFaltas.toFixed(0)+"%" : "—"}</td>`;
+
+    return `<tr class="${altaFalta ? "row-alta-falta" : ""}">
+      <td class="td-numero">${a.num}</td>
+      <td class="td-nome" style="font-size:.82rem;white-space:nowrap">${a.nome||"—"}</td>
+      ${tdSit}
+      ${tds}
+      ${tdTF}
+      ${tdPct}
+    </tr>`;
+  }).join("");
+
+  // Seletor de data para marcar em lote (só datas passadas)
+  const datasOpts = datasPassadas.map(d =>
+    `<option value="${d}" ${d===_dataChamadaSel?"selected":""}>${fmtData(d)}</option>`
+  ).join("");
+
+  // Contagem de aulas dadas no bimestre (para barra de progresso)
+  let _feitasCham = 0, _totalRegCham = 0;
+  for (const s of getSlotsCompletos(turmaAtiva.id, _bimestreChamadaSel).filter(s=>!s.eventual)) {
+    _totalRegCham++;
+    if (estadoAulas[chaveSlot(turmaAtiva.id, _bimestreChamadaSel, s.slotId)]?.feita) _feitasCham++;
   }
-  .cal-sem-per-nome { color: #e2e8f0; font-size: .7rem; }
-  .cal-sem-per-hora { color: #8896a5; font-size: .68rem; }
+  const _pctCham = _totalRegCham > 0 ? Math.round(_feitasCham/_totalRegCham*100) : 0;
+  const _corCham = _pctCham===100 ? "#4ade80" : _pctCham>50 ? "var(--amber)" : "var(--teal,#0d9488)";
+  const _bimProgBarChamada = (f, r, bimObj) => `
+    <div class="bim-prog-wrap" id="bim-prog-wrap" style="margin-bottom:4px">
+      <div class="bim-prog-info">
+        <span>📅 ${bimObj.label}: ${fmtData(bimObj.inicio)} → ${fmtData(bimObj.fim)}</span>
+        <span class="bim-prog-frac">${f}/${r} aulas dadas · ${r>0?Math.round(f/r*100):0}%</span>
+      </div>
+      <div class="bim-prog-bar-bg">
+        <div class="bim-prog-bar-fill" style="width:${r>0?Math.round(f/r*100):0}%;background:${_corCham}"></div>
+      </div>
+    </div>`;
 
-  /* Células dos dias: dispostas horizontalmente em wrap */
-  .cal-sem-cel {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-    padding: 6px 10px;
-    background: var(--bg-paper);
+  // Abas de bimestre (ao trocar, limpa filtro de mês também)
+  const tabsBimChamada = RT_BIMESTRES.map(b =>
+    `<button type="button" class="tab-bim ${b.bimestre === _bimestreChamadaSel ? "ativo" : ""}"
+      onclick="_bimestreChamadaSel=${b.bimestre};_dataChamadaSel=null;_mesChamadaSel=null;renderizarChamadaFrequencia()">${b.label}</button>`
+  ).join("");
+
+  // Botões de filtro por mês (só aparece quando o bimestre tem mais de um mês)
+  const filtroMeses = todosMeses.length > 1 ? `
+    <div class="filtro-meses-chamada">
+      <span style="font-size:.75rem;color:var(--text-muted)">Mês:</span>
+      ${todosMeses.map(m => `
+        <button type="button" class="btn-mes-filtro${_mesChamadaSel===m.chave?" ativo":""}"
+          onclick="_mesChamadaSel=${_mesChamadaSel===m.chave?"null":"'"+m.chave+"'"};renderizarChamadaFrequencia()">
+          ${m.label}
+        </button>`).join("")}
+      ${_mesChamadaSel
+        ? `<button type="button" class="btn-mes-filtro"
+            onclick="_mesChamadaSel=null;renderizarChamadaFrequencia()">✕ Todos</button>`
+        : ""}
+    </div>` : "";
+
+  secao.innerHTML = `
+    <div class="gestao-bloco">
+      <div class="gestao-bloco-header" style="flex-wrap:wrap;gap:8px">
+        <h3>Chamada — ${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""}</h3>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <label style="font-size:.8rem">Marcar data:
+            <select class="gi gi-sm" onchange="_dataChamadaSel=this.value;renderizarChamadaFrequencia()">
+              ${datasOpts}
+            </select>
+          </label>
+          <button type="button" class="btn-add"
+            onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','C')">✓ Todos C</button>
+          <button type="button" class="btn-add" style="background:var(--text-muted)"
+            onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','F')">✗ Todos F</button>
+        </div>
+      </div>
+      <div class="tabs-bimestre" style="margin-bottom:4px">${tabsBimChamada}</div>
+      ${_bimProgBarChamada(_feitasCham, _totalRegCham, bimObj)}
+      ${filtroMeses}
+      <div style="overflow-x:auto">
+        <table class="tabela-gestao tabela-chamada" style="min-width:0">
+          <colgroup>
+            <col class="col-num">
+            <col class="col-nome">
+            <col class="col-sit">
+            ${datasVisiveis.map(() => `<col style="width:28px;min-width:28px;max-width:28px">`).join("")}
+            <col class="col-freq">
+            <col class="col-freq">
+          </colgroup>
+          <thead>
+            <tr>
+              <th style="width:36px" rowspan="2">Nº</th>
+              <th rowspan="2">Nome</th>
+              <th rowspan="2" style="width:48px;text-align:center" title="Situação">Sit.</th>
+              ${thMeses}
+              <th rowspan="2" class="th-freq" title="Total de faltas no bimestre">TF</th>
+              <th rowspan="2" class="th-freq" title="% de faltas — limite: 20%">%F</th>
+            </tr>
+            <tr>
+              ${thDias}
+            </tr>
+          </thead>
+          <tbody>${rows || '<tr><td colspan="10" class="td-vazio">Nenhum aluno cadastrado.</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+async function toggleChamada(turmaKey, data, numAluno) {
+  const [chamadas, alunos] = await Promise.all([
+    _carregarChamadas(turmaKey),
+    _carregarAlunos(turmaKey),
+  ]);
+  const aluno = alunos.find(a => a.num === numAluno || String(a.num) === String(numAluno));
+  if (aluno?.situacao === "EE") return; // EE nunca recebe F
+  if (!chamadas[data]) chamadas[data] = {};
+  chamadas[data][numAluno] = (chamadas[data][numAluno] === "F") ? "C" : "F";
+  await _salvarChamadas(turmaKey);
+  renderizarChamadaFrequencia();
+}
+
+async function chamadaTodosData(turmaKey, data, valor) {
+  const [alunos, chamadas] = await Promise.all([
+    _carregarAlunos(turmaKey),
+    _carregarChamadas(turmaKey),
+  ]);
+  if (!chamadas[data]) chamadas[data] = {};
+  for (const a of alunos) {
+    if (_alunoAtivoNaData(a, data)) {
+      // EE nunca recebe F
+      chamadas[data][a.num] = (a.situacao === "EE") ? "C" : valor;
+    }
   }
-  .cal-sem-cel:last-child { border-bottom: none; }
-  .cal-sem-cel.cal-col-hoje { background: #fffdf7; }
+  await _salvarChamadas(turmaKey);
+  renderizarChamadaFrequencia();
+}
 
-  /* Cada célula ganha um micro-cabeçalho com o dia */
-  .cal-sem-cel::before {
-    content: attr(data-dow) " " attr(data-dn);
-    display: block;
-    font-size: .62rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    color: var(--text-muted);
-    margin-bottom: 4px;
+
+// ── Visão detalhada ──────────────────────────────────────────
+
+// ── Chamada Mobile — exibe apenas o dia atual ─────────────────
+
+async function renderizarChamadaFrequencia() {
+  // Redireciona para mobile se tela estreita e aba mobile ativa
+  if (window.innerWidth <= 860 && window._abaCronograma === "chamada_mobile") {
+    return _renderizarChamadaMobile();
   }
-  /* Destaque para hoje */
-  .cal-sem-cel.cal-col-hoje::before {
-    color: var(--amber);
-  }
+  return _renderizarChamadaDesktop();
+}
 
-  /* Células vazias (sem aulas): mais compactas */
-  .cal-sem-cel:empty,
-  .cal-sem-cel:not(:has(.cal-card-sem)) {
-    display: none; /* oculta células completamente vazias no mobile */
-  }
+async function _renderizarChamadaMobile() {
+  const t = turmaAtiva;
+  if (!t) return;
+  const secao = document.getElementById("secao-chamada");
+  if (!secao) return;
 
-  /* Cards mais compactos no mobile */
-  .cal-card-sem {
-    padding: 5px 7px;
-    margin-bottom: 3px;
-  }
-  .ccs-topo { gap: 4px; }
-  .ccs-sigla { font-size: .58rem; padding: 1px 4px; }
-  .ccs-nome  { font-size: .7rem; }
+  const turmaKey = t.serie + t.turma;
+  const [alunos, chamadas] = await Promise.all([
+    _carregarAlunos(turmaKey),
+    _carregarChamadas(turmaKey),
+  ]);
 
-  /* Botões AD/CH/RE menores */
-  .cal-chk-sm { padding: 2px 5px; font-size: .6rem; }
+  if (!_bimestreChamadaSel) _bimestreChamadaSel = bimestreAtivo;
+  const hoje_str = hoje();
 
-  /* Mensagem de semana vazia */
-  .cal-sem-vazio { padding: 30px 16px; font-size: .85rem; }
+  // Data do dia — se não for dia de aula, mostra aviso
+  const datas = _diasDeAulaNoBimestre(t.id, _bimestreChamadaSel);
+  const dataAtual = datas.includes(hoje_str) ? hoje_str
+    : [...datas].reverse().find(d => d <= hoje_str) || datas[0] || hoje_str;
 
-  /* ── Visão mês no mobile ────────────────────────────────── */
-  .cal-dia-cel  { min-height: 56px; padding: 4px 3px; }
-  .cal-chip-mes { font-size: .55rem; padding: 1px 3px; }
-  .cpm-hora     { display: none; }
+  if (!_dataChamadaSel) _dataChamadaSel = dataAtual;
 
-  /* ── Visão dia no mobile ────────────────────────────────── */
-  .cal-dia-resumo { padding: 8px 12px; gap: 6px; font-size: .75rem; }
-  .cdr-num        { font-size: 1rem; }
-  .cal-dia-bloco-header { padding: 10px 14px; }
-  .cdb-nome       { font-size: .9rem; }
-  .cal-card-dia   { padding: 12px 14px; }
-  .ccd-nome-turma { font-size: .82rem; }
-  .ccd-disciplina { font-size: .7rem; }
-  .cal-chk-lg     { padding: 5px 9px; font-size: .72rem; }
+  const alunosAtivos = alunos.filter(a => _alunoAtivoNaData(a, _dataChamadaSel));
+
+  const SITUACAO_LABEL = {
+    "":"Matriculado","AB":"Abandonou","NC":"Não compareceu",
+    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado",
+    "EE":"Educação Especial"
+  };
+
+  const rows = alunosAtivos.map(a => {
+    const isEE  = a.situacao === "EE";
+    const val   = isEE ? "C" : ((chamadas[_dataChamadaSel] || {})[a.num] || "C");
+    const cls   = val === "F" ? "chk-falta" : "chk-comp";
+    const sitLabel = a.situacao ? a.situacao : "";
+    const sitClass = a.situacao ? `badge-sit-${a.situacao.toLowerCase()}` : "";
+    return `<tr>
+      <td class="td-numero">${a.num}</td>
+      <td style="font-size:.9rem">${a.nome||"—"}
+        ${sitLabel ? `<span class="badge-situacao ${sitClass}" style="margin-left:4px;font-size:.65rem">${sitLabel}</span>` : ""}
+      </td>
+      <td style="text-align:center;width:64px">
+        <button type="button" class="btn-cf-mob ${cls}"
+          ${isEE ? 'disabled title="Educação Especial — presença automática"' : `onclick="toggleChamadaMobile('${turmaKey}','${_dataChamadaSel}',${a.num},this)"`}>
+          ${val}
+        </button>
+      </td>
+    </tr>`;
+  }).join("");
+
+  const datasOpts = datas.filter(d => d <= hoje_str).reverse().map(d =>
+    `<option value="${d}" ${d===_dataChamadaSel?"selected":""}>${fmtData(d)}</option>`
+  ).join("");
+
+  secao.innerHTML = `
+    <div class="chamada-mobile-wrap">
+      <div class="chamada-mobile-header">
+        <label style="font-size:.85rem;font-weight:600">
+          📅 Data da chamada:
+          <select class="gi gi-sm" style="margin-left:6px"
+            onchange="_dataChamadaSel=this.value;_renderizarChamadaMobile()">
+            ${datasOpts}
+          </select>
+        </label>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button type="button" class="btn-add"
+            onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','C')">✓ Todos C</button>
+          <button type="button" class="btn-add" style="background:var(--text-muted)"
+            onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','F')">✗ Todos F</button>
+        </div>
+      </div>
+      <table class="tabela-gestao chamada-mob-tabela">
+        <thead><tr>
+          <th style="width:36px">Nº</th>
+          <th>Nome</th>
+          <th style="width:64px;text-align:center">C / F</th>
+        </tr></thead>
+        <tbody>${rows || '<tr><td colspan="3" class="td-vazio">Nenhum aluno ativo.</td></tr>'}</tbody>
+      </table>
+    </div>`;
+}
+
+async function toggleChamadaMobile(turmaKey, data, numAluno, btnEl) {
+  const chamadas = await _carregarChamadas(turmaKey);
+  if (!chamadas[data]) chamadas[data] = {};
+  const novo = chamadas[data][numAluno] === "F" ? "C" : "F";
+  chamadas[data][numAluno] = novo;
+  // Atualiza só o botão — sem re-render
+  btnEl.textContent = novo;
+  btnEl.className = `btn-cf-mob ${novo === "F" ? "chk-falta" : "chk-comp"}`;
+  await _salvarChamadas(turmaKey);
 }
