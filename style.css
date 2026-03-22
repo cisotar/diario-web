@@ -1573,6 +1573,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .badge-sit-tr  { background: #e8f0fe; color: #1a73e8; }
 .badge-sit-rm  { background: #f3e8fd; color: #7b1fa2; }
 .badge-sit-rc  { background: #fce8f3; color: #c2185b; }
+.badge-sit-ee  { background: #e0f2fe; color: #0369a1; }
 
 .aluno-inativo td { opacity: .55; }
 

@@ -2,6 +2,7 @@
 // Dependências: globals.js, db.js, auth.js
 
 const _SITS_INATIVAS = ["AB","TR","RM","RC","NC"];
+const _SITS_SEMPRE_C  = ["EE"];  // Educação Especial — presença sempre C, nunca F
 
 let RT_CHAMADAS = {};
 
@@ -144,18 +145,20 @@ async function _renderizarChamadaDesktop() {
   // ── Linhas de alunos ──
   const SITUACAO_LABEL = {
     "":"Matriculado","AB":"Abandonou","NC":"Não compareceu",
-    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado"
+    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado",
+    "EE":"Educação Especial"
   };
 
   const rows = alunos.map(a => {
-    // TF e %F sempre calculados sobre todas as datas passadas do bimestre
+    // TF e %F calculados sobre todas as datas passadas do bimestre
     let totalAulas  = 0;
     let totalFaltas = 0;
+    const isEE = a.situacao === "EE";
     for (const d of datasPassadas) {
       if (!_alunoAtivoNaData(a, d)) continue;
       totalAulas++;
-      const val = (chamadas[d] || {})[a.num] || "C";
-      if (val === "F") totalFaltas++;
+      // EE nunca tem falta
+      if (!isEE && (chamadas[d] || {})[a.num] === "F") totalFaltas++;
     }
 
     const tds = datasVisiveis.map(d => {
@@ -166,12 +169,16 @@ async function _renderizarChamadaDesktop() {
         return `<td style="text-align:center;color:var(--text-muted);font-size:.7rem">—</td>`;
       }
 
-      const val = (chamadas[d] || {})[a.num] || (isPast ? "C" : "");
+      // EE: sempre C, botão desabilitado
+      const val = isEE ? "C" : ((chamadas[d] || {})[a.num] || (isPast ? "C" : ""));
       if (!val) return `<td></td>`;
       const cls = val === "F" ? "chk-falta" : "chk-comp";
       return `<td style="text-align:center">
         <button type="button" class="btn-cf ${cls}"
-          onclick="toggleChamada('${turmaKey}','${d}',${a.num})">${val}</button>
+          ${isEE
+            ? `disabled title="Educação Especial — presença automática" style="opacity:.6;cursor:default"`
+            : `onclick="toggleChamada('${turmaKey}','${d}',${a.num})"`
+          }>${val}</button>
       </td>`;
     }).join("");
 
@@ -267,7 +274,12 @@ async function _renderizarChamadaDesktop() {
 }
 
 async function toggleChamada(turmaKey, data, numAluno) {
-  const chamadas = await _carregarChamadas(turmaKey);
+  const [chamadas, alunos] = await Promise.all([
+    _carregarChamadas(turmaKey),
+    _carregarAlunos(turmaKey),
+  ]);
+  const aluno = alunos.find(a => a.num === numAluno || String(a.num) === String(numAluno));
+  if (aluno?.situacao === "EE") return; // EE nunca recebe F
   if (!chamadas[data]) chamadas[data] = {};
   chamadas[data][numAluno] = (chamadas[data][numAluno] === "F") ? "C" : "F";
   await _salvarChamadas(turmaKey);
@@ -281,7 +293,10 @@ async function chamadaTodosData(turmaKey, data, valor) {
   ]);
   if (!chamadas[data]) chamadas[data] = {};
   for (const a of alunos) {
-    if (_alunoAtivoNaData(a, data)) chamadas[data][a.num] = valor;
+    if (_alunoAtivoNaData(a, data)) {
+      // EE nunca recebe F
+      chamadas[data][a.num] = (a.situacao === "EE") ? "C" : valor;
+    }
   }
   await _salvarChamadas(turmaKey);
   renderizarChamadaFrequencia();
@@ -326,12 +341,14 @@ async function _renderizarChamadaMobile() {
 
   const SITUACAO_LABEL = {
     "":"Matriculado","AB":"Abandonou","NC":"Não compareceu",
-    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado"
+    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado",
+    "EE":"Educação Especial"
   };
 
   const rows = alunosAtivos.map(a => {
-    const val = (chamadas[_dataChamadaSel] || {})[a.num] || "C";
-    const cls = val === "F" ? "chk-falta" : "chk-comp";
+    const isEE  = a.situacao === "EE";
+    const val   = isEE ? "C" : ((chamadas[_dataChamadaSel] || {})[a.num] || "C");
+    const cls   = val === "F" ? "chk-falta" : "chk-comp";
     const sitLabel = a.situacao ? a.situacao : "";
     const sitClass = a.situacao ? `badge-sit-${a.situacao.toLowerCase()}` : "";
     return `<tr>
@@ -341,7 +358,7 @@ async function _renderizarChamadaMobile() {
       </td>
       <td style="text-align:center;width:64px">
         <button type="button" class="btn-cf-mob ${cls}"
-          onclick="toggleChamadaMobile('${turmaKey}','${_dataChamadaSel}',${a.num},this)">
+          ${isEE ? 'disabled title="Educação Especial — presença automática"' : `onclick="toggleChamadaMobile('${turmaKey}','${_dataChamadaSel}',${a.num},this)"`}>
           ${val}
         </button>
       </td>

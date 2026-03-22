@@ -10,8 +10,8 @@ async function renderizarTala() {
   const turmaKey = t.serie + t.turma;
   const alunos   = await _carregarAlunos(turmaKey);
   const adm      = _isAdmin(_userAtual?.email);
-  const SITUACOES = ["","AB","NC","TR","RM","RC"];
-  const SITUACAO_LABEL = { "":"Matriculado","AB":"Abandonou","NC":"Não compareceu","TR":"Transferido","RM":"Remanejado","RC":"Reclassificado" };
+  const SITUACOES = ["","AB","NC","TR","RM","RC","EE"];
+  const SITUACAO_LABEL = { "":"Matriculado","AB":"Abandonou","NC":"Não compareceu","TR":"Transferido","RM":"Remanejado","RC":"Reclassificado","EE":"Educação Especial" };
 
   const rows = alunos.map((a, idx) => {
     const sitOpts = SITUACOES.map(s =>
@@ -112,7 +112,8 @@ async function baixarTalaCSV(turmaKey) {
   const lista = await _carregarAlunos(turmaKey);
   const SITUACAO_LABEL = {
     "":"Matriculado","AB":"Abandonou","NC":"Não compareceu",
-    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado"
+    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado",
+    "EE":"Educação Especial"
   };
   const cab = ["Nº","Nome","Matrícula","Situação","Data Situação"];
   const linhas = lista.map(a => [

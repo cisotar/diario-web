@@ -6,7 +6,7 @@
 //];
 
 _registrarAlunos("2A", [
-  { num: 1,  nome: "AILA VITÓRIA BALBINO DA SILVA",      matricula: "0001120054552",  situacao: "" },
+  { num: 1,  nome: "AILA VITÓRIA BALBINO DA SILVA",      matricula: "0001120054552",  situacao: "EE" },
   { num: 2,  nome: "GABRIEL SILVA OLIVOTTO",             matricula: "0001122185893",  situacao: "" },
   { num: 3,  nome: "ANA JULIA SOARES FRANCO",            matricula: "0001116012753",  situacao: "" },
   { num: 4,  nome: "ANA LUIZA DOS SANTOS MOURA",         matricula: "0001117443231",  situacao: "" },

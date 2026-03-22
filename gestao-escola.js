@@ -672,8 +672,8 @@ async function htmlEscolaAlunos() {
   let corpoAlunos = "";
   if (_alunosTurmaAtiva) {
     const lista = await _carregarAlunos(_alunosTurmaAtiva);
-    const SITUACOES = ["","AB","NC","TR","RM","RC"];
-    const SITUACAO_LABEL = { "":"Matriculado","AB":"Abandonou","NC":"Não compareceu","TR":"Transferido","RM":"Remanejado","RC":"Reclassificado" };
+    const SITUACOES = ["","AB","NC","TR","RM","RC","EE"];
+    const SITUACAO_LABEL = { "":"Matriculado","AB":"Abandonou","NC":"Não compareceu","TR":"Transferido","RM":"Remanejado","RC":"Reclassificado","EE":"Educação Especial" };
 
     const rows = lista.map((a, idx) => {
       const sitOpts = SITUACOES.map(s =>

@@ -88,7 +88,7 @@ function renderizarConteudo() {
         <span class="pct-badge">${pct}% concluído</span>
       </div>
     </div>`;
-  const bimInfoSimples = abaAtiva !== "cronograma"
+  const bimInfoSimples = (abaAtiva !== "cronograma" && abaAtiva !== "tala")
     ? _bimProgBar(feitas, totalReg, bimObj.label, bimObj.inicio, bimObj.fim)
     : "";
 
@@ -255,8 +255,10 @@ function trocarAbaCronograma(aba) {
   if (tabsBimOutros) tabsBimOutros.style.display = aba === "cronograma" ? "none" : "";
   if (bimCron)  bimCron.style.display  = aba === "cronograma" ? "" : "none";
 
-  // Atualiza barra de progresso simples
-  _atualizarBimProgBar();
+  // Atualiza barra de progresso simples (só chamada e notas)
+  const progWrap = document.getElementById("bim-prog-wrap");
+  if (progWrap) progWrap.style.display = (aba === "tala" || aba === "cronograma") ? "none" : "";
+  if (aba !== "tala" && aba !== "cronograma") _atualizarBimProgBar();
 
   if (aba === "tala")          renderizarTala();
   if (isChamada)               renderizarChamadaFrequencia();

@@ -163,7 +163,7 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
 
   const SITUACAO_LABEL = {
     "":"Matriculado","AB":"Abandonou","NC":"Não compareceu",
-    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado"
+    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado","EE":"Educação Especial"
   };
 
   // Cabeçalho de colunas — sigla editável (exceto PP), drag & drop, tooltip com label
@@ -322,7 +322,7 @@ async function _renderizarConceitoFinal(secao, t, turmaKey, alunos, dadosNotas, 
 
   const SITUACAO_LABEL = {
     "":"Matriculado","AB":"Abandonou","NC":"Não compareceu",
-    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado"
+    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado","EE":"Educação Especial"
   };
 
   // Cabeçalho: Nº | Nome | Sit. | MB1 | TF1 | MB2 | TF2 | MB3 | TF3 | MB4 | TF4 | TF | %F | MF
