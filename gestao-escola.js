@@ -115,10 +115,14 @@ function _renderizarPainel(titulo, tabs, abaAtiva, extraBtns) {
        onclick="_trocarAba(this,'g-${t.id}','${t.id}')">${t.label}</button>`
   ).join("");
 
+  // Abas síncronas rendem agora; abas async ficam vazias e são carregadas depois
+  const abaAtivaObj = tabs.find(t => t.id === abaAtiva);
+  const isAsync = abaAtivaObj?.async || abaAtivaObj?.fn?.constructor?.name === "AsyncFunction";
+
   const secoesHtml = tabs.map(t => {
-    const conteudo = t.id === abaAtiva ? t.fn() : "";
+    const conteudo = (t.id === abaAtiva && !isAsync) ? t.fn() : "";
     return `<div id="g-${t.id}" class="gestao-secao${t.id===abaAtiva?" ativa":""}"
-      data-loaded="${t.id===abaAtiva?'1':'0'}">${conteudo}</div>`;
+      data-loaded="${(t.id===abaAtiva && !isAsync)?'1':'0'}">${conteudo}</div>`;
   }).join("");
 
   document.getElementById("conteudo-principal").innerHTML = `
@@ -134,9 +138,16 @@ function _renderizarPainel(titulo, tabs, abaAtiva, extraBtns) {
       ${secoesHtml}
     </div>`;
 
-  // Pós-render para abas async (usuários, diários)
-  if (abaAtiva === "usuarios")  _carregarUsuarios();
-  if (abaAtiva === "diarios")   _carregarDiariosCoord();
+  // Pós-render para abas async
+  if (abaAtiva === "usuarios")      _carregarUsuarios();
+  if (abaAtiva === "diarios")       _carregarDiariosCoord();
+  if (abaAtiva === "minhas-turmas") {
+    const sec = document.getElementById("g-minhas-turmas");
+    if (sec) {
+      sec.innerHTML = "<div style='padding:20px;color:var(--text-muted)'>⏳ Carregando…</div>";
+      htmlProfTurmas().then(h => { sec.innerHTML = h; sec.dataset.loaded = "1"; });
+    }
+  }
 }
 
 function _trocarAba(btn, secId, abaId) {
@@ -155,7 +166,10 @@ function _trocarAba(btn, secId, abaId) {
     case "bimestres":    sec.innerHTML = htmlGestaoBimestres();    break;
     case "perfil":       sec.innerHTML = htmlGestaoPerfil();       break;
     case "conteudos":    sec.innerHTML = htmlGestaoConteudos();    break;
-    case "minhas-turmas": sec.innerHTML = htmlProfTurmas();        break;
+    case "minhas-turmas":
+      sec.innerHTML = "<div style='padding:20px;color:var(--text-muted)'>⏳ Carregando…</div>";
+      htmlProfTurmas().then(h => { sec.innerHTML = h; });
+      break;
     case "usuarios":     sec.innerHTML = htmlGestaoUsuarios(); _carregarUsuarios();  break;
     case "diarios":      sec.innerHTML = htmlGestaoDiarios();  _carregarDiariosCoord(); break;
   }

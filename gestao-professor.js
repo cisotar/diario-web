@@ -278,7 +278,7 @@ function addDiscNaTurma(serie, turma, subtitulo, periodo) {
   if (RT_TURMAS.find(t => t.id === id)) return; // evita duplicata rápida
   RT_TURMAS.push({ id, serie, turma, subtitulo, disciplina:"", sigla, horarios:[], profUid, periodo });
   salvarTudo(); renderizarSidebar();
-  document.getElementById("g-minhas-turmas").innerHTML = htmlProfTurmas();
+  htmlProfTurmas().then(h => { const s = document.getElementById("g-minhas-turmas"); if(s) s.innerHTML = h; });
 }
 
 
@@ -365,13 +365,13 @@ function addHorario(ti) {
   RT_TURMAS[ti].horarios.push({ diaSemana: 1, aula: prefixo + "1" });
   salvarTudo();
   const el = document.getElementById("g-minhas-turmas");
-  if (el) el.innerHTML = htmlProfTurmas();
+  if (el) htmlProfTurmas().then(h => el.innerHTML = h);
 }
 function delHorario(ti, hi) {
   RT_TURMAS[ti].horarios.splice(hi, 1);
   salvarTudo();
   const el = document.getElementById("g-minhas-turmas");
-  if (el) el.innerHTML = htmlProfTurmas();
+  if (el) htmlProfTurmas().then(h => el.innerHTML = h);
 }
 function delTurma(i) {
   const t = RT_TURMAS[i];
@@ -380,7 +380,7 @@ function delTurma(i) {
   salvarTudo();
   renderizarSidebar();
   const el = document.getElementById("g-minhas-turmas");
-  if (el) el.innerHTML = htmlProfTurmas();
+  if (el) htmlProfTurmas().then(h => el.innerHTML = h);
 }
 
 // ── Helpers de conteúdo ──────────────────────────────────────
