@@ -42,6 +42,7 @@ function _atualizarBotoesGestao() {
 // Abas: Turmas · Disciplinas/Áreas · Períodos · Bimestres · Usuários · Diários
 // ════════════════════════════════════════════════════════════════
 function _abrirPainelEscola(abaInicial) {
+  if (!_isAdmin(_userAtual?.email)) return; // proteção extra — nunca deve chegar aqui se não for admin
   if (!_isAdmin(_userAtual?.email)) return; // proteção extra
   const aba = abaInicial || "turmas";
   const tabs = [
