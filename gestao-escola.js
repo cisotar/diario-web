@@ -461,7 +461,7 @@ function htmlEscolaDisciplinas() {
     </div>`;
 }
 
-function editDiscsPorArea
+function editDiscsPorArea(serie, areaId, valor) {
   if (!RT_CONFIG.disciplinasPorSerie)        RT_CONFIG.disciplinasPorSerie = {};
   if (!RT_CONFIG.disciplinasPorSerie[serie]) RT_CONFIG.disciplinasPorSerie[serie] = {};
   // Aceita separação por ; ou por quebra de linha
