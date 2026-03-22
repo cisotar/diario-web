@@ -19,6 +19,14 @@ function _atualizarBotoesGestao() {
   const isAdmin = papel === "admin";
   const btnEl   = document.getElementById("btn-gestao");
   if (!btnEl) return;
+
+  // Esconde completamente para professores comuns
+  if (papel === "professor") {
+    btnEl.style.display = "none";
+    return;
+  }
+
+  btnEl.style.display = "";
   if (isAdmin) {
     btnEl.innerHTML = "⚙ Painel de Gestão ADM";
     btnEl.onclick   = _abrirPainelEscola;
@@ -30,9 +38,6 @@ function _atualizarBotoesGestao() {
       btn2.onclick   = _abrirPainelProfessor;
       btnEl.parentNode.insertBefore(btn2, btnEl.nextSibling);
     }
-  } else if (papel === "professor") {
-    btnEl.textContent = "⚙ Meu Painel";
-    btnEl.onclick     = _abrirPainelProfessor;
   } else if (papel === "coordenador") {
     btnEl.textContent = "⚙ Painel";
     btnEl.onclick     = _abrirPainelCoordenador;

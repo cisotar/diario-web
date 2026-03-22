@@ -334,10 +334,10 @@ function _atualizarBotaoAuth() {
     else document.body.appendChild(btn);
   }
   if (_autenticado && _userAtual) {
-    const nome   = _perfilProf?.nome || _userAtual.displayName || _userAtual.email.split("@")[0];
+    const email  = _userAtual.email;
     const papelLabels = { admin:"Admin", coordenador:"Coord.", professor:"Prof." };
     const papelBadge  = papelLabels[_papel()] ? ` [${papelLabels[_papel()]}]` : "";
-    btn.textContent = nome + papelBadge + " · Sair";
+    btn.textContent = email + papelBadge + " · Sair";
     btn.classList.add("logado");
     btn.onclick = () => { if (confirm("Encerrar sessão?")) _logout(); };
 
