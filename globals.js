@@ -255,9 +255,9 @@ function _atualizarTagline() {
 
 function _turmasVisiveis() {
   if (!Array.isArray(RT_TURMAS)) return [];
-  if (_isAdmin(_userAtual?.email)) return RT_TURMAS;
+  // Admin em modo escola vê tudo; admin em modo professor vê só as suas
+  if (_isAdmin(_userAtual?.email) && !_modoProf) return RT_TURMAS;
   const uid = _userAtual?.uid;
-  // Professor vê apenas as turmas explicitamente associadas ao seu uid
   return RT_TURMAS.filter(t => t.profUid === uid);
 }
 

@@ -69,15 +69,22 @@ function _atualizarIndicadorConexao() {
 }
 
 // Retorna o doc do diário do professor logado
+// Flag: admin operando como professor (usa diario/{uid} em vez de diario/global)
+let _modoProf = false;
+
+// Retorna a chave de documento correta para o usuário atual
+function _docKey() {
+  if (_isAdmin(_userAtual?.email) && !_modoProf) return "global";
+  return _userAtual?.uid || "anonimo";
+}
+
 function _initFirebase() {
   if (_DEV) return null;
   if (!_userAtual) return null;
-  if (_dbDoc) return _dbDoc;
+  if (_dbDoc && _dbDoc.id === _docKey()) return _dbDoc;
   try {
     const db = firebase.firestore();
-    // Admins compartilham um único documento global; professores usam seu uid
-    const docId = _isAdmin(_userAtual.email) ? "global" : _userAtual.uid;
-    _dbDoc = db.collection("diario").doc(docId);
+    _dbDoc = db.collection("diario").doc(_docKey());
     return _dbDoc;
   } catch (e) {
     console.warn("Firebase não disponível, usando localStorage:", e);
@@ -130,7 +137,7 @@ async function _salvarBimestresFirestore() {
 
 let _saveTimer = null;
 function salvarTudo() {
-  const uid = _userAtual ? (_isAdmin(_userAtual.email) ? "global" : _userAtual.uid) : "anonimo";
+  const uid = _docKey() || "anonimo";
   // Cache local de inicialização rápida (não é fonte de verdade)
   try {
     localStorage.setItem(`aulaEstado_${uid}`,    JSON.stringify(estadoAulas));
@@ -178,7 +185,7 @@ async function _salvarFirestore() {
 // Fallback de emergência — usado apenas quando o Firestore falha com conexão ativa
 function _salvarLocalStorageEmergencia() {
   try {
-    const uid = _userAtual ? (_isAdmin(_userAtual.email) ? "global" : _userAtual.uid) : "anonimo";
+    const uid = _docKey() || "anonimo";
     const bkp = {
       aulaEstado:    JSON.stringify(estadoAulas),
       aulaOrdem:     JSON.stringify(ordemConteudos),
@@ -195,7 +202,7 @@ function _salvarLocalStorageEmergencia() {
 // Restaura backup de emergência se existir e for mais recente que o Firestore
 function _restaurarEmergenciaSeNecessario(dadosFirestore) {
   try {
-    const uid  = _userAtual ? (_isAdmin(_userAtual.email) ? "global" : _userAtual.uid) : "anonimo";
+    const uid  = _docKey() || "anonimo";
     const raw  = localStorage.getItem(`_emergencia_${uid}`);
     if (!raw) return false;
     const bkp  = JSON.parse(raw);

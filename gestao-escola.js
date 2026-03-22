@@ -22,13 +22,13 @@ function _atualizarBotoesGestao() {
   if (isAdmin) {
     btnEl.innerHTML = "⚙ Painel de Gestão ADM";
     btnEl.onclick   = _abrirPainelEscola;
-    // Adiciona botão "Meu Diário" se ainda não existe
+    // Botão "Painel Professor" para o admin operar como professor
     if (!document.getElementById("btn-meu-diario")) {
       const btn2 = document.createElement("button");
       btn2.className = "btn-gestao-sidebar";
       btn2.id        = "btn-meu-diario";
-      btn2.textContent = "📓 Meu Diário";
-      btn2.onclick   = _abrirPainelProfessor;
+      btn2.textContent = "👨‍🏫 Painel Professor";
+      btn2.onclick   = _ativarModoProf;
       btnEl.parentNode.insertBefore(btn2, btnEl.nextSibling);
     }
   } else if (papel === "professor") {
@@ -63,6 +63,29 @@ function _abrirPainelEscola(abaInicial) {
 // PAINEL PROFESSOR (professor e admin-como-professor)
 // Abas: Minhas Turmas · Conteúdos · Meu Perfil
 // ════════════════════════════════════════════════════════════════
+// Ativa modo professor para o admin — carrega diário pessoal (diario/{uid})
+async function _ativarModoProf() {
+  _modoProf = true;
+  _dbDoc    = null;  // força reinicialização do doc
+  _mostrarCarregando(true);
+  await carregarTudo();
+  _mostrarCarregando(false);
+  renderizarSidebar();
+  _abrirPainelProfessor();
+}
+
+// Volta ao modo admin
+function _desativarModoProf() {
+  _modoProf = false;
+  _dbDoc    = null;
+  _mostrarCarregando(true);
+  carregarTudo().then(() => {
+    _mostrarCarregando(false);
+    renderizarSidebar();
+    _abrirPainelEscola();
+  });
+}
+
 function _abrirPainelProfessor(abaInicial) {
   const aba  = abaInicial || "minhas-turmas";
   const tabs = [
@@ -70,7 +93,10 @@ function _abrirPainelProfessor(abaInicial) {
     { id:"conteudos",     label:"📝 Conteúdos",       fn: htmlGestaoConteudos },
     { id:"perfil",        label:"👤 Meu Perfil",       fn: htmlGestaoPerfil    },
   ];
-  _renderizarPainel("📓 Meu Diário", tabs, aba);
+  const extraBtn = _isAdmin(_userAtual?.email)
+    ? `<button class="btn-exportar-js" style="font-size:.8rem" onclick="_desativarModoProf()">← Voltar ao ADM</button>`
+    : "";
+  _renderizarPainel("👨‍🏫 Painel Professor", tabs, aba, extraBtn);
 }
 
 // ════════════════════════════════════════════════════════════════

@@ -44,9 +44,9 @@ function _gerarPeriodosDeConfig(cfg) {
 
 async function carregarTudo() {
   RT_BIMESTRES = JSON.parse(JSON.stringify(BIMESTRES));
-  // Professor começa com lista vazia — só vê as turmas que ele mesmo criou (no Firestore)
-  // Admin herda TURMAS do turmas.js como ponto de partida
-  RT_TURMAS    = _isAdmin(_userAtual?.email)
+  // Admin em modo escola: carrega turmas do turmas.js (seed global)
+  // Admin em modo professor OU professor comum: começa vazio, carrega do Firestore
+  RT_TURMAS    = (_isAdmin(_userAtual?.email) && !_modoProf)
     ? JSON.parse(JSON.stringify(TURMAS))
     : [];
   RT_CONTEUDOS = JSON.parse(JSON.stringify(CONTEUDOS));
