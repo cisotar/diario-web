@@ -4,8 +4,7 @@ service cloud.firestore {
     function isAdmin() {
       return request.auth != null && request.auth.token.email in [
         'protarciso@gmail.com',
-        'contato.tarciso@gmail.com',
-        'tarciso@prof.educacao.sp.gov.br'
+        'contato.tarciso@gmail.com'
       ];
     }
     function isCoord() {
@@ -18,18 +17,21 @@ service cloud.firestore {
         get(/databases/$(database)/documents/professores/$(request.auth.uid)).data.status == 'aprovado';
     }
 
-    // Diário: professor lê/escreve o seu; admin lê/escreve tudo;
-    // coordenador lê qualquer diário (filtro de associação feito no cliente)
+    // Diário: professor lê/escreve o seu; professor aprovado lê qualquer diário
+    // (necessário para a grade de horários mostrar aulas de outros professores)
+    // admin lê/escreve tudo; coordenador lê qualquer diário
     match /diario/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read: if isApproved();
       allow read, write: if isAdmin();
       allow read: if isCoord();
     }
 
-    // Perfis: qualquer autenticado lê/escreve o próprio; admin tudo
+    // Perfis: qualquer autenticado lê/escreve o próprio; admin tudo; aprovado lê qualquer
     match /professores/{uid} {
       allow read, write: if request.auth != null && request.auth.uid == uid;
       allow read, write: if isAdmin();
+      allow read: if isApproved();
       allow read: if isCoord();
     }
 
