@@ -98,8 +98,8 @@ async function carregarTudo() {
     }
   } catch(e) { console.warn("Config escola indisponível:", e); }
 
-  // Chave de cache isolada por UID para evitar colisão entre professores
-  const uidKey = _userAtual ? (_isAdmin(_userAtual.email) ? "global" : _userAtual.uid) : "anonimo";
+  // Chave de cache isolada por UID — respeita modo professor do admin
+  const uidKey = _docKey() || "anonimo";
   const seedKey = `_aulasSeed_${uidKey}`;
   const doc = _initFirebase();
   if (doc) {
@@ -147,9 +147,9 @@ async function carregarTudo() {
     localStorage.setItem(`aulaEstado_${uidKey}`, JSON.stringify(estadoAulas));
     localStorage.setItem(`aulaOrdem_${uidKey}`,  JSON.stringify(ordemConteudos));
   }
-  // Professor: garante que RT_TURMAS só contém as turmas com seu uid
-  // Isso isola completamente os dados entre professores
-  if (!_isAdmin(_userAtual?.email) && !_ehCoordenador()) {
+  // Admin em modo professor: filtra só suas turmas (igual a professor comum)
+  // Admin em modo escola: vê tudo (sem filtro)
+  if (_modoProf || (!_isAdmin(_userAtual?.email) && !_ehCoordenador())) {
     const uid = _userAtual?.uid;
     RT_TURMAS = RT_TURMAS.filter(t => t.profUid === uid);
   }

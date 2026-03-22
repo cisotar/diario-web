@@ -1972,28 +1972,32 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .grade-ocupada:hover .grade-del-btn { display: block; }
 .grade-intervalo td { background: #141c27; height: 12px; padding: 0; }
 
-/* ── Botão de alternância ADM / Prof ────────────────────── */
+/* ── Botões de visão ADM / Prof ─────────────────────────── */
 .btn-visao-modo {
   flex-shrink: 0;
   font-family: 'DM Sans', sans-serif;
-  font-size: .78rem;
+  font-size: .75rem;
   font-weight: 600;
-  padding: 6px 13px;
+  padding: 5px 11px;
   border-radius: 6px;
   cursor: pointer;
-  border: 1.5px solid;
-  transition: background .15s, color .15s;
+  background: transparent;
+  border: 1.5px solid rgba(255,255,255,.15);
+  color: #64748b;
+  transition: background .15s, color .15s, border-color .15s;
   letter-spacing: .02em;
 }
-.btn-visao-prof {
-  background: transparent;
+.btn-visao-modo:hover {
+  border-color: rgba(255,255,255,.3);
+  color: #94a3b8;
+}
+.btn-visao-ativo {
   border-color: #0d9488;
   color: #5eead4;
+  background: rgba(13,148,136,.1);
 }
-.btn-visao-prof:hover { background: rgba(13,148,136,.15); }
-.btn-visao-adm {
-  background: transparent;
+#btn-visao-adm.btn-visao-ativo {
   border-color: var(--amber);
   color: var(--amber);
+  background: rgba(201,125,32,.1);
 }
-.btn-visao-adm:hover { background: rgba(201,125,32,.15); }

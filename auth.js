@@ -344,25 +344,34 @@ function _atualizarBotaoAuth() {
     btn.classList.add("logado");
     btn.onclick = () => { if (confirm("Encerrar sessão?")) _logout(); };
 
-    // Botão de alternância ADM ↔ Prof (só para admin)
+    // Dois botões fixos ADM | Prof (só para admin) — o ativo fica destacado
     if (_isAdmin(_userAtual.email)) {
-      let btnVis = document.getElementById("btn-visao-modo");
-      if (!btnVis) {
-        btnVis = document.createElement("button");
-        btnVis.id = "btn-visao-modo";
-        btn.parentNode.insertBefore(btnVis, btn);
+      let wrap = document.getElementById("btn-visao-wrap");
+      if (!wrap) {
+        wrap = document.createElement("div");
+        wrap.id = "btn-visao-wrap";
+        wrap.style.cssText = "display:flex;gap:4px;flex-shrink:0";
+        btn.parentNode.insertBefore(wrap, btn);
+
+        const bAdm = document.createElement("button");
+        bAdm.id = "btn-visao-adm";
+        bAdm.textContent = "⚙ ADM";
+        bAdm.title = "Visualização de administrador";
+        bAdm.onclick = _desativarModoProf;
+        wrap.appendChild(bAdm);
+
+        const bProf = document.createElement("button");
+        bProf.id = "btn-visao-prof";
+        bProf.textContent = "👨‍🏫 Prof.";
+        bProf.title = "Visualização de professor";
+        bProf.onclick = _ativarModoProf;
+        wrap.appendChild(bProf);
       }
-      if (_modoProf) {
-        btnVis.textContent = "⚙ Visão ADM";
-        btnVis.title = "Alternar para visualização de administrador";
-        btnVis.className = "btn-visao-modo btn-visao-adm";
-        btnVis.onclick = _desativarModoProf;
-      } else {
-        btnVis.textContent = "👨‍🏫 Visão Prof.";
-        btnVis.title = "Alternar para visualização de professor";
-        btnVis.className = "btn-visao-modo btn-visao-prof";
-        btnVis.onclick = _ativarModoProf;
-      }
+      // Atualiza destaque do botão ativo
+      const bAdm  = document.getElementById("btn-visao-adm");
+      const bProf = document.getElementById("btn-visao-prof");
+      if (bAdm)  { bAdm.className  = "btn-visao-modo" + (_modoProf ? "" : " btn-visao-ativo"); }
+      if (bProf) { bProf.className = "btn-visao-modo" + (_modoProf ? " btn-visao-ativo" : ""); }
     }
   } else {
     btn.textContent = "Login";

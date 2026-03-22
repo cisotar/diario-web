@@ -66,24 +66,29 @@ function _abrirPainelEscola(abaInicial) {
 // Ativa modo professor para o admin — carrega diário pessoal (diario/{uid})
 async function _ativarModoProf() {
   _modoProf = true;
-  _dbDoc    = null;  // força reinicialização do doc
+  _dbDoc    = null;
   _mostrarCarregando(true);
   await carregarTudo();
   _mostrarCarregando(false);
+  _atualizarBotaoAuth();
+  _atualizarTagline();
   renderizarSidebar();
-  _abrirPainelProfessor();
+  if (window.innerWidth <= 860) renderizarHomeMobile();
+  else abrirCalendario();
 }
 
 // Volta ao modo admin
-function _desativarModoProf() {
+async function _desativarModoProf() {
   _modoProf = false;
   _dbDoc    = null;
   _mostrarCarregando(true);
-  carregarTudo().then(() => {
-    _mostrarCarregando(false);
-    renderizarSidebar();
-    _abrirPainelEscola();
-  });
+  await carregarTudo();
+  _mostrarCarregando(false);
+  _atualizarBotaoAuth();
+  _atualizarTagline();
+  renderizarSidebar();
+  if (window.innerWidth <= 860) renderizarHomeMobile();
+  else abrirCalendario();
 }
 
 function _abrirPainelProfessor(abaInicial) {
