@@ -71,7 +71,8 @@ function _abrirPainelEscola(abaInicial) {
   if (!_isAdmin(_userAtual?.email)) return; // proteção extra
   const aba = abaInicial || "turmas";
   const tabs = [
-    { id:"turmas",      label:"🏫 Turmas",         fn: htmlEscolaTurmas      },
+    { id:"turmas",      label:"🏫 Cadastrar Turmas", fn: htmlEscolaTurmas      },
+    { id:"horarios",    label:"🗓 Ver Horários",       fn: htmlAdmHorarios, async: true },
     { id:"disciplinas", label:"📚 Disciplinas",     fn: htmlEscolaDisciplinas },
     { id:"periodos",    label:"🕐 Períodos",         fn: htmlEscolaPeriodos    },
     { id:"bimestres",   label:"📅 Bimestres",        fn: htmlGestaoBimestres   },
@@ -89,7 +90,7 @@ function _abrirPainelEscola(abaInicial) {
 function _abrirPainelProfessor(abaInicial) {
   const aba  = abaInicial || "minhas-turmas";
   const tabs = [
-    { id:"minhas-turmas", label:"🗓 Minhas Turmas",  fn: htmlProfTurmas, async: true },
+    { id:"minhas-turmas", label:"🗓 Minhas Turmas",  fn: htmlProfTurmas      },
     { id:"conteudos",     label:"📝 Conteúdos",       fn: htmlGestaoConteudos },
     { id:"perfil",        label:"👤 Meu Perfil",       fn: htmlGestaoPerfil    },
   ];
@@ -150,12 +151,13 @@ function _trocarAba(btn, secId, abaId) {
   // Renderiza conteúdo da aba sob demanda
   switch(abaId) {
     case "turmas":       sec.innerHTML = htmlEscolaTurmas();       break;
+    case "horarios":     sec.innerHTML = "<div style='padding:20px;color:var(--text-muted)'>⏳ Carregando…</div>"; htmlAdmHorarios().then(h => { sec.innerHTML = h; sec.dataset.loaded="1"; }); break;
     case "disciplinas":  sec.innerHTML = htmlEscolaDisciplinas();  break;
     case "periodos":     sec.innerHTML = htmlEscolaPeriodos();     break;
     case "bimestres":    sec.innerHTML = htmlGestaoBimestres();    break;
     case "perfil":       sec.innerHTML = htmlGestaoPerfil();       break;
     case "conteudos":    sec.innerHTML = htmlGestaoConteudos();    break;
-    case "minhas-turmas": sec.innerHTML = "<div style='padding:20px;color:var(--text-muted)'>⏳ Carregando…</div>"; htmlProfTurmas().then(h => { sec.innerHTML = h; sec.dataset.loaded="1"; }); break;
+    case "minhas-turmas": sec.innerHTML = htmlProfTurmas();        break;
     case "usuarios":     sec.innerHTML = htmlGestaoUsuarios(); _carregarUsuarios();  break;
     case "diarios":      sec.innerHTML = htmlGestaoDiarios();  _carregarDiariosCoord(); break;
   }
@@ -663,3 +665,303 @@ async function _salvarConfigPeriodos() {
 // sigla e horários inline — sem janela de diálogo.
 // ════════════════════════════════════════════════════════════════
 // Retorna lista flat de disciplinas cadastradas pelo admin para uma série
+
+// ════════════════════════════════════════════════════════════════
+// ABA: VER HORÁRIOS (admin) — grade por turma com todas as aulas
+// ════════════════════════════════════════════════════════════════
+
+let _admGradeTurma = null;
+
+async function htmlAdmHorarios() {
+  const base = RT_CONFIG.turmasBase || TURMAS_BASE || [];
+  const niveis = [...new Set(base.map(t => t.nivel))].sort();
+
+  const nivelOpts = `<option value="">— selecione —</option>` +
+    niveis.map(n => `<option value="${n}">${n === "medio" ? "Ensino Médio" : "Ensino Fundamental"}</option>`).join("");
+
+  return `
+    <div style="max-width:960px">
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:20px">
+        <label style="font-size:.82rem;font-weight:600;color:var(--text-mid)">Nível
+          <select class="gi" id="adm-h-nivel" onchange="admHFiltrarSeries()" style="display:block;margin-top:4px;min-width:160px">
+            ${nivelOpts}
+          </select>
+        </label>
+        <label style="font-size:.82rem;font-weight:600;color:var(--text-mid)">
+          <span id="adm-h-serie-label">Série / Ano</span>
+          <select class="gi" id="adm-h-serie" onchange="admHFiltrarTurmas()" style="display:block;margin-top:4px;min-width:130px">
+            <option value="">—</option>
+          </select>
+        </label>
+        <label style="font-size:.82rem;font-weight:600;color:var(--text-mid)">Turma
+          <select class="gi" id="adm-h-turma" onchange="admHCarregarGrade()" style="display:block;margin-top:4px;min-width:130px">
+            <option value="">—</option>
+          </select>
+        </label>
+      </div>
+      <div id="adm-h-grade"></div>
+    </div>
+
+    <!-- Modal editar horário (admin) -->
+    <div id="modal-adm-h" class="modal-overlay" style="display:none">
+      <div class="modal-box" style="max-width:420px">
+        <h3 class="modal-titulo">✏️ Editar horário</h3>
+        <p id="modal-adm-h-sub" style="font-size:.85rem;color:var(--text-muted);margin-bottom:12px"></p>
+        <div class="modal-form">
+          <label>Professor
+            <select class="gi" id="adm-h-modal-prof" onchange="admHCarregarDiscs()" style="margin-top:4px"></select>
+          </label>
+          <label style="margin-top:10px">Disciplina
+            <select class="gi" id="adm-h-modal-disc" style="margin-top:4px"></select>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-cancel"
+            onclick="document.getElementById('modal-adm-h').style.display='none'">Cancelar</button>
+          <button type="button" class="btn-del" style="margin-right:auto"
+            onclick="admHRemover()">🗑 Remover</button>
+          <button type="button" class="btn-modal-ok" onclick="admHSalvar()">Salvar</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function admHFiltrarSeries() {
+  const nivel = document.getElementById("adm-h-nivel")?.value;
+  const base  = RT_CONFIG.turmasBase || TURMAS_BASE || [];
+  const series = [...new Set(base.filter(t => t.nivel===nivel).map(t => t.serie))].sort((a,b) => +a-+b);
+  document.getElementById("adm-h-serie-label").textContent = nivel==="medio" ? "Série" : "Ano";
+  const sel = document.getElementById("adm-h-serie");
+  sel.innerHTML = `<option value="">— selecione —</option>` +
+    series.map(s => `<option value="${s}">${s}${nivel==="medio"?"ª Série":"º Ano"}</option>`).join("");
+  document.getElementById("adm-h-turma").innerHTML = `<option value="">—</option>`;
+  document.getElementById("adm-h-grade").innerHTML = "";
+}
+
+function admHFiltrarTurmas() {
+  const nivel  = document.getElementById("adm-h-nivel")?.value;
+  const serie  = document.getElementById("adm-h-serie")?.value;
+  if (!serie) return;
+  const base   = RT_CONFIG.turmasBase || TURMAS_BASE || [];
+  const turmas = base.filter(t => t.nivel===nivel && t.serie===serie)
+    .sort((a,b) => a.turma.localeCompare(b.turma));
+  const sel = document.getElementById("adm-h-turma");
+  sel.innerHTML = `<option value="">— selecione —</option>` +
+    turmas.map(t => `<option value="${t.turma}|${t.subtitulo||""}|${t.periodo||"manha"}">${t.turma}${t.subtitulo?" "+t.subtitulo:""}</option>`).join("");
+  document.getElementById("adm-h-grade").innerHTML = "";
+}
+
+async function admHCarregarGrade() {
+  const serie  = document.getElementById("adm-h-serie")?.value;
+  const parts  = (document.getElementById("adm-h-turma")?.value||"").split("|");
+  if (!serie || !parts[0]) return;
+  const tb = { serie, turma: parts[0], subtitulo: parts[1]||"", periodo: parts[2]||"manha" };
+  _admGradeTurma = tb;
+  const cont = document.getElementById("adm-h-grade");
+  if (!cont) return;
+  cont.innerHTML = `<p class="gestao-hint">⏳ Carregando horários…</p>`;
+
+  // Carrega professores e seus diários
+  const db   = firebase.firestore();
+  const snap = await db.collection("professores").where("status","==","aprovado").get();
+  const profs = {};
+  snap.docs.forEach(d => { profs[d.id] = { nome: d.data().nome||d.data().email, email: d.data().email }; });
+
+  // Monta mapa: "dia_aula" → [{turmaId, disciplina, sigla, profUid, profNome}]
+  const mapa = {};
+  const addEntrada = (t, profUid, profNome) => {
+    if (t.serie !== tb.serie || t.turma !== tb.turma) return;
+    for (const h of (t.horarios||[])) {
+      const chave = `${h.diaSemana}_${h.aula}`;
+      if (!mapa[chave]) mapa[chave] = [];
+      mapa[chave].push({ turmaId: t.id, disciplina: t.disciplina, sigla: t.sigla, profUid, profNome });
+    }
+  };
+
+  // Admin (diario/global)
+  RT_TURMAS.forEach(t => addEntrada(t, t.profUid||"global", t.profUid==="global"?"Admin":
+    (profs[t.profUid]?.nome||t.profUid||"Admin")));
+
+  // Outros professores
+  for (const [uid, perf] of Object.entries(profs)) {
+    if (_isAdmin(perf.email)) continue;
+    try {
+      const dSnap = await db.collection("diario").doc(uid).get();
+      if (!dSnap.exists) continue;
+      JSON.parse(dSnap.data().RT_TURMAS||"[]").forEach(t => addEntrada(t, uid, perf.nome));
+    } catch(e) {}
+  }
+
+  const DIAS = [{idx:1,label:"Segunda"},{idx:2,label:"Terça"},{idx:3,label:"Quarta"},{idx:4,label:"Quinta"},{idx:5,label:"Sexta"}];
+  const periodos = RT_PERIODOS.filter(p => (p.turno||"manha") === (tb.periodo||"manha"));
+
+  const linhas = periodos.map(p => {
+    const isInt = p.label?.toLowerCase().includes("interval");
+    const cells = DIAS.map(dia => {
+      const chave    = `${dia.idx}_${p.aula}`;
+      const entradas = mapa[chave] || [];
+      const conteudo = entradas.map(e =>
+        `<div class="grade-disc">${e.sigla||e.disciplina||"—"}</div>
+         <div class="grade-turma" style="font-size:.65rem">${e.profNome}</div>`
+      ).join("<div style='border-top:1px solid var(--border);margin:2px 0'></div>");
+      const cls = entradas.length ? "grade-cell grade-ocupada" : "grade-cell grade-vazia";
+      return `<td class="${cls}" style="cursor:pointer"
+        onclick="admHAbrirModal('${tb.serie}','${tb.turma}','${tb.subtitulo||""}','${p.aula}',${dia.idx})"
+        title="${entradas.length ? "Clique para editar" : "Clique para adicionar"}">
+        ${conteudo || '<span class="grade-vazio-txt">+</span>'}
+      </td>`;
+    }).join("");
+
+    return `<tr class="${isInt?"grade-intervalo":""}">
+      <td class="grade-periodo">
+        <div class="grade-aula-num">${p.aula.replace(/[mt]/,"")}</div>
+        <div class="grade-aula-hr">${p.inicio}</div>
+      </td>${cells}
+    </tr>`;
+  }).join("");
+
+  const labelTurno = (tb.periodo||"manha")==="tarde"?"🌇 Tarde":"🌅 Manhã";
+  cont.innerHTML = `
+    <div class="grade-wrap">
+      <div class="grade-titulo">${labelTurno} · ${tb.serie}ª ${tb.turma}${tb.subtitulo?" "+tb.subtitulo:""}</div>
+      <div class="grade-hint">Clique em qualquer célula para adicionar ou editar horários de qualquer professor.</div>
+      <div style="overflow-x:auto">
+        <table class="grade-tabela">
+          <thead><tr>
+            <th class="grade-th-hora">Aula</th>
+            ${DIAS.map(d=>`<th>${d.label}</th>`).join("")}
+          </tr></thead>
+          <tbody>${linhas}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+// Variáveis do modal
+let _admH = { serie:"", turma:"", sub:"", aula:"", dia:0 };
+
+async function admHAbrirModal(serie, turma, subtitulo, aula, diaSemana) {
+  _admH = { serie, turma, sub: subtitulo, aula, dia: +diaSemana };
+  const DIAS = ["","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+  const periodo = RT_PERIODOS.find(p => p.aula===aula);
+  document.getElementById("modal-adm-h-sub").textContent =
+    `${DIAS[diaSemana]} · Aula ${aula.replace(/[mt]/,"")} (${periodo?.inicio||""}) — ${serie}ª ${turma}${subtitulo?" "+subtitulo:""}`;
+
+  const db   = firebase.firestore();
+  const snap = await db.collection("professores").where("status","==","aprovado").get();
+  const profSel = document.getElementById("adm-h-modal-prof");
+  profSel.innerHTML = `<option value="global">Admin</option>` +
+    snap.docs.filter(d => !_isAdmin(d.data().email))
+      .map(d => `<option value="${d.id}">${d.data().nome||d.data().email}</option>`).join("");
+
+  await admHCarregarDiscs();
+  document.getElementById("modal-adm-h").style.display = "flex";
+}
+
+async function admHCarregarDiscs() {
+  const profUid = document.getElementById("adm-h-modal-prof")?.value;
+  const serie   = _admH.serie;
+  const turma   = _admH.turma;
+  let turmasList = [];
+
+  if (profUid === "global") {
+    turmasList = RT_TURMAS.filter(t => t.serie===serie && t.turma===turma);
+  } else {
+    try {
+      const snap = await firebase.firestore().collection("diario").doc(profUid).get();
+      if (snap.exists) turmasList = JSON.parse(snap.data().RT_TURMAS||"[]")
+        .filter(t => t.serie===serie && t.turma===turma);
+    } catch(e) {}
+  }
+
+  const todasDiscs = _disciplinasDaSerie(serie);
+  const discSel = document.getElementById("adm-h-modal-disc");
+  const optsExist = turmasList.map(t =>
+    `<option value="exist:${t.id}">${t.disciplina} (${t.sigla}) — já cadastrada</option>`);
+  const optsNovas = todasDiscs
+    .filter(d => !turmasList.find(t => t.disciplina===d))
+    .map(d => `<option value="new:${d.replace(/"/g,'&quot;')}">${d}</option>`);
+
+  discSel.innerHTML = `<option value="">— selecione —</option>` +
+    (optsExist.length ? `<optgroup label="Disciplinas desta turma">${optsExist.join("")}</optgroup>` : "") +
+    (optsNovas.length ? `<optgroup label="Nova disciplina">${optsNovas.join("")}</optgroup>` : "");
+}
+
+async function admHSalvar() {
+  const profUid  = document.getElementById("adm-h-modal-prof")?.value;
+  const discVal  = document.getElementById("adm-h-modal-disc")?.value;
+  if (!discVal) { alert("Selecione uma disciplina."); return; }
+
+  const { serie, turma, sub, aula, dia } = _admH;
+  const db = firebase.firestore();
+
+  if (discVal.startsWith("exist:")) {
+    const turmaId = discVal.replace("exist:","");
+    if (profUid === "global") {
+      const t = RT_TURMAS.find(x => x.id===turmaId);
+      if (t && !t.horarios.find(h => h.diaSemana===dia && h.aula===aula))
+        t.horarios.push({ diaSemana: dia, aula });
+      salvarTudo();
+    } else {
+      const snap = await db.collection("diario").doc(profUid).get();
+      if (snap.exists) {
+        const turmas = JSON.parse(snap.data().RT_TURMAS||"[]");
+        const t = turmas.find(x => x.id===turmaId);
+        if (t && !t.horarios.find(h => h.diaSemana===dia && h.aula===aula))
+          t.horarios.push({ diaSemana: dia, aula });
+        await db.collection("diario").doc(profUid).update({ RT_TURMAS: JSON.stringify(turmas) });
+      }
+    }
+  } else {
+    const disciplina = discVal.replace("new:","");
+    const sigla = disciplina.replace(/[aeiouáéíóúâêîôûãõàèìòùü\s]/gi,"").substring(0,3).toUpperCase();
+    const periodo = _admGradeTurma?.periodo || "manha";
+    const novaT = { id:`${serie}${turma}_${sigla}_${profUid.substring(0,6)}_${Date.now()}`,
+      serie, turma, subtitulo: sub, disciplina, sigla, horarios:[{diaSemana:dia, aula}], profUid, periodo };
+    if (profUid === "global") {
+      RT_TURMAS.push(novaT);
+      salvarTudo();
+    } else {
+      const snap = await db.collection("diario").doc(profUid).get();
+      const turmas = snap.exists ? JSON.parse(snap.data().RT_TURMAS||"[]") : [];
+      turmas.push(novaT);
+      await db.collection("diario").doc(profUid).set({ RT_TURMAS: JSON.stringify(turmas) }, { merge:true });
+    }
+  }
+
+  _invalidarHorariosCache();
+  document.getElementById("modal-adm-h").style.display = "none";
+  admHCarregarGrade();
+}
+
+async function admHRemover() {
+  const profUid = document.getElementById("adm-h-modal-prof")?.value;
+  const discVal = document.getElementById("adm-h-modal-disc")?.value;
+  if (!discVal?.startsWith("exist:")) { alert("Selecione a entrada a remover."); return; }
+  if (!confirm("Remover este horário?")) return;
+
+  const turmaId = discVal.replace("exist:","");
+  const { aula, dia } = _admH;
+  const db = firebase.firestore();
+
+  if (profUid === "global") {
+    const ti = RT_TURMAS.findIndex(t => t.id===turmaId);
+    if (ti >= 0) {
+      RT_TURMAS[ti].horarios = RT_TURMAS[ti].horarios.filter(h => !(h.aula===aula && h.diaSemana===dia));
+      if (!RT_TURMAS[ti].horarios.length) RT_TURMAS.splice(ti,1);
+    }
+    salvarTudo();
+  } else {
+    const snap = await db.collection("diario").doc(profUid).get();
+    if (snap.exists) {
+      const turmas = JSON.parse(snap.data().RT_TURMAS||"[]");
+      const t = turmas.find(x => x.id===turmaId);
+      if (t) t.horarios = t.horarios.filter(h => !(h.aula===aula && h.diaSemana===dia));
+      await db.collection("diario").doc(profUid).update({ RT_TURMAS: JSON.stringify(turmas) });
+    }
+  }
+
+  _invalidarHorariosCache();
+  document.getElementById("modal-adm-h").style.display = "none";
+  admHCarregarGrade();
+}
