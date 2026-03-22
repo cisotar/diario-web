@@ -130,10 +130,9 @@ async function _renderizarChamadaDesktop() {
     const isSel  = d === _dataChamadaSel;
     const isPast = d <= hoje_str;
     const dia    = d.split("-")[2];
-    return `<th class="th-data-chamada${isSel ? " th-data-sel" : ""}"
-      style="min-width:34px;font-size:.75rem;padding:2px 3px;text-align:center">
-      ${dia}
-      ${isPast ? `<div style="display:flex;gap:1px;justify-content:center;margin-top:2px">
+    return `<th class="th-data-chamada${isSel ? " th-data-sel" : ""}">
+      <span class="th-dia-num">${dia}</span>
+      ${isPast ? `<div class="th-dia-btns">
         <button type="button" class="btn-lote" style="font-size:.55rem;padding:1px 2px"
           onclick="chamadaTodosData('${turmaKey}','${d}','C')">C</button>
         <button type="button" class="btn-lote btn-lote-off" style="font-size:.55rem;padding:1px 2px"
