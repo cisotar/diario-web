@@ -796,7 +796,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .gestao-secao { display: none; }
 .gestao-secao.ativa { display: block; }
 
-.gestao-bloco { }
+.gestao-bloco { padding: 20px 0; }
 
 .gestao-bloco-header {
   display: flex; align-items: center;
@@ -1601,46 +1601,48 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   text-align: center;
   font-size: .75rem;
   font-weight: 600;
-  padding: 5px 2px;
+  padding: 5px 0;
   position: relative;
-  white-space: nowrap;
-  cursor: default;
+  vertical-align: middle;
 }
-/* Popover C/F — flutua acima da tabela sem deformar a linha */
+/* Popover C/F — flutua ACIMA, botões lado a lado horizontalmente */
 .th-dia-popover {
   display: none;
   position: absolute;
-  top: calc(100% + 2px);
+  bottom: calc(100% + 4px);
   left: 50%;
   transform: translateX(-50%);
-  z-index: 100;
+  z-index: 200;
   background: var(--surface2, #1e2530);
   border: 1px solid var(--border);
   border-radius: 6px;
-  padding: 4px 5px;
-  gap: 3px;
-  flex-direction: column;
+  padding: 4px 6px;
+  gap: 4px;
+  flex-direction: row;
   align-items: center;
-  box-shadow: 0 4px 12px rgba(0,0,0,.4);
+  box-shadow: 0 -4px 12px rgba(0,0,0,.4);
   white-space: nowrap;
 }
-.th-dia-popover::before {
+.th-dia-popover::after {
   content: "";
   position: absolute;
-  top: -5px;
+  top: 100%;
   left: 50%;
   transform: translateX(-50%);
   border: 5px solid transparent;
-  border-top: none;
-  border-bottom-color: var(--border);
+  border-bottom: none;
+  border-top-color: var(--border);
 }
 .th-data-chamada:hover .th-dia-popover { display: flex; }
-/* Coluna Nome da chamada — não quebra linha */
-.tabela-gestao td:nth-child(2),
-.tabela-gestao th:nth-child(2) {
-  min-width: 160px;
-  white-space: nowrap;
+/* Tabela de chamada — layout fixo para colunas uniformes */
+.tabela-chamada {
+  table-layout: fixed;
+  width: 100%;
 }
+.tabela-chamada .col-num  { width: 36px; }
+.tabela-chamada .col-nome { min-width: 160px; white-space: nowrap; }
+.tabela-chamada .col-sit  { width: 48px; }
+.tabela-chamada .col-freq { width: 36px; }
 .th-mes-chamada {
   text-align: center;
   font-size: .7rem;
