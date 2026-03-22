@@ -270,7 +270,7 @@ async function _renderizarChamadaDesktop() {
         </div>
       </div>
       <div class="tabs-bimestre" style="margin-bottom:4px">${tabsBimChamada}</div>
-      ${_bimProgBarChamada(feitas, totalReg, bimObj)}
+      ${_bimProgBarChamada(_feitasCham, _totalRegCham, bimObj)}
       ${filtroMeses}
       <div style="overflow-x:auto">
         <table class="tabela-gestao" style="min-width:0">
