@@ -46,7 +46,7 @@ async function carregarTudo() {
   RT_BIMESTRES = JSON.parse(JSON.stringify(BIMESTRES));
   // Admin em modo escola: carrega turmas do turmas.js (seed global)
   // Admin em modo professor OU professor comum: começa vazio, carrega do Firestore
-  RT_TURMAS    = (_isAdmin(_userAtual?.email) && !_modoProf)
+  RT_TURMAS    = _isAdmin(_userAtual?.email)
     ? JSON.parse(JSON.stringify(TURMAS))
     : [];
   RT_CONTEUDOS = JSON.parse(JSON.stringify(CONTEUDOS));
@@ -98,8 +98,8 @@ async function carregarTudo() {
     }
   } catch(e) { console.warn("Config escola indisponível:", e); }
 
-  // Chave de cache isolada por UID — respeita modo professor do admin
-  const uidKey = _docKey() || "anonimo";
+  // Chave de cache isolada por UID para evitar colisão entre professores
+  const uidKey = _userAtual ? (_isAdmin(_userAtual.email) ? "global" : _userAtual.uid) : "anonimo";
   const seedKey = `_aulasSeed_${uidKey}`;
   const doc = _initFirebase();
   if (doc) {
@@ -147,9 +147,8 @@ async function carregarTudo() {
     localStorage.setItem(`aulaEstado_${uidKey}`, JSON.stringify(estadoAulas));
     localStorage.setItem(`aulaOrdem_${uidKey}`,  JSON.stringify(ordemConteudos));
   }
-  // Admin em modo professor: filtra só suas turmas (igual a professor comum)
-  // Admin em modo escola: vê tudo (sem filtro)
-  if (_modoProf || (!_isAdmin(_userAtual?.email) && !_ehCoordenador())) {
+  // Professor: garante que RT_TURMAS só contém as turmas com seu uid
+  if (!_isAdmin(_userAtual?.email) && !_ehCoordenador()) {
     const uid = _userAtual?.uid;
     RT_TURMAS = RT_TURMAS.filter(t => t.profUid === uid);
   }
@@ -224,8 +223,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   await _verificarSessao();        // 1º: saber quem está logado
   const ok = await _verificarAcessoProfessor(); // 2º: checar status
   if (!ok) { _mostrarCarregando(false); return; } // tela de aguardo já renderizada
-  // Admin inicia em modo professor por padrão
-  if (_isAdmin(_userAtual?.email)) _modoProf = true;
   await carregarTudo();
   _mostrarCarregando(false);
   renderizarSidebar();

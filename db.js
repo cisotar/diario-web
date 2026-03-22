@@ -81,10 +81,11 @@ function _docKey() {
 function _initFirebase() {
   if (_DEV) return null;
   if (!_userAtual) return null;
-  if (_dbDoc && _dbDoc.id === _docKey()) return _dbDoc;
+  if (_dbDoc) return _dbDoc;
   try {
     const db = firebase.firestore();
-    _dbDoc = db.collection("diario").doc(_docKey());
+    const docId = _isAdmin(_userAtual.email) ? "global" : _userAtual.uid;
+    _dbDoc = db.collection("diario").doc(docId);
     return _dbDoc;
   } catch (e) {
     console.warn("Firebase não disponível, usando localStorage:", e);
@@ -137,7 +138,7 @@ async function _salvarBimestresFirestore() {
 
 let _saveTimer = null;
 function salvarTudo() {
-  const uid = _docKey() || "anonimo";
+  const uid = _userAtual ? (_isAdmin(_userAtual.email) ? "global" : _userAtual.uid) : "anonimo";
   // Cache local de inicialização rápida (não é fonte de verdade)
   try {
     localStorage.setItem(`aulaEstado_${uid}`,    JSON.stringify(estadoAulas));
@@ -185,7 +186,7 @@ async function _salvarFirestore() {
 // Fallback de emergência — usado apenas quando o Firestore falha com conexão ativa
 function _salvarLocalStorageEmergencia() {
   try {
-    const uid = _docKey() || "anonimo";
+    const uid = _userAtual ? (_isAdmin(_userAtual.email) ? "global" : _userAtual.uid) : "anonimo";
     const bkp = {
       aulaEstado:    JSON.stringify(estadoAulas),
       aulaOrdem:     JSON.stringify(ordemConteudos),

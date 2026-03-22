@@ -22,13 +22,12 @@ function _atualizarBotoesGestao() {
   if (isAdmin) {
     btnEl.innerHTML = "⚙ Painel de Gestão ADM";
     btnEl.onclick   = _abrirPainelEscola;
-    // Botão "Painel Professor" para o admin operar como professor
     if (!document.getElementById("btn-meu-diario")) {
       const btn2 = document.createElement("button");
       btn2.className = "btn-gestao-sidebar";
       btn2.id        = "btn-meu-diario";
       btn2.textContent = "👨‍🏫 Painel Professor";
-      btn2.onclick   = _ativarModoProf;
+      btn2.onclick   = _abrirPainelProfessor;
       btnEl.parentNode.insertBefore(btn2, btnEl.nextSibling);
     }
   } else if (papel === "professor") {
@@ -64,33 +63,6 @@ function _abrirPainelEscola(abaInicial) {
 // Abas: Minhas Turmas · Conteúdos · Meu Perfil
 // ════════════════════════════════════════════════════════════════
 // Ativa modo professor para o admin — carrega diário pessoal (diario/{uid})
-async function _ativarModoProf() {
-  _modoProf = true;
-  _dbDoc    = null;
-  _mostrarCarregando(true);
-  await carregarTudo();
-  _mostrarCarregando(false);
-  _atualizarBotaoAuth();
-  _atualizarTagline();
-  renderizarSidebar();
-  if (window.innerWidth <= 860) renderizarHomeMobile();
-  else abrirCalendario();
-}
-
-// Volta ao modo admin
-async function _desativarModoProf() {
-  _modoProf = false;
-  _dbDoc    = null;
-  _mostrarCarregando(true);
-  await carregarTudo();
-  _mostrarCarregando(false);
-  _atualizarBotaoAuth();
-  _atualizarTagline();
-  renderizarSidebar();
-  if (window.innerWidth <= 860) renderizarHomeMobile();
-  else abrirCalendario();
-}
-
 function _abrirPainelProfessor(abaInicial) {
   const aba  = abaInicial || "minhas-turmas";
   const tabs = [
