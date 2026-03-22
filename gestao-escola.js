@@ -4,30 +4,19 @@
 function abrirPainelGestao() {
   if (!_autenticado) { _abrirModalGoogle(); return; }
   const papel = _papel();
-  if (papel === "admin") {
-    _abrirPainelEscola();
-  } else if (papel === "professor") {
-    _abrirPainelProfessor();
-  } else if (papel === "coordenador") {
-    _abrirPainelCoordenador();
-  }
+  if (papel === "admin")        _abrirPainelEscola();
+  else if (papel === "coordenador") _abrirPainelCoordenador();
+  // professor não tem rota para painel de gestão ADM
 }
 
 // ── Sidebar: admin tem dois botões ───────────────────────────
 function _atualizarBotoesGestao() {
   const papel   = _papel();
-  const isAdmin = papel === "admin";
   const btnEl   = document.getElementById("btn-gestao");
   if (!btnEl) return;
 
-  // Esconde completamente para professores comuns
-  if (papel === "professor") {
-    btnEl.style.display = "none";
-    return;
-  }
-
-  btnEl.style.display = "";
-  if (isAdmin) {
+  if (papel === "admin") {
+    btnEl.style.display = "";
     btnEl.innerHTML = "⚙ Painel de Gestão ADM";
     btnEl.onclick   = _abrirPainelEscola;
     if (!document.getElementById("btn-meu-diario")) {
@@ -39,8 +28,12 @@ function _atualizarBotoesGestao() {
       btnEl.parentNode.insertBefore(btn2, btnEl.nextSibling);
     }
   } else if (papel === "coordenador") {
+    btnEl.style.display = "";
     btnEl.textContent = "⚙ Painel";
     btnEl.onclick     = _abrirPainelCoordenador;
+  } else {
+    // Professor comum — sem acesso a qualquer painel de gestão via sidebar
+    btnEl.style.display = "none";
   }
 }
 
@@ -49,16 +42,15 @@ function _atualizarBotoesGestao() {
 // Abas: Turmas · Disciplinas/Áreas · Períodos · Bimestres · Usuários · Diários
 // ════════════════════════════════════════════════════════════════
 function _abrirPainelEscola(abaInicial) {
+  if (!_isAdmin(_userAtual?.email)) return; // proteção extra
   const aba = abaInicial || "turmas";
   const tabs = [
     { id:"turmas",      label:"🏫 Turmas",         fn: htmlEscolaTurmas      },
-    { id:"alunos",      label:"👤 Alunos",           fn: htmlEscolaAlunos, async: true },
     { id:"disciplinas", label:"📚 Disciplinas",     fn: htmlEscolaDisciplinas },
     { id:"periodos",    label:"🕐 Períodos",         fn: htmlEscolaPeriodos    },
     { id:"bimestres",   label:"📅 Bimestres",        fn: htmlGestaoBimestres   },
     { id:"usuarios",    label:"👥 Usuários",          fn: htmlGestaoUsuarios, async: true },
     { id:"diarios",     label:"📋 Diários",           fn: htmlGestaoDiarios, async: true },
-    { id:"migracao",    label:"🔄 Migração",          fn: htmlGestaoMigracao, async: true },
   ];
   _renderizarPainel("⚙ Painel de Gestão ADM", tabs, aba,
     `<button class="btn-exportar-js" onclick="exportarJS()" style="font-size:.8rem">⬇ aulas.js</button>`);
@@ -68,7 +60,6 @@ function _abrirPainelEscola(abaInicial) {
 // PAINEL PROFESSOR (professor e admin-como-professor)
 // Abas: Minhas Turmas · Conteúdos · Meu Perfil
 // ════════════════════════════════════════════════════════════════
-// Ativa modo professor para o admin — carrega diário pessoal (diario/{uid})
 function _abrirPainelProfessor(abaInicial) {
   const aba  = abaInicial || "minhas-turmas";
   const tabs = [
@@ -76,7 +67,7 @@ function _abrirPainelProfessor(abaInicial) {
     { id:"conteudos",     label:"📝 Conteúdos",       fn: htmlGestaoConteudos },
     { id:"perfil",        label:"👤 Meu Perfil",       fn: htmlGestaoPerfil    },
   ];
-  _renderizarPainel("👨‍🏫 Painel Professor", tabs, aba);
+  _renderizarPainel("📓 Meu Diário", tabs, aba);
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -133,7 +124,6 @@ function _trocarAba(btn, secId, abaId) {
   // Renderiza conteúdo da aba sob demanda
   switch(abaId) {
     case "turmas":       sec.innerHTML = htmlEscolaTurmas();       break;
-    case "alunos":       htmlEscolaAlunos().then(h => sec.innerHTML = h); break;
     case "disciplinas":  sec.innerHTML = htmlEscolaDisciplinas();  break;
     case "periodos":     sec.innerHTML = htmlEscolaPeriodos();     break;
     case "bimestres":    sec.innerHTML = htmlGestaoBimestres();    break;
@@ -142,7 +132,6 @@ function _trocarAba(btn, secId, abaId) {
     case "minhas-turmas": sec.innerHTML = htmlProfTurmas();        break;
     case "usuarios":     sec.innerHTML = htmlGestaoUsuarios(); _carregarUsuarios();  break;
     case "diarios":      sec.innerHTML = htmlGestaoDiarios();  _carregarDiariosCoord(); break;
-    case "migracao":     htmlGestaoMigracao().then(h => sec.innerHTML = h); break;
   }
 }
 
@@ -288,11 +277,7 @@ function htmlEscolaTurmas() {
   };
 
   return blocoNivel("medio","📘 Ensino Médio","Série") +
-         blocoNivel("fundamental","📗 Ensino Fundamental","Ano") +
-         `<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
-            <button type="button" class="btn-exportar-js" onclick="baixarTurmasGlobal()">⬇ turmas_global.js</button>
-            <button type="button" class="btn-exportar-js" onclick="baixarTurmas()">⬇ turmas.js</button>
-          </div>`;
+         blocoNivel("fundamental","📗 Ensino Fundamental","Ano");
 }
 
 async function editTurmaBase(i, campo, val) {
@@ -590,10 +575,7 @@ function htmlEscolaPeriodos() {
       <p class="gestao-hint">Configure os turnos. As aulas são calculadas automaticamente. Intervalos são inseridos após a aula indicada.</p>
       ${blocoTurno("manha","🌅 Manhã")}
       ${blocoTurno("tarde","🌇 Tarde")}
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
-        <button type="button" class="btn-modal-ok" onclick="_salvarConfigPeriodos()">Salvar e aplicar</button>
-        <button type="button" class="btn-exportar-js" onclick="baixarPeriodos()">⬇ periodos.js</button>
-      </div>
+      <button type="button" class="btn-modal-ok" onclick="_salvarConfigPeriodos()">Salvar e aplicar</button>
     </div>`;
 }
 
@@ -655,296 +637,3 @@ async function _salvarConfigPeriodos() {
 // sigla e horários inline — sem janela de diálogo.
 // ════════════════════════════════════════════════════════════════
 // Retorna lista flat de disciplinas cadastradas pelo admin para uma série
-
-// ════════════════════════════════════════════════════════════════
-// ABA: ALUNOS (admin) — gerenciar alunos por turma
-// ════════════════════════════════════════════════════════════════
-
-let _alunosTurmaAtiva = null;  // chave da turma exibida na aba alunos
-
-async function htmlEscolaAlunos() {
-  const base = RT_CONFIG.turmasBase || TURMAS_BASE || [];
-  const turmas = [...base].sort((a,b) => (+a.serie - +b.serie) || a.turma.localeCompare(b.turma));
-
-  if (!_alunosTurmaAtiva && turmas.length) {
-    _alunosTurmaAtiva = turmas[0].serie + turmas[0].turma;
-  }
-
-  const tabsTurmas = turmas.map(tb => {
-    const key = tb.serie + tb.turma;
-    return `<button type="button" class="tab-bim ${key === _alunosTurmaAtiva ? "ativo" : ""}"
-      onclick="_alunosTurmaAtiva='${key}';_recarregarAbaAlunos()">${tb.serie}ª ${tb.turma}</button>`;
-  }).join("");
-
-  let corpoAlunos = "";
-  if (_alunosTurmaAtiva) {
-    const lista = await _carregarAlunos(_alunosTurmaAtiva);
-    const SITUACOES = ["","AB","NC","TR","RM","RC","EE"];
-    const SITUACAO_LABEL = { "":"Matriculado","AB":"Abandonou","NC":"Não compareceu","TR":"Transferido","RM":"Remanejado","RC":"Reclassificado","EE":"Educação Especial" };
-
-    const rows = lista.map((a, idx) => {
-      const sitOpts = SITUACOES.map(s =>
-        `<option value="${s}" ${(a.situacao||"") === s ? "selected" : ""}>${s||"—"} ${SITUACAO_LABEL[s]||""}</option>`
-      ).join("");
-      return `<tr class="${a.situacao ? "aluno-inativo" : ""}">
-        <td class="td-numero">${a.num}</td>
-        <td><input class="gi" value="${(a.nome||"").replace(/"/g,'&quot;')}"
-          onchange="gestaoEditarAluno('${_alunosTurmaAtiva}',${idx},'nome',this.value)" /></td>
-        <td><input class="gi gi-sm" value="${(a.matricula||"").replace(/"/g,'&quot;')}"
-          onchange="gestaoEditarAluno('${_alunosTurmaAtiva}',${idx},'matricula',this.value)" /></td>
-        <td>
-          <select class="gi gi-sm" onchange="gestaoEditarAluno('${_alunosTurmaAtiva}',${idx},'situacao',this.value)">
-            ${sitOpts}
-          </select>
-        </td>
-        <td><input type="date" class="gi gi-sm" value="${a.situacaoData||''}"
-          onchange="gestaoEditarAluno('${_alunosTurmaAtiva}',${idx},'situacaoData',this.value)" /></td>
-        <td><button type="button" class="btn-icon-del"
-          onclick="gestaoRemoverAluno('${_alunosTurmaAtiva}',${idx})">×</button></td>
-      </tr>`;
-    }).join("");
-
-    corpoAlunos = `
-      <div class="gestao-bloco">
-        <div class="gestao-bloco-header">
-          <h3>Turma ${_alunosTurmaAtiva} — ${lista.length} aluno(s)</h3>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button type="button" class="btn-add" onclick="gestaoAdicionarAluno('${_alunosTurmaAtiva}')">+ Aluno</button>
-            <button type="button" class="btn-exportar-js" onclick="baixarTala('${_alunosTurmaAtiva}')">⬇ talas${_alunosTurmaAtiva.toLowerCase()}.js</button>
-          </div>
-        </div>
-        <div class="tabela-wrapper">
-          <table class="tabela-gestao">
-            <thead><tr>
-              <th style="width:36px">Nº</th>
-              <th>Nome</th>
-              <th style="width:130px">Matrícula</th>
-              <th style="width:160px">Situação</th>
-              <th style="width:120px">Data</th>
-              <th style="width:32px"></th>
-            </tr></thead>
-            <tbody>${rows || '<tr><td colspan="6" class="td-vazio">Nenhum aluno cadastrado.</td></tr>'}</tbody>
-          </table>
-        </div>
-      </div>`;
-  }
-
-  return `
-    <div style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:6px">
-      ${tabsTurmas}
-    </div>
-    ${corpoAlunos}`;
-}
-
-async function _recarregarAbaAlunos() {
-  const sec = document.getElementById("g-alunos");
-  if (!sec) return;
-  sec.innerHTML = await htmlEscolaAlunos();
-}
-
-async function gestaoEditarAluno(turmaKey, idx, campo, valor) {
-  const lista = await _carregarAlunos(turmaKey);
-  if (!lista[idx]) return;
-  lista[idx][campo] = valor;
-  if (campo === "situacao") lista[idx].situacaoData = valor ? hoje() : null;
-  await _salvarAlunos(turmaKey);
-  _mostrarIndicadorSync("✓ Aluno atualizado");
-}
-
-async function gestaoRemoverAluno(turmaKey, idx) {
-  const lista = await _carregarAlunos(turmaKey);
-  if (!lista[idx]) return;
-  if (!confirm(`Remover "${lista[idx].nome || "este aluno"}"?`)) return;
-  lista.splice(idx, 1);
-  lista.forEach((a, i) => a.num = i + 1);
-  await _salvarAlunos(turmaKey);
-  _recarregarAbaAlunos();
-}
-
-async function gestaoAdicionarAluno(turmaKey) {
-  const lista = await _carregarAlunos(turmaKey);
-  const num   = lista.length ? Math.max(...lista.map(a => a.num || 0)) + 1 : 1;
-  lista.push({ num, nome: "", matricula: "", situacao: "" });
-  await _salvarAlunos(turmaKey);
-  _recarregarAbaAlunos();
-}
-
-// Baixa o arquivo talas*.js para a turma selecionada
-function baixarTala(turmaKey) {
-  const lista = RT_ALUNOS[turmaKey] || [];
-  const ts    = new Date().toLocaleString("pt-BR");
-  const linhas = lista.map(a =>
-    `  { num: ${String(a.num).padStart(2)}, nome: "${(a.nome||"").replace(/"/g,'\\"')}", matricula: "${a.matricula||""}", situacao: "${a.situacao||""}"${a.situacaoData ? `, situacaoData: "${a.situacaoData}"` : ""} },`
-  ).join("\n");
-  const conteudo = `// talas/talas${turmaKey.toLowerCase()}.js — Lista de alunos da turma ${turmaKey}\n// Exportado em ${ts}\n// Situação: "" = matriculado | AB = Abandonou | NC = Não compareceu | TR = Transferido | RM = Remanejado | RC = Reclassificado\n\n_registrarAlunos("${turmaKey}", [\n${linhas}\n]);\n`;
-  baixarArquivo(new Blob([conteudo], { type: "application/javascript;charset=utf-8;" }), `talas${turmaKey.toLowerCase()}.js`);
-}
-
-// ── Migração: copia turmas do admin de diario/global para diario/{uid} ──────
-// Executar uma única vez pelo admin no console: migrarTurmasAdminParaProfessor()
-async function migrarTurmasAdminParaProfessor() {
-  if (!_isAdmin(_userAtual?.email)) { alert("Apenas admin."); return; }
-  const uid = _userAtual.uid;
-  const db  = firebase.firestore();
-
-  // Lê o diário global
-  const globalSnap = await db.collection("diario").doc("global").get();
-  if (!globalSnap.exists) { alert("Diário global não encontrado."); return; }
-  const globalData = globalSnap.data();
-  const todasTurmas = globalData.RT_TURMAS ? JSON.parse(globalData.RT_TURMAS) : [];
-
-  // Separa turmas do professor (profUid === uid) das do global
-  const turmasProf   = todasTurmas.filter(t => t.profUid === uid);
-  const turmasGlobal = todasTurmas.filter(t => t.profUid !== uid);
-
-  if (!turmasProf.length) {
-    alert("Nenhuma turma com seu uid encontrada no diário global.");
-    return;
-  }
-
-  // Lê o diário pessoal (pode estar vazio)
-  const profSnap  = await db.collection("diario").doc(uid).get();
-  const profData  = profSnap.exists ? profSnap.data() : {};
-  const turmasJa  = profData.RT_TURMAS ? JSON.parse(profData.RT_TURMAS) : [];
-
-  // Merge: evita duplicatas
-  const ids = new Set(turmasJa.map(t => t.id));
-  const novas = turmasProf.filter(t => !ids.has(t.id));
-  const turmasMerged = [...turmasJa, ...novas];
-
-  // Salva no diário pessoal
-  await db.collection("diario").doc(uid).set({
-    ...profData,
-    RT_TURMAS: JSON.stringify(turmasMerged),
-    _atualizado: new Date().toISOString(),
-  }, { merge: true });
-
-  // Remove as turmas do professor do diário global (mantém só as globais)
-  await db.collection("diario").doc("global").update({
-    RT_TURMAS: JSON.stringify(turmasGlobal),
-    _atualizado: new Date().toISOString(),
-  });
-
-  alert(`✓ ${novas.length} turma(s) migrada(s) para seu diário pessoal.\nRecarregue a página.`);
-}
-
-// ════════════════════════════════════════════════════════════════
-// ABA: MIGRAÇÃO DE TURMAS (admin)
-// ════════════════════════════════════════════════════════════════
-
-async function htmlGestaoMigracao() {
-  // Carrega professores aprovados
-  const db    = firebase.firestore();
-  const profs = await db.collection("professores").where("status","==","aprovado").get();
-
-  const opcoesProf = profs.docs
-    .filter(d => !_isAdmin(d.data().email))
-    .map(d => {
-      const p = d.data();
-      return `<option value="${d.id}">${p.nome || p.email} (${p.email})</option>`;
-    }).join("");
-
-  // Carrega turmas do diário global
-  const globalSnap = await db.collection("diario").doc("global").get();
-  const turmasGlobal = globalSnap.exists
-    ? JSON.parse(globalSnap.data().RT_TURMAS || "[]")
-    : [];
-
-  const resumo = turmasGlobal.length
-    ? `<p class="gestao-hint">${turmasGlobal.length} turma(s) encontrada(s) no diário global:</p>
-       <ul style="font-size:.82rem;color:var(--text-mid);margin:8px 0 16px;padding-left:20px">
-         ${turmasGlobal.map(t =>
-           `<li>${t.serie}ª ${t.turma} — ${t.disciplina || "sem disciplina"}
-            <span style="color:var(--text-muted);font-size:.72rem">(profUid: ${t.profUid || "undefined"})</span></li>`
-         ).join("")}
-       </ul>`
-    : `<p class="gestao-hint" style="color:#4ade80">✓ Diário global não tem turmas para migrar.</p>`;
-
-  return `
-    <div class="gestao-bloco" style="max-width:640px">
-      <div class="gestao-bloco-header">
-        <h3>🔄 Migração de Turmas</h3>
-      </div>
-      <p class="gestao-hint">
-        Transfere turmas do diário global (admin) para o diário pessoal de um professor.
-        Use quando turmas foram criadas antes do isolamento por login.
-      </p>
-      ${resumo}
-      <div class="modal-form" style="max-width:400px">
-        <label>Professor de destino
-          <select class="gi" id="mig-prof-sel" style="margin-top:4px">
-            <option value="">— selecione —</option>
-            ${opcoesProf}
-          </select>
-        </label>
-        <label style="margin-top:12px;display:flex;align-items:center;gap:8px;font-size:.85rem">
-          <input type="checkbox" id="mig-remover-global" checked />
-          Remover do diário global após migrar
-        </label>
-      </div>
-      <div style="margin-top:16px;display:flex;gap:10px;align-items:center">
-        <button type="button" class="btn-modal-ok"
-          onclick="executarMigracao()">Migrar turmas</button>
-        <span id="mig-status" style="font-size:.82rem;color:var(--text-muted)"></span>
-      </div>
-    </div>`;
-}
-
-async function executarMigracao() {
-  const profUidDest = document.getElementById("mig-prof-sel")?.value;
-  const remover     = document.getElementById("mig-remover-global")?.checked;
-  const status      = document.getElementById("mig-status");
-
-  if (!profUidDest) { if (status) status.textContent = "⚠ Selecione um professor."; return; }
-  if (status) status.textContent = "⏳ Migrando…";
-
-  try {
-    const db         = firebase.firestore();
-    const globalSnap = await db.collection("diario").doc("global").get();
-    if (!globalSnap.exists) { if (status) status.textContent = "⚠ Diário global não encontrado."; return; }
-
-    const globalData   = globalSnap.data();
-    const turmasGlobal = JSON.parse(globalData.RT_TURMAS || "[]");
-    if (!turmasGlobal.length) { if (status) status.textContent = "Nenhuma turma para migrar."; return; }
-
-    // Marca todas as turmas com o uid do professor de destino
-    const turmasMigradas = turmasGlobal.map(t => ({ ...t, profUid: profUidDest }));
-
-    // Carrega diário do professor de destino
-    const profSnap  = await db.collection("diario").doc(profUidDest).get();
-    const profData  = profSnap.exists ? profSnap.data() : {};
-    const turmasJa  = JSON.parse(profData.RT_TURMAS || "[]");
-
-    // Merge sem duplicatas
-    const ids       = new Set(turmasJa.map(t => t.id));
-    const novas     = turmasMigradas.filter(t => !ids.has(t.id));
-    const merged    = [...turmasJa, ...novas];
-
-    // Salva no diário do professor
-    await db.collection("diario").doc(profUidDest).set({
-      ...profData,
-      RT_TURMAS: JSON.stringify(merged),
-      _atualizado: new Date().toISOString(),
-    }, { merge: true });
-
-    // Remove do global se solicitado
-    if (remover) {
-      await db.collection("diario").doc("global").update({
-        RT_TURMAS: JSON.stringify([]),
-        _atualizado: new Date().toISOString(),
-      });
-    }
-
-    if (status) status.textContent = `✓ ${novas.length} turma(s) migrada(s) com sucesso.`;
-
-    // Recarrega a aba
-    setTimeout(() => {
-      const sec = document.getElementById("g-migracao");
-      if (sec) htmlGestaoMigracao().then(h => sec.innerHTML = h);
-    }, 1500);
-
-  } catch(e) {
-    console.error("Erro na migração:", e);
-    if (status) status.textContent = "❌ Erro: " + e.message;
-  }
-}

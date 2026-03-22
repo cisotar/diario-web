@@ -27,12 +27,14 @@ function htmlProfTurmas() {
     { idx: 5, label: "Sexta"   },
   ];
 
-  // Monta mapa: { "diaSemana_aula": { turmaId, disciplina, sigla, serie, turma, ti } }
+  // Monta mapa apenas com as turmas do próprio professor
+  const uid = _userAtual?.uid;
+  const minhasTurmas = RT_TURMAS.filter(t => t.profUid === uid || (_isAdmin(_userAtual?.email) && !t.profUid));
   const ocupado = {};
-  for (let ti = 0; ti < RT_TURMAS.length; ti++) {
-    const t = RT_TURMAS[ti];
+  for (let ti = 0; ti < minhasTurmas.length; ti++) {
+    const t = minhasTurmas[ti];
     for (const h of (t.horarios || [])) {
-      ocupado[`${h.diaSemana}_${h.aula}`] = { ti, turmaId: t.id, disciplina: t.disciplina, sigla: t.sigla, serie: t.serie, turma: t.turma };
+      ocupado[`${h.diaSemana}_${h.aula}`] = { ti: RT_TURMAS.indexOf(t), turmaId: t.id, disciplina: t.disciplina, sigla: t.sigla, serie: t.serie, turma: t.turma };
     }
   }
 
