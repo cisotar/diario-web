@@ -1971,3 +1971,29 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .grade-del-btn:hover { opacity: 1; }
 .grade-ocupada:hover .grade-del-btn { display: block; }
 .grade-intervalo td { background: #141c27; height: 12px; padding: 0; }
+
+/* ── Botão de alternância ADM / Prof ────────────────────── */
+.btn-visao-modo {
+  flex-shrink: 0;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .78rem;
+  font-weight: 600;
+  padding: 6px 13px;
+  border-radius: 6px;
+  cursor: pointer;
+  border: 1.5px solid;
+  transition: background .15s, color .15s;
+  letter-spacing: .02em;
+}
+.btn-visao-prof {
+  background: transparent;
+  border-color: #0d9488;
+  color: #5eead4;
+}
+.btn-visao-prof:hover { background: rgba(13,148,136,.15); }
+.btn-visao-adm {
+  background: transparent;
+  border-color: var(--amber);
+  color: var(--amber);
+}
+.btn-visao-adm:hover { background: rgba(201,125,32,.15); }

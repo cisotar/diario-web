@@ -93,10 +93,7 @@ function _abrirPainelProfessor(abaInicial) {
     { id:"conteudos",     label:"📝 Conteúdos",       fn: htmlGestaoConteudos },
     { id:"perfil",        label:"👤 Meu Perfil",       fn: htmlGestaoPerfil    },
   ];
-  const extraBtn = _isAdmin(_userAtual?.email)
-    ? `<button class="btn-exportar-js" style="font-size:.8rem" onclick="_desativarModoProf()">← Voltar ao ADM</button>`
-    : "";
-  _renderizarPainel("👨‍🏫 Painel Professor", tabs, aba, extraBtn);
+  _renderizarPainel("👨‍🏫 Painel Professor", tabs, aba);
 }
 
 // ════════════════════════════════════════════════════════════════

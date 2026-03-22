@@ -224,6 +224,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   await _verificarSessao();        // 1º: saber quem está logado
   const ok = await _verificarAcessoProfessor(); // 2º: checar status
   if (!ok) { _mostrarCarregando(false); return; } // tela de aguardo já renderizada
+  // Admin inicia em modo professor por padrão
+  if (_isAdmin(_userAtual?.email)) _modoProf = true;
   await carregarTudo();
   _mostrarCarregando(false);
   renderizarSidebar();

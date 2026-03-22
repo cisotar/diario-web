@@ -289,6 +289,8 @@ async function _loginGoogle() {
     _mostrarCarregando(true);
     const ok = await _verificarAcessoProfessor();
     if (ok) {
+      // Admin inicia em modo professor por padrão
+      if (_isAdmin(_userAtual?.email)) _modoProf = true;
       await carregarTudo();
       _mostrarCarregando(false);
       renderizarSidebar();
@@ -341,13 +343,34 @@ function _atualizarBotaoAuth() {
     btn.textContent = nome + papelBadge + " · Sair";
     btn.classList.add("logado");
     btn.onclick = () => { if (confirm("Encerrar sessão?")) _logout(); };
+
+    // Botão de alternância ADM ↔ Prof (só para admin)
+    if (_isAdmin(_userAtual.email)) {
+      let btnVis = document.getElementById("btn-visao-modo");
+      if (!btnVis) {
+        btnVis = document.createElement("button");
+        btnVis.id = "btn-visao-modo";
+        btn.parentNode.insertBefore(btnVis, btn);
+      }
+      if (_modoProf) {
+        btnVis.textContent = "⚙ Visão ADM";
+        btnVis.title = "Alternar para visualização de administrador";
+        btnVis.className = "btn-visao-modo btn-visao-adm";
+        btnVis.onclick = _desativarModoProf;
+      } else {
+        btnVis.textContent = "👨‍🏫 Visão Prof.";
+        btnVis.title = "Alternar para visualização de professor";
+        btnVis.className = "btn-visao-modo btn-visao-prof";
+        btnVis.onclick = _ativarModoProf;
+      }
+    }
   } else {
     btn.textContent = "Login";
     btn.classList.remove("logado");
     btn.onclick = _abrirModalGoogle;
+    document.getElementById("btn-visao-modo")?.remove();
   }
 }
-
 function _exigirAuth(fn) {
   if (_autenticado) { fn(); } else { _abrirModalGoogle(); }
 }
