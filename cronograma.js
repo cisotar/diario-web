@@ -190,6 +190,10 @@ function trocarAbaCronograma(aba) {
   if (aba === "tala")    renderizarTala();
   if (aba === "chamada") renderizarChamadaFrequencia();
   if (aba === "notas")   renderizarNotas();
+  if (aba === "cronograma") {
+    const slots = getSlotsCompletos(turmaAtiva.id, bimestreAtivo);
+    if (slots.length > 0) renderizarLinhas(slots);
+  }
 }
 
 

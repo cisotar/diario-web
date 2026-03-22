@@ -166,7 +166,10 @@ function htmlGestaoBimestres() {
     <div class="gestao-bloco">
       <div class="gestao-bloco-header">
         <h3>Bimestres / Períodos letivos</h3>
-        ${headerAcao}
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          ${headerAcao}
+          <button type="button" class="btn-exportar-js" onclick="baixarBimestres()">⬇ bimestres.js</button>
+        </div>
       </div>
       <div class="tabela-wrapper">
         <table class="tabela-gestao">
@@ -330,9 +333,10 @@ function htmlGestaoConteudos() {
     <div class="gestao-bloco">
       <div class="gestao-bloco-header">
         <h3>Conteúdos por disciplina / série / bimestre</h3>
-        <div style="display:flex;gap:6px;">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn-add btn-outline" onclick="gContModo='bloco'; document.getElementById('g-conteudos').innerHTML=htmlGestaoConteudos()">✎ Editar em bloco</button>
           <button type="button" class="btn-add" onclick="addChaveCont()">+ Nova disciplina</button>
+          <button type="button" class="btn-exportar-js" onclick="baixarConteudos()">⬇ conteudos.js</button>
         </div>
       </div>
       <div class="gtab-cont-bar" style="margin-bottom:4px">${discBtns}</div>
@@ -434,3 +438,34 @@ function addChaveCont() {
 // ════════════════════════════════════════════════════════════
 // ── Helper: UI de seleção de matérias (checkboxes + campo Outro) ──────────
 // Renderiza seletor área + disciplinas + turmas para professor/cadastro
+// ── Funções de download para cada aba ────────────────────────
+
+function baixarBimestres() {
+  const ts = new Date().toLocaleString("pt-BR");
+  const conteudo = `// BIMESTRES.JS — Exportado em ${ts}\n\nconst BIMESTRES = ${JSON.stringify(RT_BIMESTRES, null, 2)};\n`;
+  baixarArquivo(new Blob([conteudo], { type: "application/javascript;charset=utf-8;" }), "bimestres.js");
+}
+
+function baixarPeriodos() {
+  const ts = new Date().toLocaleString("pt-BR");
+  const conteudo = `// PERIODOS.JS — Exportado em ${ts}\n\nconst PERIODOS = ${JSON.stringify(RT_PERIODOS, null, 2)};\n`;
+  baixarArquivo(new Blob([conteudo], { type: "application/javascript;charset=utf-8;" }), "periodos.js");
+}
+
+function baixarTurmasGlobal() {
+  const ts = new Date().toLocaleString("pt-BR");
+  const conteudo = `// TURMAS_GLOBAL.JS — Exportado em ${ts}\n\nconst TURMAS_BASE = ${JSON.stringify(RT_CONFIG.turmasBase || TURMAS_BASE || [], null, 2)};\n`;
+  baixarArquivo(new Blob([conteudo], { type: "application/javascript;charset=utf-8;" }), "turmas_global.js");
+}
+
+function baixarTurmas() {
+  const ts = new Date().toLocaleString("pt-BR");
+  const conteudo = `// TURMAS.JS — Exportado em ${ts}\n\nconst TURMAS = ${JSON.stringify(RT_TURMAS, null, 2)};\n`;
+  baixarArquivo(new Blob([conteudo], { type: "application/javascript;charset=utf-8;" }), "turmas.js");
+}
+
+function baixarConteudos() {
+  const ts = new Date().toLocaleString("pt-BR");
+  const conteudo = `// CONTEUDOS.JS — Exportado em ${ts}\n\nconst CONTEUDOS = ${JSON.stringify(RT_CONTEUDOS, null, 2)};\nconst ORDEM     = ${JSON.stringify(ordemConteudos, null, 2)};\n`;
+  baixarArquivo(new Blob([conteudo], { type: "application/javascript;charset=utf-8;" }), "conteudos.js");
+}

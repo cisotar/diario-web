@@ -48,6 +48,7 @@ function _abrirPainelEscola(abaInicial) {
   const aba = abaInicial || "turmas";
   const tabs = [
     { id:"turmas",      label:"🏫 Turmas",         fn: htmlEscolaTurmas      },
+    { id:"alunos",      label:"👤 Alunos",           fn: htmlEscolaAlunos, async: true },
     { id:"disciplinas", label:"📚 Disciplinas",     fn: htmlEscolaDisciplinas },
     { id:"periodos",    label:"🕐 Períodos",         fn: htmlEscolaPeriodos    },
     { id:"bimestres",   label:"📅 Bimestres",        fn: htmlGestaoBimestres   },
@@ -126,6 +127,7 @@ function _trocarAba(btn, secId, abaId) {
   // Renderiza conteúdo da aba sob demanda
   switch(abaId) {
     case "turmas":       sec.innerHTML = htmlEscolaTurmas();       break;
+    case "alunos":       htmlEscolaAlunos().then(h => sec.innerHTML = h); break;
     case "disciplinas":  sec.innerHTML = htmlEscolaDisciplinas();  break;
     case "periodos":     sec.innerHTML = htmlEscolaPeriodos();     break;
     case "bimestres":    sec.innerHTML = htmlGestaoBimestres();    break;
@@ -279,7 +281,11 @@ function htmlEscolaTurmas() {
   };
 
   return blocoNivel("medio","📘 Ensino Médio","Série") +
-         blocoNivel("fundamental","📗 Ensino Fundamental","Ano");
+         blocoNivel("fundamental","📗 Ensino Fundamental","Ano") +
+         `<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+            <button type="button" class="btn-exportar-js" onclick="baixarTurmasGlobal()">⬇ turmas_global.js</button>
+            <button type="button" class="btn-exportar-js" onclick="baixarTurmas()">⬇ turmas.js</button>
+          </div>`;
 }
 
 async function editTurmaBase(i, campo, val) {
@@ -455,7 +461,7 @@ function htmlEscolaDisciplinas() {
     </div>`;
 }
 
-function editDiscsPorArea(serie, areaId, valor) {
+function editDiscsPorArea
   if (!RT_CONFIG.disciplinasPorSerie)        RT_CONFIG.disciplinasPorSerie = {};
   if (!RT_CONFIG.disciplinasPorSerie[serie]) RT_CONFIG.disciplinasPorSerie[serie] = {};
   // Aceita separação por ; ou por quebra de linha
@@ -577,7 +583,10 @@ function htmlEscolaPeriodos() {
       <p class="gestao-hint">Configure os turnos. As aulas são calculadas automaticamente. Intervalos são inseridos após a aula indicada.</p>
       ${blocoTurno("manha","🌅 Manhã")}
       ${blocoTurno("tarde","🌇 Tarde")}
-      <button type="button" class="btn-modal-ok" onclick="_salvarConfigPeriodos()">Salvar e aplicar</button>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px">
+        <button type="button" class="btn-modal-ok" onclick="_salvarConfigPeriodos()">Salvar e aplicar</button>
+        <button type="button" class="btn-exportar-js" onclick="baixarPeriodos()">⬇ periodos.js</button>
+      </div>
     </div>`;
 }
 
@@ -639,3 +648,127 @@ async function _salvarConfigPeriodos() {
 // sigla e horários inline — sem janela de diálogo.
 // ════════════════════════════════════════════════════════════════
 // Retorna lista flat de disciplinas cadastradas pelo admin para uma série
+
+// ════════════════════════════════════════════════════════════════
+// ABA: ALUNOS (admin) — gerenciar alunos por turma
+// ════════════════════════════════════════════════════════════════
+
+let _alunosTurmaAtiva = null;  // chave da turma exibida na aba alunos
+
+async function htmlEscolaAlunos() {
+  const base = RT_CONFIG.turmasBase || TURMAS_BASE || [];
+  const turmas = [...base].sort((a,b) => (+a.serie - +b.serie) || a.turma.localeCompare(b.turma));
+
+  if (!_alunosTurmaAtiva && turmas.length) {
+    _alunosTurmaAtiva = turmas[0].serie + turmas[0].turma;
+  }
+
+  const tabsTurmas = turmas.map(tb => {
+    const key = tb.serie + tb.turma;
+    return `<button type="button" class="tab-bim ${key === _alunosTurmaAtiva ? "ativo" : ""}"
+      onclick="_alunosTurmaAtiva='${key}';_recarregarAbaAlunos()">${tb.serie}ª ${tb.turma}</button>`;
+  }).join("");
+
+  let corpoAlunos = "";
+  if (_alunosTurmaAtiva) {
+    const lista = await _carregarAlunos(_alunosTurmaAtiva);
+    const SITUACOES = ["","AB","NC","TR","RM","RC"];
+    const SITUACAO_LABEL = { "":"Matriculado","AB":"Abandonou","NC":"Não compareceu","TR":"Transferido","RM":"Remanejado","RC":"Reclassificado" };
+
+    const rows = lista.map((a, idx) => {
+      const sitOpts = SITUACOES.map(s =>
+        `<option value="${s}" ${(a.situacao||"") === s ? "selected" : ""}>${s||"—"} ${SITUACAO_LABEL[s]||""}</option>`
+      ).join("");
+      return `<tr class="${a.situacao ? "aluno-inativo" : ""}">
+        <td class="td-numero">${a.num}</td>
+        <td><input class="gi" value="${(a.nome||"").replace(/"/g,'&quot;')}"
+          onchange="gestaoEditarAluno('${_alunosTurmaAtiva}',${idx},'nome',this.value)" /></td>
+        <td><input class="gi gi-sm" value="${(a.matricula||"").replace(/"/g,'&quot;')}"
+          onchange="gestaoEditarAluno('${_alunosTurmaAtiva}',${idx},'matricula',this.value)" /></td>
+        <td>
+          <select class="gi gi-sm" onchange="gestaoEditarAluno('${_alunosTurmaAtiva}',${idx},'situacao',this.value)">
+            ${sitOpts}
+          </select>
+        </td>
+        <td><input type="date" class="gi gi-sm" value="${a.situacaoData||''}"
+          onchange="gestaoEditarAluno('${_alunosTurmaAtiva}',${idx},'situacaoData',this.value)" /></td>
+        <td><button type="button" class="btn-icon-del"
+          onclick="gestaoRemoverAluno('${_alunosTurmaAtiva}',${idx})">×</button></td>
+      </tr>`;
+    }).join("");
+
+    corpoAlunos = `
+      <div class="gestao-bloco">
+        <div class="gestao-bloco-header">
+          <h3>Turma ${_alunosTurmaAtiva} — ${lista.length} aluno(s)</h3>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button type="button" class="btn-add" onclick="gestaoAdicionarAluno('${_alunosTurmaAtiva}')">+ Aluno</button>
+            <button type="button" class="btn-exportar-js" onclick="baixarTala('${_alunosTurmaAtiva}')">⬇ talas${_alunosTurmaAtiva.toLowerCase()}.js</button>
+          </div>
+        </div>
+        <div class="tabela-wrapper">
+          <table class="tabela-gestao">
+            <thead><tr>
+              <th style="width:36px">Nº</th>
+              <th>Nome</th>
+              <th style="width:130px">Matrícula</th>
+              <th style="width:160px">Situação</th>
+              <th style="width:120px">Data</th>
+              <th style="width:32px"></th>
+            </tr></thead>
+            <tbody>${rows || '<tr><td colspan="6" class="td-vazio">Nenhum aluno cadastrado.</td></tr>'}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }
+
+  return `
+    <div style="margin-bottom:12px;display:flex;flex-wrap:wrap;gap:6px">
+      ${tabsTurmas}
+    </div>
+    ${corpoAlunos}`;
+}
+
+async function _recarregarAbaAlunos() {
+  const sec = document.getElementById("g-alunos");
+  if (!sec) return;
+  sec.innerHTML = await htmlEscolaAlunos();
+}
+
+async function gestaoEditarAluno(turmaKey, idx, campo, valor) {
+  const lista = await _carregarAlunos(turmaKey);
+  if (!lista[idx]) return;
+  lista[idx][campo] = valor;
+  if (campo === "situacao") lista[idx].situacaoData = valor ? hoje() : null;
+  await _salvarAlunos(turmaKey);
+  _mostrarIndicadorSync("✓ Aluno atualizado");
+}
+
+async function gestaoRemoverAluno(turmaKey, idx) {
+  const lista = await _carregarAlunos(turmaKey);
+  if (!lista[idx]) return;
+  if (!confirm(`Remover "${lista[idx].nome || "este aluno"}"?`)) return;
+  lista.splice(idx, 1);
+  lista.forEach((a, i) => a.num = i + 1);
+  await _salvarAlunos(turmaKey);
+  _recarregarAbaAlunos();
+}
+
+async function gestaoAdicionarAluno(turmaKey) {
+  const lista = await _carregarAlunos(turmaKey);
+  const num   = lista.length ? Math.max(...lista.map(a => a.num || 0)) + 1 : 1;
+  lista.push({ num, nome: "", matricula: "", situacao: "" });
+  await _salvarAlunos(turmaKey);
+  _recarregarAbaAlunos();
+}
+
+// Baixa o arquivo talas*.js para a turma selecionada
+function baixarTala(turmaKey) {
+  const lista = RT_ALUNOS[turmaKey] || [];
+  const ts    = new Date().toLocaleString("pt-BR");
+  const linhas = lista.map(a =>
+    `  { num: ${String(a.num).padStart(2)}, nome: "${(a.nome||"").replace(/"/g,'\\"')}", matricula: "${a.matricula||""}", situacao: "${a.situacao||""}"${a.situacaoData ? `, situacaoData: "${a.situacaoData}"` : ""} },`
+  ).join("\n");
+  const conteudo = `// talas/talas${turmaKey.toLowerCase()}.js — Lista de alunos da turma ${turmaKey}\n// Exportado em ${ts}\n// Situação: "" = matriculado | AB = Abandonou | NC = Não compareceu | TR = Transferido | RM = Remanejado | RC = Reclassificado\n\n_registrarAlunos("${turmaKey}", [\n${linhas}\n]);\n`;
+  baixarArquivo(new Blob([conteudo], { type: "application/javascript;charset=utf-8;" }), `talas${turmaKey.toLowerCase()}.js`);
+}
