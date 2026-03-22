@@ -43,9 +43,20 @@ let _bimestreChamadaSel = null;
 let _mesChamadaSel      = null;
 
 function _diasDeAulaNoBimestre(turmaId, bim) {
+  // Retorna datas únicas (para seletor de data e cálculo de TF)
   const slots = getSlotsCompletos(turmaId, bim).filter(s => !s.eventual);
   return [...new Set(slots.map(s => s.data))].sort();
 }
+
+function _slotsDeAulaNoBimestre(turmaId, bim) {
+  // Retorna todos os slots (um por aula, incluindo dias com 2 aulas)
+  return getSlotsCompletos(turmaId, bim)
+    .filter(s => !s.eventual)
+    .map(s => ({ data: s.data, aula: s.aula, slotId: s.slotId, inicio: s.inicio }));
+}
+
+// Chave única por slot (data + aula)
+function _chaveSlotChamada(data, aula) { return aula ? `${data}_${aula}` : data; }
 
 // Retorna true se o aluno deve receber chamada numa data específica.
 function _alunoAtivoNaData(aluno, data) {
@@ -68,11 +79,16 @@ async function _renderizarChamadaDesktop() {
   if (!_bimestreChamadaSel) _bimestreChamadaSel = bimestreAtivo;
   const bimObj = RT_BIMESTRES.find(b => b.bimestre === _bimestreChamadaSel) || RT_BIMESTRES[0];
 
-  // Todas as datas de aula do bimestre (sem corte por hoje)
+  // Todos os slots do bimestre (um por aula — dias com 2 aulas aparecem 2x)
+  const todosSlots = _slotsDeAulaNoBimestre(t.id, _bimestreChamadaSel)
+    .filter(s => s.data >= bimObj.inicio && s.data <= bimObj.fim);
+
+  // Datas únicas para seletor de lote e cálculo de TF
   const todasDatas = _diasDeAulaNoBimestre(t.id, _bimestreChamadaSel)
     .filter(d => d >= bimObj.inicio && d <= bimObj.fim);
 
   const datasPassadas = todasDatas.filter(d => d <= hoje_str);
+  const slotsPassados  = todosSlots.filter(s => s.data <= hoje_str);
 
   if (!_dataChamadaSel || !todasDatas.includes(_dataChamadaSel)) {
     _dataChamadaSel = todasDatas.includes(hoje_str)
@@ -80,10 +96,10 @@ async function _renderizarChamadaDesktop() {
       : [...datasPassadas].reverse()[0] || todasDatas[0] || hoje_str;
   }
 
-  // Datas visíveis: filtradas por mês se houver filtro ativo
-  const datasVisiveis = _mesChamadaSel
-    ? todasDatas.filter(d => d.startsWith(_mesChamadaSel))
-    : todasDatas;
+  // Slots visíveis: filtrados por mês se houver filtro ativo
+  const slotsVisiveis = _mesChamadaSel
+    ? todosSlots.filter(s => s.data.startsWith(_mesChamadaSel))
+    : todosSlots;
 
   // ── Meses únicos do bimestre (para filtro) ──
   const todosMeses = [];
@@ -97,10 +113,10 @@ async function _renderizarChamadaDesktop() {
     }
   }
 
-  // ── Cabeçalho linha 1: meses com colspan — títulos são links de filtro ──
+  // ── Cabeçalho linha 1: meses com colspan (agrupando slots) ──
   const gruposMes = [];
-  for (const d of datasVisiveis) {
-    const [ano, mes] = d.split("-");
+  for (const s of slotsVisiveis) {
+    const [ano, mes] = s.data.split("-");
     const chave = `${ano}-${mes}`;
     const label = NOMES_MES[+mes - 1].charAt(0).toUpperCase()
       + NOMES_MES[+mes - 1].slice(1) + "/" + ano;
@@ -125,18 +141,19 @@ async function _renderizarChamadaDesktop() {
     </th>`;
   }).join("");
 
-  // ── Cabeçalho linha 2: número do dia (com popover C/F no hover) ──
-  const thDias = datasVisiveis.map(d => {
-    const isSel  = d === _dataChamadaSel;
-    const isPast = d <= hoje_str;
-    const dia    = d.split("-")[2];
-    return `<th class="th-data-chamada${isSel ? " th-data-sel" : ""}">
+  // ── Cabeçalho linha 2: número do dia por slot (2 aulas no mesmo dia = 2 colunas) ──
+  const thDias = slotsVisiveis.map(s => {
+    const isSel  = s.data === _dataChamadaSel;
+    const isPast = s.data <= hoje_str;
+    const dia    = s.data.split("-")[2];
+    const title  = s.inicio ? `${dia} · ${s.inicio}` : dia;
+    return `<th class="th-data-chamada${isSel ? " th-data-sel" : ""}" title="${title}">
       ${dia}
       ${isPast ? `<div class="th-dia-popover">
         <button type="button" class="btn-lote" style="font-size:.6rem;padding:2px 4px"
-          onclick="chamadaTodosData('${turmaKey}','${d}','C')">C</button>
+          onclick="chamadaTodosData('${turmaKey}','${s.data}','C')">C</button>
         <button type="button" class="btn-lote btn-lote-off" style="font-size:.6rem;padding:2px 4px"
-          onclick="chamadaTodosData('${turmaKey}','${d}','F')">F</button>
+          onclick="chamadaTodosData('${turmaKey}','${s.data}','F')">F</button>
       </div>` : ""}
     </th>`;
   }).join("");
@@ -160,7 +177,8 @@ async function _renderizarChamadaDesktop() {
       if (!isEE && (chamadas[d] || {})[a.num] === "F") totalFaltas++;
     }
 
-    const tds = datasVisiveis.map(d => {
+    const tds = slotsVisiveis.map(s => {
+      const d      = s.data;
       const isPast = d <= hoje_str;
       const ativo  = _alunoAtivoNaData(a, d);
 
@@ -199,7 +217,7 @@ async function _renderizarChamadaDesktop() {
 
     return `<tr class="${altaFalta ? "row-alta-falta" : ""}">
       <td class="td-numero">${a.num}</td>
-      <td style="font-size:.82rem">${a.nome||"—"}</td>
+      <td class="td-nome" style="font-size:.82rem;white-space:nowrap">${a.nome||"—"}</td>
       ${tdSit}
       ${tds}
       ${tdTF}
@@ -272,7 +290,15 @@ async function _renderizarChamadaDesktop() {
       ${_bimProgBarChamada(_feitasCham, _totalRegCham, bimObj)}
       ${filtroMeses}
       <div style="overflow-x:auto">
-        <table class="tabela-gestao" style="min-width:0">
+        <table class="tabela-gestao tabela-chamada" style="min-width:0">
+          <colgroup>
+            <col class="col-num">
+            <col class="col-nome">
+            <col class="col-sit">
+            ${slotsVisiveis.map(() => `<col style="width:28px;min-width:28px;max-width:28px">`).join("")}
+            <col class="col-freq">
+            <col class="col-freq">
+          </colgroup>
           <thead>
             <tr>
               <th style="width:36px" rowspan="2">Nº</th>
