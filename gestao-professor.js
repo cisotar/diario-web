@@ -53,340 +53,317 @@ async function _carregarHorariosGlobais() {
 function _invalidarHorariosCache() { _horariosGlobaisCache = null; }
 
 async function htmlProfTurmas() {
-  const uid  = _userAtual?.uid;
+  const uid     = _userAtual?.uid;
   const profUid = _isAdmin(_userAtual?.email) ? "global" : (uid || "anonimo");
-  const DIAS = [
-    { idx:1, label:"Seg" },
-    { idx:2, label:"Ter" },
-    { idx:3, label:"Qua" },
-    { idx:4, label:"Qui" },
-    { idx:5, label:"Sex" },
+  const DIAS    = [
+    { idx:1, label:"Segunda" },
+    { idx:2, label:"Terça"   },
+    { idx:3, label:"Quarta"  },
+    { idx:4, label:"Quinta"  },
+    { idx:5, label:"Sexta"   },
   ];
 
   // Carrega horários de TODOS os professores do Firestore
   const horariosGlobais = await _carregarHorariosGlobais();
 
-  // Turmas do próprio professor agrupadas por série+turma+disciplina
-  const minhasTurmas = RT_TURMAS.filter(t => t.profUid === uid || t.profUid === profUid);
+  // Turmas-base para os filtros
+  const base = RT_CONFIG.turmasBase || TURMAS_BASE || [];
+  const niveis = [...new Set(base.map(t => t.nivel))].sort();
 
-  // Agrupa por série+turma para criar uma grade por turma
-  const porTurma = {};
-  for (const t of minhasTurmas) {
-    const key = `${t.serie}|${t.turma}|${t.subtitulo||""}`;
-    if (!porTurma[key]) porTurma[key] = { serie: t.serie, turma: t.turma, subtitulo: t.subtitulo||"", periodo: t.periodo||"manha", disciplinas: [] };
-    porTurma[key].disciplinas.push(t);
-  }
+  // Gera opções de nível
+  const nivelOpts = `<option value="">— selecione —</option>` +
+    niveis.map(n => `<option value="${n}">${n === "medio" ? "Ensino Médio" : "Ensino Fundamental"}</option>`).join("");
 
-  const renderGrade = (turmaKey, tb) => {
-    const turno    = tb.periodo || "manha";
-    const periodos = RT_PERIODOS.filter(p => (p.turno||"manha") === turno);
-    if (!periodos.length) return "";
-
-    // Mapa de horários desta turma: dia_aula → {disciplina, sigla, turmaId}
-    const ocupadoProf = {};
-    for (const t of tb.disciplinas) {
-      for (const h of (t.horarios||[])) {
-        const chave = `${h.diaSemana}_${h.aula}`;
-        ocupadoProf[chave] = { turmaId: t.id, disciplina: t.disciplina, sigla: t.sigla };
-      }
-    }
-
-    // Horários de outros professores NESTA série+turma
-    const ocupadoOutros = {};
-    for (const [chave, dados] of Object.entries(horariosGlobais)) {
-      if (dados.profUid !== uid && dados.serie === tb.serie && dados.turma === tb.turma) {
-        if (!ocupadoProf[chave]) ocupadoOutros[chave] = dados;
-      }
-    }
-
-    const linhas = periodos.map(p => {
-      const isIntervalo = p.label?.toLowerCase().includes("interval");
-      const cells = DIAS.map(dia => {
-        const chave = `${dia.idx}_${p.aula}`;
-        const oc    = ocupadoProf[chave];
-        const outro = ocupadoOutros[chave];
-        if (oc) {
-          return `<td class="grade-cell grade-ocupada" title="${oc.disciplina} — clique × para remover">
-            <div class="grade-disc">${oc.sigla||oc.disciplina||"—"}</div>
-            <button type="button" class="grade-del-btn"
-              onclick="profRemoverHorario('${oc.turmaId}','${p.aula}',${dia.idx})"
-              title="Remover">×</button>
-          </td>`;
-        }
-        if (outro) {
-          return `<td class="grade-cell grade-ocupada-outro" title="${outro.disciplina} — ${outro.serie}ª ${outro.turma} — outro professor">
-            <div class="grade-disc">${outro.sigla||outro.disciplina||"—"}</div>
-          </td>`;
-        }
-        return `<td class="grade-cell grade-vazia"
-          onclick="profAbrirModalHorario('${turmaKey}','${p.aula}',${dia.idx})"
-          title="Clique para registrar horário nesta turma">
-          <span class="grade-vazio-txt">—</span>
-        </td>`;
-      }).join("");
-
-      return `<tr class="${isIntervalo ? "grade-intervalo" : ""}">
-        <td class="grade-periodo">
-          <div class="grade-aula-num">${p.aula.replace(/[mt]/,"")}</div>
-          <div class="grade-aula-hr">${p.inicio}</div>
-        </td>
-        ${cells}
-      </tr>`;
-    }).join("");
-
-    const labelTurno = turno === "tarde" ? "🌇 Tarde" : "🌅 Manhã";
-    const label = `${tb.serie}ª ${tb.turma}${tb.subtitulo?" "+tb.subtitulo:""}`;
-    const disciplinasLabel = tb.disciplinas.map(t =>
-      `<span style="background:rgba(201,125,32,.15);color:var(--amber);border-radius:4px;padding:1px 7px;font-size:.75rem;font-weight:600">${t.sigla||t.disciplina}</span>`
-    ).join(" ");
-
-    return `
-      <div class="grade-wrap" style="margin-bottom:28px">
-        <div class="grade-titulo">
-          🏫 ${label} — ${labelTurno}
-          <span style="margin-left:6px;display:flex;gap:4px;flex-wrap:wrap">${disciplinasLabel}</span>
-          <button type="button" class="grade-del-btn" style="display:inline-block;position:static;margin-left:auto;font-size:.75rem;opacity:.6"
-            onclick="profRemoverTurma('${turmaKey}')" title="Remover esta turma do meu diário">🗑</button>
-        </div>
-        <div style="overflow-x:auto">
-          <table class="grade-tabela">
-            <thead><tr>
-              <th class="grade-th-hora">Aula</th>
-              ${DIAS.map(d => `<th>${d.label}</th>`).join("")}
-            </tr></thead>
-            <tbody>${linhas}</tbody>
-          </table>
-        </div>
-      </div>`;
-  };
-
-  const grades = Object.entries(porTurma)
-    .sort(([ka],[kb]) => ka.localeCompare(kb))
-    .map(([key, tb]) => renderGrade(key, tb))
-    .join("");
+  // Grade da turma selecionada (se houver)
+  const gradeHtml = _gradeTurmaSel
+    ? _renderGradeTurma(_gradeTurmaSel, uid, profUid, DIAS, horariosGlobais)
+    : `<p class="gestao-hint" style="margin-top:20px">Selecione uma turma para ver e editar os horários.</p>`;
 
   return `
     <div style="max-width:900px">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-        <button type="button" class="btn-add" onclick="profAbrirModalAdicionarTurma()">+ Adicionar turma</button>
-        <span class="gestao-hint" style="margin:0">
-          Células <strong style="color:var(--amber)">âmbar</strong> = suas aulas &nbsp;·&nbsp;
-          <strong style="color:#64748b">cinza</strong> = outro professor &nbsp;·&nbsp;
-          células vazias = clique para adicionar horário
-        </span>
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:20px">
+        <label style="font-size:.82rem;font-weight:600;color:var(--text-mid)">
+          Nível
+          <select class="gi" id="filtro-nivel" onchange="profFiltrarSeries()" style="display:block;margin-top:4px;min-width:160px">
+            ${nivelOpts}
+          </select>
+        </label>
+        <label style="font-size:.82rem;font-weight:600;color:var(--text-mid)" id="filtro-serie-wrap">
+          <span id="filtro-serie-label">Série / Ano</span>
+          <select class="gi" id="filtro-serie" onchange="profFiltrarTurmasOpts()" style="display:block;margin-top:4px;min-width:130px">
+            <option value="">—</option>
+          </select>
+        </label>
+        <label style="font-size:.82rem;font-weight:600;color:var(--text-mid)">
+          Turma
+          <select class="gi" id="filtro-turma" onchange="profSelecionarTurma()" style="display:block;margin-top:4px;min-width:130px">
+            <option value="">—</option>
+          </select>
+        </label>
       </div>
-      ${grades || '<p class="gestao-hint">Nenhuma turma adicionada ainda. Clique em "+ Adicionar turma" para começar.</p>'}
-    </div>
-
-    <!-- Modal: adicionar turma -->
-    <div id="modal-add-turma" class="modal-overlay" style="display:none">
-      <div class="modal-box" style="max-width:440px">
-        <h3 class="modal-titulo">🏫 Adicionar Turma</h3>
-        <div class="modal-form">
-          <label>Nível de ensino
-            <select class="gi" id="add-turma-nivel" onchange="profFiltrarSeries()" style="margin-top:4px">
-              <option value="">— selecione —</option>
-              <option value="medio">Ensino Médio</option>
-              <option value="fundamental">Ensino Fundamental</option>
-            </select>
-          </label>
-          <label style="margin-top:10px" id="add-turma-serie-label">
-            Série / Ano
-            <select class="gi" id="add-turma-serie" onchange="profFiltrarTurmas()" style="margin-top:4px"></select>
-          </label>
-          <label style="margin-top:10px">
-            Turma
-            <select class="gi" id="add-turma-turma" onchange="profFiltrarDiscs()" style="margin-top:4px"></select>
-          </label>
-          <label style="margin-top:10px">
-            Disciplina
-            <select class="gi" id="add-turma-disc" style="margin-top:4px"></select>
-          </label>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn-modal-cancel"
-            onclick="document.getElementById('modal-add-turma').style.display='none'">Cancelar</button>
-          <button type="button" class="btn-modal-ok" onclick="profConfirmarAdicionarTurma()">Adicionar</button>
-        </div>
+      <div id="grade-turma-container">
+        ${gradeHtml}
       </div>
     </div>
 
-    <!-- Modal: registrar horário numa turma -->
+    <!-- Modal: registrar disciplina num horário vazio -->
     <div id="modal-grade-aula" class="modal-overlay" style="display:none">
       <div class="modal-box" style="max-width:380px">
-        <h3 class="modal-titulo">🕐 Registrar horário</h3>
+        <h3 class="modal-titulo">🕐 Adicionar aula</h3>
         <p id="modal-grade-subtitulo" style="font-size:.85rem;color:var(--text-muted);margin-bottom:12px"></p>
         <div class="modal-form">
-          <label>Disciplina
+          <label>Disciplina que você ministra nesta turma
             <select class="gi" id="modal-grade-disc" style="margin-top:4px"></select>
           </label>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn-modal-cancel"
             onclick="document.getElementById('modal-grade-aula').style.display='none'">Cancelar</button>
-          <button type="button" class="btn-modal-ok" onclick="profConfirmarHorario()">Registrar</button>
+          <button type="button" class="btn-modal-ok" onclick="profConfirmarHorario()">Adicionar</button>
         </div>
       </div>
     </div>`;
 }
 
-// ── Variáveis do modal de horário ──
-let _gradeModalDia = null, _gradeModalAula = null, _gradeModalTurmaKey = null;
+// Turma selecionada nos filtros: { serie, turma, subtitulo, periodo, nivel }
+let _gradeTurmaSel  = null;
+let _gradeModalDia  = null;
+let _gradeModalAula = null;
 
-function profAbrirModalAdicionarTurma() {
-  const modal = document.getElementById("modal-add-turma");
-  if (!modal) return;
-  document.getElementById("add-turma-nivel").value  = "";
-  document.getElementById("add-turma-serie").innerHTML = "";
-  document.getElementById("add-turma-turma").innerHTML = "";
-  document.getElementById("add-turma-disc").innerHTML  = "";
-  modal.style.display = "flex";
+function _renderGradeTurma(tb, uid, profUid, DIAS, horariosGlobais) {
+  const turno    = tb.periodo || "manha";
+  const periodos = RT_PERIODOS.filter(p => (p.turno||"manha") === turno);
+  if (!periodos.length) return `<p class="gestao-hint">Nenhum período configurado para este turno.</p>`;
+
+  // Horários de TODOS nesta série+turma
+  const todos = {};
+  // 1. Dos horários globais (Firestore de outros profs)
+  for (const [chave, dados] of Object.entries(horariosGlobais)) {
+    if (dados.serie === tb.serie && dados.turma === tb.turma) {
+      const isPropia = dados.profUid === uid || dados.profUid === profUid;
+      todos[chave] = { ...dados, isPropia };
+    }
+  }
+  // 2. Das turmas locais do prof (RT_TURMAS)
+  for (const t of RT_TURMAS) {
+    if (t.serie !== tb.serie || t.turma !== tb.turma) continue;
+    const isPropia = t.profUid === uid || t.profUid === profUid;
+    for (const h of (t.horarios||[])) {
+      const chave = `${h.diaSemana}_${h.aula}`;
+      todos[chave] = { turmaId: t.id, disciplina: t.disciplina, sigla: t.sigla, serie: t.serie, turma: t.turma, profUid: t.profUid, isPropia };
+    }
+  }
+
+  const linhas = periodos.map(p => {
+    const isIntervalo = p.label?.toLowerCase().includes("interval");
+    const cells = DIAS.map(dia => {
+      const chave = `${dia.idx}_${p.aula}`;
+      const oc    = todos[chave];
+      if (oc) {
+        if (oc.isPropia) {
+          return `<td class="grade-cell grade-ocupada" title="${oc.disciplina||"—"} — sua aula">
+            <div class="grade-disc">${oc.sigla||oc.disciplina||"—"}</div>
+            <button type="button" class="grade-del-btn"
+              onclick="profRemoverHorario('${oc.turmaId}','${p.aula}',${dia.idx})"
+              title="Remover">×</button>
+          </td>`;
+        }
+        return `<td class="grade-cell grade-ocupada-outro"
+          title="${oc.disciplina||"—"} — ocupado por outro professor">
+          <div class="grade-disc">${oc.sigla||oc.disciplina||"—"}</div>
+          <div class="grade-turma" style="font-size:.65rem">outro prof.</div>
+        </td>`;
+      }
+      return `<td class="grade-cell grade-vazia"
+        onclick="profAbrirModalHorario('${tb.serie}','${tb.turma}','${tb.subtitulo||""}','${p.aula}',${dia.idx},'${turno}')"
+        title="Clique para adicionar aula">
+        <span class="grade-vazio-txt">+</span>
+      </td>`;
+    }).join("");
+
+    return `<tr class="${isIntervalo ? "grade-intervalo" : ""}">
+      <td class="grade-periodo">
+        <div class="grade-aula-num">${p.aula.replace(/[mt]/,"")}</div>
+        <div class="grade-aula-hr">${p.inicio}</div>
+      </td>
+      ${cells}
+    </tr>`;
+  }).join("");
+
+  const labelTurno = turno === "tarde" ? "🌇 Tarde" : "🌅 Manhã";
+  const label = `${tb.serie}ª ${tb.turma}${tb.subtitulo ? " "+tb.subtitulo : ""}`;
+
+  return `
+    <div class="grade-wrap">
+      <div class="grade-titulo">${labelTurno} · ${label}</div>
+      <div class="grade-hint">
+        Células <strong>âmbar</strong> = suas aulas &nbsp;·&nbsp;
+        <span class="cinza">cinza</span> = outro professor &nbsp;·&nbsp;
+        <strong style="color:#0d9488">+</strong> = clique para adicionar
+      </div>
+      <div style="overflow-x:auto">
+        <table class="grade-tabela">
+          <thead><tr>
+            <th class="grade-th-hora">Aula</th>
+            ${DIAS.map(d => `<th>${d.label}</th>`).join("")}
+          </tr></thead>
+          <tbody>${linhas}</tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
 function profFiltrarSeries() {
-  const nivel = document.getElementById("add-turma-nivel")?.value;
-  const base  = RT_CONFIG.turmasBase || TURMAS_BASE || [];
-  const series = [...new Set(
-    base.filter(t => t.nivel === nivel).map(t => t.serie)
-  )].sort((a,b) => +a - +b);
+  const nivel  = document.getElementById("filtro-nivel")?.value;
+  const base   = RT_CONFIG.turmasBase || TURMAS_BASE || [];
+  const series = [...new Set(base.filter(t => t.nivel===nivel).map(t=>t.serie))].sort((a,b)=>+a-+b);
   const labelSerie = nivel === "medio" ? "Série" : "Ano";
-  const serSel = document.getElementById("add-turma-serie");
-  serSel.innerHTML = `<option value="">— selecione o ${labelSerie} —</option>` +
+  document.getElementById("filtro-serie-label").textContent = labelSerie;
+  const serSel = document.getElementById("filtro-serie");
+  serSel.innerHTML = `<option value="">— selecione —</option>` +
     series.map(s => `<option value="${s}">${s}${nivel==="medio"?"ª Série":"º Ano"}</option>`).join("");
-  document.getElementById("add-turma-turma").innerHTML = "";
-  document.getElementById("add-turma-disc").innerHTML  = "";
+  document.getElementById("filtro-turma").innerHTML = `<option value="">—</option>`;
+  _gradeTurmaSel = null;
+  document.getElementById("grade-turma-container").innerHTML =
+    `<p class="gestao-hint" style="margin-top:16px">Selecione a série e a turma.</p>`;
 }
 
-function profFiltrarTurmas() {
-  const nivel = document.getElementById("add-turma-nivel")?.value;
-  const serie = document.getElementById("add-turma-serie")?.value;
+function profFiltrarTurmasOpts() {
+  const nivel  = document.getElementById("filtro-nivel")?.value;
+  const serie  = document.getElementById("filtro-serie")?.value;
   if (!serie) return;
-  const base  = RT_CONFIG.turmasBase || TURMAS_BASE || [];
-  const turmas = base.filter(t => t.nivel === nivel && t.serie === serie)
+  const base   = RT_CONFIG.turmasBase || TURMAS_BASE || [];
+  const turmas = base.filter(t => t.nivel===nivel && t.serie===serie)
     .sort((a,b) => a.turma.localeCompare(b.turma));
-  const turmaSel = document.getElementById("add-turma-turma");
+  const turmaSel = document.getElementById("filtro-turma");
   turmaSel.innerHTML = `<option value="">— selecione a turma —</option>` +
-    turmas.map(t => `<option value="${t.turma}|${t.subtitulo||""}|${t.periodo||"manha"}">
+    turmas.map(t => `<option value="${t.turma}|${t.subtitulo||""}|${t.periodo||"manha"}|${t.nivel||"medio"}">
       Turma ${t.turma}${t.subtitulo?" "+t.subtitulo:""}
     </option>`).join("");
-  profFiltrarDiscs();
+  _gradeTurmaSel = null;
+  document.getElementById("grade-turma-container").innerHTML =
+    `<p class="gestao-hint" style="margin-top:16px">Selecione a turma.</p>`;
 }
 
-function profFiltrarDiscs() {
-  const serie = document.getElementById("add-turma-serie")?.value;
-  if (!serie) return;
-  const discs = _disciplinasDaSerie(serie);
-  const discSel = document.getElementById("add-turma-disc");
-  discSel.innerHTML = `<option value="">— selecione a disciplina —</option>` +
-    discs.map(d => `<option value="${d.replace(/"/g,'&quot;')}">${d}</option>`).join("");
-}
-
-async function profConfirmarAdicionarTurma() {
-  const nivel      = document.getElementById("add-turma-nivel")?.value;
-  const serie      = document.getElementById("add-turma-serie")?.value;
-  const turmaParts = (document.getElementById("add-turma-turma")?.value || "").split("|");
-  const disciplina = document.getElementById("add-turma-disc")?.value;
-
-  if (!nivel || !serie || !turmaParts[0] || !disciplina) {
-    alert("Preencha todos os campos."); return;
-  }
-
-  const turma     = turmaParts[0];
-  const subtitulo = turmaParts[1] || "";
-  const periodo   = turmaParts[2] || "manha";
+async function profSelecionarTurma() {
+  const serie    = document.getElementById("filtro-serie")?.value;
+  const parts    = (document.getElementById("filtro-turma")?.value||"").split("|");
+  if (!serie || !parts[0]) return;
+  const tb = { serie, turma: parts[0], subtitulo: parts[1]||"", periodo: parts[2]||"manha", nivel: parts[3]||"medio" };
+  _gradeTurmaSel = tb;
 
   const uid     = _userAtual?.uid;
   const profUid = _isAdmin(_userAtual?.email) ? "global" : (uid || "anonimo");
-  const sigla   = disciplina.replace(/[aeiouáéíóúâêîôûãõàèìòùü\s]/gi,"").substring(0,3).toUpperCase()
-    || disciplina.substring(0,3).toUpperCase();
-
-  // Verifica se já tem essa turma+disciplina
-  const jaExiste = RT_TURMAS.find(t =>
-    t.serie===serie && t.turma===turma && t.disciplina===disciplina && t.profUid===profUid
-  );
-  if (jaExiste) {
-    alert("Você já tem esta disciplina nesta turma."); return;
+  const container = document.getElementById("grade-turma-container");
+  if (container) {
+    container.innerHTML = `<p class="gestao-hint">⏳ Carregando horários…</p>`;
+    const horariosGlobais = await _carregarHorariosGlobais();
+    const DIAS = [{idx:1,label:"Segunda"},{idx:2,label:"Terça"},{idx:3,label:"Quarta"},{idx:4,label:"Quinta"},{idx:5,label:"Sexta"}];
+    container.innerHTML = _renderGradeTurma(tb, uid, profUid, DIAS, horariosGlobais);
   }
-
-  const id = `${serie}${turma}_${sigla}_${profUid.substring(0,6)}_${Date.now()}`;
-  RT_TURMAS.push({ id, serie, turma, subtitulo, disciplina, sigla, horarios:[], profUid, periodo, nivel });
-  salvarTudo();
-  renderizarSidebar();
-  document.getElementById("modal-add-turma").style.display = "none";
-  const sec = document.getElementById("g-minhas-turmas");
-  if (sec) htmlProfTurmas().then(h => sec.innerHTML = h);
 }
 
-function profAbrirModalHorario(turmaKey, aula, diaSemana) {
+function profAbrirModalHorario(serie, turma, subtitulo, aula, diaSemana, turno) {
   const DIAS = ["","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
-  _gradeModalTurmaKey = turmaKey;
-  _gradeModalAula     = aula;
-  _gradeModalDia      = diaSemana;
+  _gradeModalDia  = diaSemana;
+  _gradeModalAula = aula;
 
-  const [serie, turma] = turmaKey.split("|");
   const periodo = RT_PERIODOS.find(p => p.aula === aula);
   const sub = document.getElementById("modal-grade-subtitulo");
-  if (sub) sub.textContent = `${DIAS[diaSemana]} · ${periodo?.label||aula} (${periodo?.inicio||""}) — ${serie}ª ${turma}`;
+  if (sub) sub.textContent = `${DIAS[diaSemana]} · Aula ${aula.replace(/[mt]/,"")} (${periodo?.inicio||""}) — ${serie}ª ${turma}${subtitulo?" "+subtitulo:""}`;
 
-  // Mostra só as disciplinas do professor nesta turma
+  // Disciplinas que o professor leciona nesta turma (já cadastradas)
   const uid     = _userAtual?.uid;
   const profUid = _isAdmin(_userAtual?.email) ? "global" : (uid || "anonimo");
   const discNaTurma = RT_TURMAS.filter(t =>
     t.serie===serie && t.turma===turma && (t.profUid===uid||t.profUid===profUid)
   );
+
+  // Todas as disciplinas disponíveis para esta série
+  const todasDiscs = _disciplinasDaSerie(serie);
+
   const discSel = document.getElementById("modal-grade-disc");
   if (!discSel) return;
-  discSel.innerHTML = discNaTurma.map(t =>
-    `<option value="${t.id}">${t.disciplina} (${t.sigla})</option>`
-  ).join("") || `<option value="">— adicione uma disciplina primeiro —</option>`;
+
+  // Guarda info da turma no modal
+  discSel.dataset.serie     = serie;
+  discSel.dataset.turma     = turma;
+  discSel.dataset.subtitulo = subtitulo||"";
+  discSel.dataset.turno     = turno;
+
+  // Opções: disciplinas já nesta turma primeiro, depois as demais
+  const idsJa = new Set(discNaTurma.map(t => t.id));
+  const optsJa = discNaTurma.map(t =>
+    `<option value="existing:${t.id}">${t.disciplina} (${t.sigla}) — já cadastrada</option>`
+  );
+  const optsNovas = todasDiscs
+    .filter(d => !discNaTurma.find(t => t.disciplina===d))
+    .map(d => `<option value="new:${d.replace(/"/g,'&quot;')}">${d}</option>`);
+
+  discSel.innerHTML = `<option value="">— selecione —</option>` +
+    (optsJa.length ? `<optgroup label="Suas disciplinas nesta turma">${optsJa.join("")}</optgroup>` : "") +
+    (optsNovas.length ? `<optgroup label="Adicionar nova disciplina">${optsNovas.join("")}</optgroup>` : "");
 
   document.getElementById("modal-grade-aula").style.display = "flex";
 }
 
 async function profConfirmarHorario() {
-  const turmaId = document.getElementById("modal-grade-disc")?.value;
-  if (!turmaId) { alert("Selecione uma disciplina."); return; }
+  const discSel = document.getElementById("modal-grade-disc");
+  if (!discSel?.value) { alert("Selecione uma disciplina."); return; }
 
-  const t = RT_TURMAS.find(x => x.id === turmaId);
-  if (!t) return;
+  const serie     = discSel.dataset.serie;
+  const turma     = discSel.dataset.turma;
+  const subtitulo = discSel.dataset.subtitulo||"";
+  const periodo   = discSel.dataset.turno||"manha";
+  const uid       = _userAtual?.uid;
+  const profUid   = _isAdmin(_userAtual?.email) ? "global" : (uid || "anonimo");
 
-  const conflito = await _verificarConflitoHorario(t.serie, t.turma, _gradeModalDia, _gradeModalAula, turmaId);
+  let turmaEntry;
+  const val = discSel.value;
+
+  if (val.startsWith("existing:")) {
+    turmaEntry = RT_TURMAS.find(t => t.id === val.replace("existing:",""));
+  } else {
+    // Nova disciplina nesta turma
+    const disciplina = val.replace("new:","");
+    const conflito = await _verificarConflitoHorario(serie, turma, _gradeModalDia, _gradeModalAula, null);
+    if (conflito) {
+      document.getElementById("modal-grade-aula").style.display = "none";
+      _mostrarModalConflito(conflito);
+      return;
+    }
+    const sigla = disciplina.replace(/[aeiouáéíóúâêîôûãõàèìòùü\s]/gi,"").substring(0,3).toUpperCase()
+      || disciplina.substring(0,3).toUpperCase();
+    const id = `${serie}${turma}_${sigla}_${profUid.substring(0,6)}_${Date.now()}`;
+    turmaEntry = { id, serie, turma, subtitulo, disciplina, sigla, horarios:[], profUid, periodo };
+    RT_TURMAS.push(turmaEntry);
+  }
+
+  if (!turmaEntry) return;
+
+  // Verifica conflito
+  const conflito = await _verificarConflitoHorario(serie, turma, _gradeModalDia, _gradeModalAula, turmaEntry.id);
   if (conflito) {
     document.getElementById("modal-grade-aula").style.display = "none";
     _mostrarModalConflito(conflito);
     return;
   }
 
-  if (!t.horarios.find(h => h.diaSemana===_gradeModalDia && h.aula===_gradeModalAula)) {
-    t.horarios.push({ diaSemana: _gradeModalDia, aula: _gradeModalAula });
+  if (!turmaEntry.horarios.find(h => h.diaSemana===_gradeModalDia && h.aula===_gradeModalAula)) {
+    turmaEntry.horarios.push({ diaSemana: _gradeModalDia, aula: _gradeModalAula });
   }
+
   salvarTudo();
   _invalidarHorariosCache();
   renderizarSidebar();
   document.getElementById("modal-grade-aula").style.display = "none";
-  const sec = document.getElementById("g-minhas-turmas");
-  if (sec) htmlProfTurmas().then(h => sec.innerHTML = h);
+
+  // Recarrega a grade da turma selecionada
+  profSelecionarTurma();
 }
 
-// profConfirmarAula mantido como alias de compatibilidade
+// Alias de compatibilidade
 async function profConfirmarAula() { return profConfirmarHorario(); }
-
-function profRemoverTurma(turmaKey) {
-  const [serie, turma] = turmaKey.split("|");
-  const uid     = _userAtual?.uid;
-  const profUid = _isAdmin(_userAtual?.email) ? "global" : (uid||"anonimo");
-  const minhas  = RT_TURMAS.filter(t => t.serie===serie && t.turma===turma && (t.profUid===uid||t.profUid===profUid));
-  if (!minhas.length) return;
-  if (!confirm(`Remover todas as disciplinas da ${serie}ª ${turma} do seu diário? Os registros de aulas serão mantidos.`)) return;
-  for (const t of minhas) {
-    const i = RT_TURMAS.indexOf(t);
-    if (i >= 0) RT_TURMAS.splice(i, 1);
-  }
-  salvarTudo();
-  renderizarSidebar();
-  const sec = document.getElementById("g-minhas-turmas");
-  if (sec) htmlProfTurmas().then(h => sec.innerHTML = h);
-}
 
 function profRemoverHorario(turmaId, aula, diaSemana) {
   if (!confirm("Remover este horário?")) return;
@@ -402,8 +379,7 @@ function profRemoverHorario(turmaId, aula, diaSemana) {
   salvarTudo();
   _invalidarHorariosCache();
   renderizarSidebar();
-  const sec = document.getElementById("g-minhas-turmas");
-  if (sec) htmlProfTurmas().then(h => sec.innerHTML = h);
+  profSelecionarTurma();
 }
 
 // Adiciona nova disciplina inline (sem prompt)
