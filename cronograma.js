@@ -38,40 +38,17 @@ function renderizarConteudo() {
   }
   const pctGeral = totalRegGeral > 0 ? Math.round(totalFeitasGeral/totalRegGeral*100) : 0;
 
-  // ── Abas de bimestre com mini-indicador ──
-  const tabsBim = RT_BIMESTRES.map(b => {
-    let f = 0, r = 0;
-    for (const s of getSlotsCompletos(t.id, b.bimestre)) {
-      if (!s.eventual) { r++; if (estadoAulas[chaveSlot(t.id,b.bimestre,s.slotId)]?.feita) f++; }
-    }
-    const p = r > 0 ? Math.round(f/r*100) : 0;
-    const circum = 2 * Math.PI * 5; // r=5 → 31.42
-    const dash   = (p / 100 * circum).toFixed(2);
-    return `
-    <button class="tab-bim tab-bim-stat ${b.bimestre===bimestreAtivo?"ativo":""}"
-      onclick="mudarBimestre(${b.bimestre})"
-      title="${b.label}: ${f}/${r} aulas dadas (${p}%)">
-      <svg class="tab-bim-svg" viewBox="0 0 14 14">
-        <circle class="tab-bim-bg"   cx="7" cy="7" r="5"/>
-        <circle class="tab-bim-prog ${p===100?"tab-bim-done":""}" cx="7" cy="7" r="5"
-          stroke-dasharray="${dash} ${circum.toFixed(2)}"
-          stroke-dashoffset="${(circum/4).toFixed(2)}"/>
-      </svg>
-      <span>${b.label}</span>
-      <span class="tab-bim-frac">${f}/${r}</span>
-    </button>`; }).join("");
-
   const abaAtiva = window._abaCronograma || (window.innerWidth <= 860 ? "chamada_mobile" : "chamada");
 
-  // ── Barra de progresso do bimestre ativo ──
-  const _bimProgBar = (feitas, totalReg, label, inicio, fim) => {
-    const p = totalReg > 0 ? Math.round(feitas/totalReg*100) : 0;
+  // Helper: gera barra de progresso do bimestre ativo
+  const _bimProgBar = (f, r, label, inicio, fim) => {
+    const p   = r > 0 ? Math.round(f/r*100) : 0;
     const cor = p === 100 ? "#4ade80" : p > 50 ? "var(--amber)" : "var(--teal,#0d9488)";
     return `
     <div class="bim-prog-wrap" id="bim-prog-wrap">
       <div class="bim-prog-info">
         <span>📅 ${label}: ${fmtData(inicio)} → ${fmtData(fim)}</span>
-        <span class="bim-prog-frac">${feitas}/${totalReg} aulas · ${p}%</span>
+        <span class="bim-prog-frac">${f}/${r} aulas · ${p}%</span>
       </div>
       <div class="bim-prog-bar-bg">
         <div class="bim-prog-bar-fill" style="width:${p}%;background:${cor}"></div>
@@ -79,28 +56,21 @@ function renderizarConteudo() {
     </div>`;
   };
 
-  // Bimestre-info completo (cronograma) — com hint-drag
+  // Tabs de bimestre simples (sem mini SVG)
+  const tabsBimSimples = RT_BIMESTRES.map(b =>
+    `<button class="tab-bim ${b.bimestre===bimestreAtivo?"ativo":""}"
+      onclick="mudarBimestre(${b.bimestre})">${b.label}</button>`
+  ).join("");
+
+  // Barra de info completa do cronograma (com hint-drag e pct)
   const bimInfoCronograma = `
-    <div class="bimestre-info" id="bimestre-info-cron" style="${abaAtiva!=="cronograma"?"display:none":""}">
+    <div class="bimestre-info" id="bimestre-info-cron">
       <span>📅 ${bimObj.label}: ${fmtData(bimObj.inicio)} → ${fmtData(bimObj.fim)}</span>
       <div class="bimestre-info-right">
         <span class="hint-drag">✎ Clique no conteúdo para editar &nbsp;·&nbsp; ⠿ Clique para selecionar · Shift+⠿ seleciona intervalo · Arraste para reorganizar</span>
         <span class="pct-badge">${pct}% concluído</span>
       </div>
     </div>`;
-  const bimInfoSimples = (abaAtiva !== "cronograma" && abaAtiva !== "tala")
-    ? _bimProgBar(feitas, totalReg, bimObj.label, bimObj.inicio, bimObj.fim)
-    : "";
-
-  // Abas de bimestre — sem mini SVG, só label (indicador movido para bim-prog-wrap)
-  const tabsBimSimples = RT_BIMESTRES.map(b => {
-    let f = 0, r = 0;
-    for (const s of getSlotsCompletos(t.id, b.bimestre)) {
-      if (!s.eventual) { r++; if (estadoAulas[chaveSlot(t.id,b.bimestre,s.slotId)]?.feita) f++; }
-    }
-    return `<button class="tab-bim ${b.bimestre===bimestreAtivo?"ativo":""}"
-      onclick="mudarBimestre(${b.bimestre})">${b.label}</button>`;
-  }).join("");
 
   main.innerHTML = `
     <div class="header-turma">
@@ -142,14 +112,12 @@ function renderizarConteudo() {
       <button type="button" class="tab-aba ${abaAtiva==="notas"?"ativo":""}"
         onclick="trocarAbaCronograma('notas')">🎯 Notas</button>
     </div>
-    <div class="tabs-bimestre" id="tabs-bimestre-wrap" style="${abaAtiva!=="cronograma"?"display:none":""}">${tabsBim}</div>
-    <div class="tabs-bimestre" id="tabs-bimestre-outros" style="${abaAtiva==="cronograma"?"display:none":""}">${tabsBimSimples}</div>
-    ${bimInfoCronograma}
-    ${bimInfoSimples}
     <div id="secao-tala" style="${abaAtiva==="tala"?"":"display:none"}"></div>
     <div id="secao-chamada" style="${(abaAtiva==="chamada"||abaAtiva==="chamada_mobile")?"":"display:none"}"></div>
     <div id="secao-notas" style="${abaAtiva==="notas"?"":"display:none"}"></div>
     <div id="secao-cronograma" style="${abaAtiva!=="cronograma"?"display:none":""}">
+    <div class="tabs-bimestre" style="margin-bottom:4px">${tabsBimSimples}</div>
+    ${bimInfoCronograma}
     <div class="tabela-wrapper">
       ${total === 0
         ? `<div class="sem-aulas">Nenhuma aula prevista neste bimestre.</div>`
@@ -235,9 +203,6 @@ function trocarAbaCronograma(aba) {
   const secTala  = document.getElementById("secao-tala");
   const secCham  = document.getElementById("secao-chamada");
   const secNotas = document.getElementById("secao-notas");
-  const tabsBimCron   = document.getElementById("tabs-bimestre-wrap");
-  const tabsBimOutros = document.getElementById("tabs-bimestre-outros");
-  const bimCron  = document.getElementById("bimestre-info-cron");
   const btns     = document.querySelectorAll(".tab-aba");
   btns.forEach(b => b.classList.remove("ativo"));
 
@@ -251,14 +216,10 @@ function trocarAbaCronograma(aba) {
   if (secTala)  secTala.style.display  = aba === "tala"       ? "" : "none";
   if (secCham)  secCham.style.display  = isChamada            ? "" : "none";
   if (secNotas) secNotas.style.display = aba === "notas"      ? "" : "none";
-  if (tabsBimCron)   tabsBimCron.style.display   = aba === "cronograma" ? "" : "none";
-  if (tabsBimOutros) tabsBimOutros.style.display = aba === "cronograma" ? "none" : "";
-  if (bimCron)  bimCron.style.display  = aba === "cronograma" ? "" : "none";
 
-  // Atualiza barra de progresso simples (só chamada e notas)
+  // Barra de progresso: visível em chamada e notas (dentro das seções — gerenciada por cada uma)
   const progWrap = document.getElementById("bim-prog-wrap");
   if (progWrap) progWrap.style.display = (aba === "tala" || aba === "cronograma") ? "none" : "";
-  if (aba !== "tala" && aba !== "cronograma") _atualizarBimProgBar();
 
   if (aba === "tala")          renderizarTala();
   if (isChamada)               renderizarChamadaFrequencia();
@@ -804,9 +765,7 @@ function mudarBimestre(num) {
   document.querySelectorAll(".tab-bim").forEach(b => {
     b.classList.toggle("ativo", b.getAttribute("onclick")?.includes(`(${num})`));
   });
-  // Atualiza barra de progresso
-  _atualizarBimProgBar();
-  // Re-renderiza a aba ativa
+  // Re-renderiza a aba ativa (cada seção reconstrói sua própria barra de progresso)
   const aba = window._abaCronograma || "chamada";
   if (aba === "cronograma") {
     const slots = getSlotsCompletos(turmaAtiva.id, bimestreAtivo);

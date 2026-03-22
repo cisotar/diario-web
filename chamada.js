@@ -213,6 +213,25 @@ async function _renderizarChamadaDesktop() {
     `<option value="${d}" ${d===_dataChamadaSel?"selected":""}>${fmtData(d)}</option>`
   ).join("");
 
+  // Contagem de aulas dadas no bimestre (para barra de progresso)
+  let _feitasCham = 0, _totalRegCham = 0;
+  for (const s of getSlotsCompletos(turmaAtiva.id, _bimestreChamadaSel).filter(s=>!s.eventual)) {
+    _totalRegCham++;
+    if (estadoAulas[chaveSlot(turmaAtiva.id, _bimestreChamadaSel, s.slotId)]?.feita) _feitasCham++;
+  }
+  const _pctCham = _totalRegCham > 0 ? Math.round(_feitasCham/_totalRegCham*100) : 0;
+  const _corCham = _pctCham===100 ? "#4ade80" : _pctCham>50 ? "var(--amber)" : "var(--teal,#0d9488)";
+  const _bimProgBarChamada = (f, r, bimObj) => `
+    <div class="bim-prog-wrap" id="bim-prog-wrap" style="margin-bottom:4px">
+      <div class="bim-prog-info">
+        <span>📅 ${bimObj.label}: ${fmtData(bimObj.inicio)} → ${fmtData(bimObj.fim)}</span>
+        <span class="bim-prog-frac">${f}/${r} aulas dadas · ${r>0?Math.round(f/r*100):0}%</span>
+      </div>
+      <div class="bim-prog-bar-bg">
+        <div class="bim-prog-bar-fill" style="width:${r>0?Math.round(f/r*100):0}%;background:${_corCham}"></div>
+      </div>
+    </div>`;
+
   // Abas de bimestre (ao trocar, limpa filtro de mês também)
   const tabsBimChamada = RT_BIMESTRES.map(b =>
     `<button type="button" class="tab-bim ${b.bimestre === _bimestreChamadaSel ? "ativo" : ""}"
@@ -250,7 +269,8 @@ async function _renderizarChamadaDesktop() {
             onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','F')">✗ Todos F</button>
         </div>
       </div>
-      <div class="tabs-bimestre" style="margin-bottom:8px">${tabsBimChamada}</div>
+      <div class="tabs-bimestre" style="margin-bottom:4px">${tabsBimChamada}</div>
+      ${_bimProgBarChamada(feitas, totalReg, bimObj)}
       ${filtroMeses}
       <div style="overflow-x:auto">
         <table class="tabela-gestao" style="min-width:0">

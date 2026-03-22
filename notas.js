@@ -282,7 +282,23 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
           <button type="button" class="btn-exportar-js" onclick="baixarNotasCSV('${turmaKey}','${bimStr}')">⬇ notas_${turmaKey.toLowerCase()}_b${bimStr}.csv</button>
         </div>
       </div>
-      <div class="tabs-bimestre" style="margin-bottom:8px">${tabsBim}</div>
+      <div class="tabs-bimestre" style="margin-bottom:4px">${tabsBim}</div>
+      ${(() => {
+        const bimObj = RT_BIMESTRES.find(b => b.bimestre === _bimestreNotasSel) || RT_BIMESTRES[0];
+        let f = 0, r = 0;
+        if (turmaAtiva) for (const s of getSlotsCompletos(turmaAtiva.id, _bimestreNotasSel).filter(s=>!s.eventual)) {
+          r++; if (estadoAulas[chaveSlot(turmaAtiva.id, _bimestreNotasSel, s.slotId)]?.feita) f++;
+        }
+        const p   = r > 0 ? Math.round(f/r*100) : 0;
+        const cor = p===100 ? "#4ade80" : p>50 ? "var(--amber)" : "var(--teal,#0d9488)";
+        return `<div class="bim-prog-wrap" id="bim-prog-wrap" style="margin-bottom:8px">
+          <div class="bim-prog-info">
+            <span>📅 ${bimObj.label}: ${fmtData(bimObj.inicio)} → ${fmtData(bimObj.fim)}</span>
+            <span class="bim-prog-frac">${f}/${r} aulas dadas · ${p}%</span>
+          </div>
+          <div class="bim-prog-bar-bg"><div class="bim-prog-bar-fill" style="width:${p}%;background:${cor}"></div></div>
+        </div>`;
+      })()}
       <div style="overflow-x:auto">
         <table class="tabela-gestao tabela-notas">
           <thead>
