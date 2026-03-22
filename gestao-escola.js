@@ -53,6 +53,7 @@ function _abrirPainelEscola(abaInicial) {
     { id:"bimestres",   label:"📅 Bimestres",        fn: htmlGestaoBimestres   },
     { id:"usuarios",    label:"👥 Usuários",          fn: htmlGestaoUsuarios, async: true },
     { id:"diarios",     label:"📋 Diários",           fn: htmlGestaoDiarios, async: true },
+    { id:"migracao",    label:"🔄 Migração",          fn: htmlGestaoMigracao, async: true },
   ];
   _renderizarPainel("⚙ Painel de Gestão ADM", tabs, aba,
     `<button class="btn-exportar-js" onclick="exportarJS()" style="font-size:.8rem">⬇ aulas.js</button>`);
@@ -136,6 +137,7 @@ function _trocarAba(btn, secId, abaId) {
     case "minhas-turmas": sec.innerHTML = htmlProfTurmas();        break;
     case "usuarios":     sec.innerHTML = htmlGestaoUsuarios(); _carregarUsuarios();  break;
     case "diarios":      sec.innerHTML = htmlGestaoDiarios();  _carregarDiariosCoord(); break;
+    case "migracao":     htmlGestaoMigracao().then(h => sec.innerHTML = h); break;
   }
 }
 
@@ -819,4 +821,125 @@ async function migrarTurmasAdminParaProfessor() {
   });
 
   alert(`✓ ${novas.length} turma(s) migrada(s) para seu diário pessoal.\nRecarregue a página.`);
+}
+
+// ════════════════════════════════════════════════════════════════
+// ABA: MIGRAÇÃO DE TURMAS (admin)
+// ════════════════════════════════════════════════════════════════
+
+async function htmlGestaoMigracao() {
+  // Carrega professores aprovados
+  const db    = firebase.firestore();
+  const profs = await db.collection("professores").where("status","==","aprovado").get();
+
+  const opcoesProf = profs.docs
+    .filter(d => !_isAdmin(d.data().email))
+    .map(d => {
+      const p = d.data();
+      return `<option value="${d.id}">${p.nome || p.email} (${p.email})</option>`;
+    }).join("");
+
+  // Carrega turmas do diário global
+  const globalSnap = await db.collection("diario").doc("global").get();
+  const turmasGlobal = globalSnap.exists
+    ? JSON.parse(globalSnap.data().RT_TURMAS || "[]")
+    : [];
+
+  const resumo = turmasGlobal.length
+    ? `<p class="gestao-hint">${turmasGlobal.length} turma(s) encontrada(s) no diário global:</p>
+       <ul style="font-size:.82rem;color:var(--text-mid);margin:8px 0 16px;padding-left:20px">
+         ${turmasGlobal.map(t =>
+           `<li>${t.serie}ª ${t.turma} — ${t.disciplina || "sem disciplina"}
+            <span style="color:var(--text-muted);font-size:.72rem">(profUid: ${t.profUid || "undefined"})</span></li>`
+         ).join("")}
+       </ul>`
+    : `<p class="gestao-hint" style="color:#4ade80">✓ Diário global não tem turmas para migrar.</p>`;
+
+  return `
+    <div class="gestao-bloco" style="max-width:640px">
+      <div class="gestao-bloco-header">
+        <h3>🔄 Migração de Turmas</h3>
+      </div>
+      <p class="gestao-hint">
+        Transfere turmas do diário global (admin) para o diário pessoal de um professor.
+        Use quando turmas foram criadas antes do isolamento por login.
+      </p>
+      ${resumo}
+      <div class="modal-form" style="max-width:400px">
+        <label>Professor de destino
+          <select class="gi" id="mig-prof-sel" style="margin-top:4px">
+            <option value="">— selecione —</option>
+            ${opcoesProf}
+          </select>
+        </label>
+        <label style="margin-top:12px;display:flex;align-items:center;gap:8px;font-size:.85rem">
+          <input type="checkbox" id="mig-remover-global" checked />
+          Remover do diário global após migrar
+        </label>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:10px;align-items:center">
+        <button type="button" class="btn-modal-ok"
+          onclick="executarMigracao()">Migrar turmas</button>
+        <span id="mig-status" style="font-size:.82rem;color:var(--text-muted)"></span>
+      </div>
+    </div>`;
+}
+
+async function executarMigracao() {
+  const profUidDest = document.getElementById("mig-prof-sel")?.value;
+  const remover     = document.getElementById("mig-remover-global")?.checked;
+  const status      = document.getElementById("mig-status");
+
+  if (!profUidDest) { if (status) status.textContent = "⚠ Selecione um professor."; return; }
+  if (status) status.textContent = "⏳ Migrando…";
+
+  try {
+    const db         = firebase.firestore();
+    const globalSnap = await db.collection("diario").doc("global").get();
+    if (!globalSnap.exists) { if (status) status.textContent = "⚠ Diário global não encontrado."; return; }
+
+    const globalData   = globalSnap.data();
+    const turmasGlobal = JSON.parse(globalData.RT_TURMAS || "[]");
+    if (!turmasGlobal.length) { if (status) status.textContent = "Nenhuma turma para migrar."; return; }
+
+    // Marca todas as turmas com o uid do professor de destino
+    const turmasMigradas = turmasGlobal.map(t => ({ ...t, profUid: profUidDest }));
+
+    // Carrega diário do professor de destino
+    const profSnap  = await db.collection("diario").doc(profUidDest).get();
+    const profData  = profSnap.exists ? profSnap.data() : {};
+    const turmasJa  = JSON.parse(profData.RT_TURMAS || "[]");
+
+    // Merge sem duplicatas
+    const ids       = new Set(turmasJa.map(t => t.id));
+    const novas     = turmasMigradas.filter(t => !ids.has(t.id));
+    const merged    = [...turmasJa, ...novas];
+
+    // Salva no diário do professor
+    await db.collection("diario").doc(profUidDest).set({
+      ...profData,
+      RT_TURMAS: JSON.stringify(merged),
+      _atualizado: new Date().toISOString(),
+    }, { merge: true });
+
+    // Remove do global se solicitado
+    if (remover) {
+      await db.collection("diario").doc("global").update({
+        RT_TURMAS: JSON.stringify([]),
+        _atualizado: new Date().toISOString(),
+      });
+    }
+
+    if (status) status.textContent = `✓ ${novas.length} turma(s) migrada(s) com sucesso.`;
+
+    // Recarrega a aba
+    setTimeout(() => {
+      const sec = document.getElementById("g-migracao");
+      if (sec) htmlGestaoMigracao().then(h => sec.innerHTML = h);
+    }, 1500);
+
+  } catch(e) {
+    console.error("Erro na migração:", e);
+    if (status) status.textContent = "❌ Erro: " + e.message;
+  }
 }
