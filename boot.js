@@ -147,11 +147,11 @@ async function carregarTudo() {
     localStorage.setItem(`aulaEstado_${uidKey}`, JSON.stringify(estadoAulas));
     localStorage.setItem(`aulaOrdem_${uidKey}`,  JSON.stringify(ordemConteudos));
   }
-  // Professor: garante que RT_TURMAS só contém as turmas dele
-  // (sanitiza dados legados que possam ter sido salvos com turmas de outros)
+  // Professor: garante que RT_TURMAS só contém as turmas com seu uid
+  // Isso isola completamente os dados entre professores
   if (!_isAdmin(_userAtual?.email) && !_ehCoordenador()) {
     const uid = _userAtual?.uid;
-    RT_TURMAS = RT_TURMAS.filter(t => !t.profUid || t.profUid === uid);
+    RT_TURMAS = RT_TURMAS.filter(t => t.profUid === uid);
   }
 
   // Migração automática de RT_TURMAS: corrige periodo e horários legados

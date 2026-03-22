@@ -320,16 +320,19 @@ function _renderizarCorpoHorarios() {
 }
 
 function addHorarioModal(ti) {
-  const turno = RT_TURMAS[ti]?.periodo || "manha";
+  const t       = RT_TURMAS[ti];
+  const turno   = t?.periodo || "manha";
   const prefixo = turno === "tarde" ? "t" : "m";
-  RT_TURMAS[ti].horarios.push({ diaSemana: 1, aula: prefixo+"1" });
-  salvarTudo();
-  _renderizarCorpoHorarios();
-  // Atualiza o cronograma em background
-  renderizarConteudo();
-  // Reabre o modal (renderizarConteudo fecha tudo)
-  const modal = document.getElementById("modal-horarios");
-  if (modal) modal.style.display = "flex";
+  const diaSemana = 1, aula = prefixo + "1";
+  _verificarConflitoHorario(t.serie, t.turma, diaSemana, aula, t.id).then(conflito => {
+    if (conflito) { _mostrarModalConflito(conflito); return; }
+    RT_TURMAS[ti].horarios.push({ diaSemana, aula });
+    salvarTudo();
+    _renderizarCorpoHorarios();
+    renderizarConteudo();
+    const modal = document.getElementById("modal-horarios");
+    if (modal) modal.style.display = "flex";
+  });
 }
 
 

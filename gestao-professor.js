@@ -166,10 +166,7 @@ function htmlGestaoBimestres() {
     <div class="gestao-bloco">
       <div class="gestao-bloco-header">
         <h3>Bimestres / Períodos letivos</h3>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          ${headerAcao}
-          <button type="button" class="btn-exportar-js" onclick="baixarBimestres()">⬇ bimestres.js</button>
-        </div>
+        ${headerAcao}
       </div>
       <div class="tabela-wrapper">
         <table class="tabela-gestao">
@@ -213,16 +210,34 @@ function editTurmaField(i, campo, val) {
   salvarTudo();
 }
 function editHorario(ti, hi, campo, val) {
-  RT_TURMAS[ti].horarios[hi][campo] = campo === "diaSemana" ? +val : val;
-  salvarTudo();
+  const t = RT_TURMAS[ti];
+  if (!t) return;
+  const novoHorario = { ...t.horarios[hi], [campo]: campo === "diaSemana" ? +val : val };
+  const diaSemana = novoHorario.diaSemana;
+  const aula      = novoHorario.aula;
+  // Valida conflito antes de salvar
+  _verificarConflitoHorario(t.serie, t.turma, diaSemana, aula, t.id).then(conflito => {
+    if (conflito) {
+      _mostrarModalConflito(conflito);
+      return; // não salva
+    }
+    RT_TURMAS[ti].horarios[hi][campo] = campo === "diaSemana" ? +val : val;
+    salvarTudo();
+  });
 }
 function addHorario(ti) {
-  const turno = RT_TURMAS[ti].periodo || "manha";
+  const t      = RT_TURMAS[ti];
+  const turno  = t.periodo || "manha";
   const prefixo = turno === "tarde" ? "t" : "m";
-  RT_TURMAS[ti].horarios.push({ diaSemana: 1, aula: prefixo + "1" });
-  salvarTudo();
-  const el = document.getElementById("g-minhas-turmas");
-  if (el) el.innerHTML = htmlProfTurmas();
+  const diaSemana = 1;
+  const aula      = prefixo + "1";
+  _verificarConflitoHorario(t.serie, t.turma, diaSemana, aula, t.id).then(conflito => {
+    if (conflito) { _mostrarModalConflito(conflito); return; }
+    RT_TURMAS[ti].horarios.push({ diaSemana, aula });
+    salvarTudo();
+    const el = document.getElementById("g-minhas-turmas");
+    if (el) el.innerHTML = htmlProfTurmas();
+  });
 }
 function delHorario(ti, hi) {
   RT_TURMAS[ti].horarios.splice(hi, 1);
@@ -333,10 +348,9 @@ function htmlGestaoConteudos() {
     <div class="gestao-bloco">
       <div class="gestao-bloco-header">
         <h3>Conteúdos por disciplina / série / bimestre</h3>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <div style="display:flex;gap:6px;">
           <button class="btn-add btn-outline" onclick="gContModo='bloco'; document.getElementById('g-conteudos').innerHTML=htmlGestaoConteudos()">✎ Editar em bloco</button>
           <button type="button" class="btn-add" onclick="addChaveCont()">+ Nova disciplina</button>
-          <button type="button" class="btn-exportar-js" onclick="baixarConteudos()">⬇ conteudos.js</button>
         </div>
       </div>
       <div class="gtab-cont-bar" style="margin-bottom:4px">${discBtns}</div>
@@ -438,34 +452,3 @@ function addChaveCont() {
 // ════════════════════════════════════════════════════════════
 // ── Helper: UI de seleção de matérias (checkboxes + campo Outro) ──────────
 // Renderiza seletor área + disciplinas + turmas para professor/cadastro
-// ── Funções de download para cada aba ────────────────────────
-
-function baixarBimestres() {
-  const ts = new Date().toLocaleString("pt-BR");
-  const conteudo = `// BIMESTRES.JS — Exportado em ${ts}\n\nconst BIMESTRES = ${JSON.stringify(RT_BIMESTRES, null, 2)};\n`;
-  baixarArquivo(new Blob([conteudo], { type: "application/javascript;charset=utf-8;" }), "bimestres.js");
-}
-
-function baixarPeriodos() {
-  const ts = new Date().toLocaleString("pt-BR");
-  const conteudo = `// PERIODOS.JS — Exportado em ${ts}\n\nconst PERIODOS = ${JSON.stringify(RT_PERIODOS, null, 2)};\n`;
-  baixarArquivo(new Blob([conteudo], { type: "application/javascript;charset=utf-8;" }), "periodos.js");
-}
-
-function baixarTurmasGlobal() {
-  const ts = new Date().toLocaleString("pt-BR");
-  const conteudo = `// TURMAS_GLOBAL.JS — Exportado em ${ts}\n\nconst TURMAS_BASE = ${JSON.stringify(RT_CONFIG.turmasBase || TURMAS_BASE || [], null, 2)};\n`;
-  baixarArquivo(new Blob([conteudo], { type: "application/javascript;charset=utf-8;" }), "turmas_global.js");
-}
-
-function baixarTurmas() {
-  const ts = new Date().toLocaleString("pt-BR");
-  const conteudo = `// TURMAS.JS — Exportado em ${ts}\n\nconst TURMAS = ${JSON.stringify(RT_TURMAS, null, 2)};\n`;
-  baixarArquivo(new Blob([conteudo], { type: "application/javascript;charset=utf-8;" }), "turmas.js");
-}
-
-function baixarConteudos() {
-  const ts = new Date().toLocaleString("pt-BR");
-  const conteudo = `// CONTEUDOS.JS — Exportado em ${ts}\n\nconst CONTEUDOS = ${JSON.stringify(RT_CONTEUDOS, null, 2)};\nconst ORDEM     = ${JSON.stringify(ordemConteudos, null, 2)};\n`;
-  baixarArquivo(new Blob([conteudo], { type: "application/javascript;charset=utf-8;" }), "conteudos.js");
-}

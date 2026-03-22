@@ -257,18 +257,106 @@ function _turmasVisiveis() {
   if (!Array.isArray(RT_TURMAS)) return [];
   if (_isAdmin(_userAtual?.email)) return RT_TURMAS;
   const uid = _userAtual?.uid;
-  // Turmas explicitamente do professor
-  const proprias = RT_TURMAS.filter(t => t.profUid === uid);
-  if (proprias.length) return proprias;
-  // Turmas legado (global ou sem profUid) — visíveis se disciplina bate com o perfil
-  const discProf = (_perfilProf?.disciplinas || "")
-    .split(";").map(s => s.trim().toLowerCase()).filter(Boolean);
-  const legado = RT_TURMAS.filter(t =>
-    (!t.profUid || t.profUid === "global") &&
-    discProf.some(d => (t.disciplina || "").toLowerCase().includes(d) || d.includes((t.disciplina || "").toLowerCase()))
-  );
-  if (legado.length) return legado;
-  // Último recurso: turmas sem dono definido
-  return RT_TURMAS.filter(t => !t.profUid || t.profUid === "global");
+  // Professor vê apenas as turmas explicitamente associadas ao seu uid
+  return RT_TURMAS.filter(t => t.profUid === uid);
 }
 
+
+// ── Verificação de conflito de horário ───────────────────────
+// Verifica se diaSemana+aula já está ocupado por OUTRA turma/professor
+// Retorna null se livre, ou { turma, disciplina, profNome } se ocupado
+async function _verificarConflitoHorario(serie, turma, diaSemana, aula, turmaIdIgnorar) {
+  // 1. Verifica em RT_TURMAS (turmas carregadas localmente — admin vê tudo)
+  for (const t of (RT_TURMAS || [])) {
+    if (t.id === turmaIdIgnorar) continue;
+    // Mesmo dia+aula em qualquer turma da mesma série+turma = conflito
+    if (t.serie === serie && t.turma === turma) {
+      for (const h of (t.horarios || [])) {
+        if (h.diaSemana === diaSemana && h.aula === aula) {
+          return {
+            turma:     `${t.serie}ª ${t.turma}`,
+            disciplina: t.disciplina || "—",
+            profNome:  "este diário",
+          };
+        }
+      }
+    }
+  }
+
+  // 2. Para professores comuns, consulta Firestore para verificar outros diários
+  if (_DEV || _isAdmin(_userAtual?.email)) return null;
+  try {
+    const db    = firebase.firestore();
+    const profs = await db.collection("professores").where("status","==","aprovado").get();
+    for (const doc of profs.docs) {
+      const uid = doc.id;
+      if (uid === _userAtual?.uid) continue;
+      const diarioSnap = await db.collection("diario").doc(uid).get();
+      if (!diarioSnap.exists) continue;
+      const d = diarioSnap.data();
+      if (!d.RT_TURMAS) continue;
+      const turmasProf = JSON.parse(d.RT_TURMAS);
+      for (const t of turmasProf) {
+        if (t.serie !== serie || t.turma !== turma) continue;
+        for (const h of (t.horarios || [])) {
+          if (h.diaSemana === diaSemana && h.aula === aula) {
+            const perfil = doc.data();
+            return {
+              turma:      `${t.serie}ª ${t.turma}`,
+              disciplina:  t.disciplina || "—",
+              profNome:    perfil.nome || perfil.email || uid,
+            };
+          }
+        }
+      }
+    }
+    // 3. Verifica também o diário global (admin)
+    const globalSnap = await db.collection("diario").doc("global").get();
+    if (globalSnap.exists) {
+      const d = globalSnap.data();
+      if (d.RT_TURMAS) {
+        const turmasGlobal = JSON.parse(d.RT_TURMAS);
+        for (const t of turmasGlobal) {
+          if (t.serie !== serie || t.turma !== turma) continue;
+          if (t.id === turmaIdIgnorar) continue;
+          for (const h of (t.horarios || [])) {
+            if (h.diaSemana === diaSemana && h.aula === aula) {
+              return {
+                turma:      `${t.serie}ª ${t.turma}`,
+                disciplina:  t.disciplina || "—",
+                profNome:   "Administrador",
+              };
+            }
+          }
+        }
+      }
+    }
+  } catch(e) { console.warn("Erro ao verificar conflito:", e); }
+  return null;
+}
+
+function _mostrarModalConflito(conflito) {
+  const dias = ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+  let el = document.getElementById("modal-conflito-horario");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "modal-conflito-horario";
+    el.className = "modal-overlay";
+    el.style.cssText = "display:flex;z-index:99999";
+    el.innerHTML = `
+      <div class="modal-box" style="max-width:400px;text-align:center">
+        <div style="font-size:2rem;margin-bottom:8px">⚠️</div>
+        <h3 class="modal-titulo" style="color:#f87171">Horário já ocupado</h3>
+        <p id="modal-conflito-msg" style="margin:12px 0;color:var(--text-mid);font-size:.9rem"></p>
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-ok"
+            onclick="document.getElementById('modal-conflito-horario').remove()">Entendi</button>
+        </div>
+      </div>`;
+    document.body.appendChild(el);
+  }
+  document.getElementById("modal-conflito-msg").innerHTML =
+    `A turma <strong>${conflito.turma}</strong> já tem <strong>${conflito.disciplina}</strong> neste horário,<br>
+     registrado por: <strong>${conflito.profNome}</strong>.`;
+  el.style.display = "flex";
+}
