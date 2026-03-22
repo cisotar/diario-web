@@ -1700,6 +1700,20 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 }
 .tabela-notas .tr-pesos td { background: #141c27; }
 
+/* Notas: cores por valor */
+.nota-input-ok  { background: #eff6ff !important; border-color: #93c5fd !important; color: #1d4ed8 !important; }
+.nota-input-low { background: #fff5f5 !important; border-color: #fca5a5 !important; color: #dc2626 !important; }
+/* Barra de progresso do bimestre */
+.bim-prog-wrap { padding: 8px 0 4px; margin-bottom: 4px; }
+.bim-prog-info { display: flex; justify-content: space-between; align-items: center; font-size: .8rem; color: var(--text-mid); margin-bottom: 5px; }
+.bim-prog-frac { font-size: .75rem; color: var(--text-muted); }
+.bim-prog-bar-bg { height: 5px; background: var(--surface2,#1e2530); border-radius: 4px; overflow: hidden; }
+.bim-prog-bar-fill { height: 100%; border-radius: 4px; transition: width .4s ease; }
+/* Chamada Mobile */
+.chamada-mobile-wrap { padding: 4px 0; }
+.chamada-mobile-header { margin-bottom: 12px; }
+.chamada-mob-tabela td, .chamada-mob-tabela th { padding: 10px 8px; }
+.btn-cf-mob { width: 48px; height: 36px; border: none; border-radius: 6px; font-size: .9rem; font-weight: 700; cursor: pointer; }
 /* Inputs de nota — fundo claro, texto escuro */
 .input-peso {
   width: 52px;

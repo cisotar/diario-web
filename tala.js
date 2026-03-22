@@ -53,8 +53,11 @@ async function renderizarTala() {
     <div class="gestao-bloco">
       <div class="gestao-bloco-header">
         <h3>Lista de Alunos — ${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""}</h3>
-        <span style="font-size:.8rem;color:var(--text-muted)">${alunos.length} aluno(s)</span>
-        ${btnAdd}
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span style="font-size:.8rem;color:var(--text-muted)">${alunos.length} aluno(s)</span>
+          ${btnAdd}
+          <button type="button" class="btn-exportar-js" onclick="baixarTalaCSV('${turmaKey}')">⬇ tala_${turmaKey.toLowerCase()}.csv</button>
+        </div>
       </div>
       <div class="tabela-wrapper">
         <table class="tabela-gestao">
@@ -101,4 +104,29 @@ async function adicionarAluno(turmaKey) {
   lista.push({ num, nome: "", matricula: "", situacao: "" });
   await _salvarAlunos(turmaKey);
   renderizarTala();
+}
+
+// ── Download CSV da tala ──────────────────────────────────────
+
+async function baixarTalaCSV(turmaKey) {
+  const lista = await _carregarAlunos(turmaKey);
+  const SITUACAO_LABEL = {
+    "":"Matriculado","AB":"Abandonou","NC":"Não compareceu",
+    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado"
+  };
+  const cab = ["Nº","Nome","Matrícula","Situação","Data Situação"];
+  const linhas = lista.map(a => [
+    a.num,
+    a.nome || "",
+    a.matricula || "",
+    SITUACAO_LABEL[a.situacao||""] || a.situacao || "Matriculado",
+    a.situacaoData ? fmtData(a.situacaoData) : "",
+  ]);
+  const csv = [cab, ...linhas]
+    .map(l => l.map(c => `"${String(c).replace(/"/g,'""')}"`).join(";"))
+    .join("\n");
+  baixarArquivo(
+    new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" }),
+    `tala_${turmaKey.toLowerCase()}.csv`
+  );
 }

@@ -225,8 +225,10 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
 
     const tdNotas = colunas.map(col => {
       const val = notasAluno[col.id] ?? "";
+      const n   = parseFloat(val);
+      const corCls = isNaN(n) ? "" : n >= _MEDIA_MINIMA ? "nota-input-ok" : "nota-input-low";
       return `<td class="td-nota">
-        <input type="number" class="input-nota${alunoInativo ? " input-nota-inativo" : ""}"
+        <input type="number" class="input-nota ${corCls}${alunoInativo ? " input-nota-inativo" : ""}"
           min="0" max="10" step="0.1"
           value="${val}"
           ${alunoInativo ? "readonly" : ""}
@@ -275,7 +277,10 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
     <div class="gestao-bloco">
       <div class="gestao-bloco-header" style="flex-wrap:wrap;gap:8px">
         <h3>Notas — ${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""} · ${t.disciplina}</h3>
-        <button type="button" class="btn-add" onclick="adicionarColunaNotas('${turmaKey}')">+ Coluna</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button type="button" class="btn-add" onclick="adicionarColunaNotas('${turmaKey}')">+ Coluna</button>
+          <button type="button" class="btn-exportar-js" onclick="baixarNotasCSV('${turmaKey}','${bimStr}')">⬇ notas_${turmaKey.toLowerCase()}_b${bimStr}.csv</button>
+        </div>
       </div>
       <div class="tabs-bimestre" style="margin-bottom:8px">${tabsBim}</div>
       <div style="overflow-x:auto">
@@ -376,6 +381,7 @@ async function _renderizarConceitoFinal(secao, t, turmaKey, alunos, dadosNotas, 
     <div class="gestao-bloco">
       <div class="gestao-bloco-header">
         <h3>Conceito Final — ${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""} · ${t.disciplina}</h3>
+        <button type="button" class="btn-exportar-js" onclick="baixarConceitoFinalCSV('${turmaKey}')">⬇ conceito_final_${turmaKey.toLowerCase()}.csv</button>
       </div>
       <div class="tabs-bimestre" style="margin-bottom:8px">${tabsBim}</div>
       <div class="notas-legenda">
@@ -435,6 +441,12 @@ function _notaInput(inputEl) {
     const val = parseFloat(valor);
     dados.notas[bimStr][numAluno][colId] = isNaN(val) ? "" : Math.min(10, Math.max(0, val));
   }
+
+  // Atualiza cor do input imediatamente
+  const n = parseFloat(valor);
+  inputEl.classList.toggle("nota-input-ok",  !isNaN(n) && n >= _MEDIA_MINIMA);
+  inputEl.classList.toggle("nota-input-low", !isNaN(n) && n <  _MEDIA_MINIMA);
+  if (isNaN(n)) inputEl.classList.remove("nota-input-ok", "nota-input-low");
 
   // Atualiza células calculadas da linha no DOM (sem re-render)
   _atualizarCelulasCalc(turmaKey, bimStr, numAluno, dados);
@@ -641,4 +653,95 @@ async function renomearColunaNotas(turmaKey, colIdx, novaSignla) {
   }
   await _salvarNotas(turmaKey);
   renderizarNotas();
+}
+
+// ── Downloads ─────────────────────────────────────────────────
+
+async function baixarNotasCSV(turmaKey, bimStr) {
+  const [alunos, dados] = await Promise.all([
+    _carregarAlunos(turmaKey),
+    _carregarNotas(turmaKey),
+  ]);
+  const colunas = dados.colunas;
+  const pesos   = dados.pesos;
+  const notas   = dados.notas[bimStr] || {};
+
+  const cabecalho = ["Nº","Nome","Situação",
+    ...colunas.map(c => c.sigla),
+    `MT${bimStr}`, "REC", `MB${bimStr}`
+  ];
+
+  const linhas = alunos.map(a => {
+    const notasAluno = notas[a.num] || {};
+    const mt = _calcularMT(notasAluno, colunas, pesos);
+    const mb = _calcularMB(mt, notasAluno.rec);
+    return [
+      a.num,
+      a.nome || "",
+      a.situacao || "Matriculado",
+      ...colunas.map(c => notasAluno[c.id] ?? ""),
+      mt !== null ? mt.toFixed(1).replace(".",",") : "",
+      notasAluno.rec ?? "",
+      mb !== null ? mb.toFixed(1).replace(".",",") : "",
+    ];
+  });
+
+  const csv = [cabecalho, ...linhas]
+    .map(l => l.map(c => `"${String(c).replace(/"/g,'""')}"`).join(";"))
+    .join("\n");
+
+  const bimLabel = RT_BIMESTRES.find(b => String(b.bimestre) === String(bimStr))?.label || `B${bimStr}`;
+  baixarArquivo(
+    new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" }),
+    `notas_${turmaKey.toLowerCase()}_bim${bimStr}.csv`
+  );
+}
+
+async function baixarConceitoFinalCSV(turmaKey) {
+  const [alunos, dados, chamadas] = await Promise.all([
+    _carregarAlunos(turmaKey),
+    _carregarNotas(turmaKey),
+    _carregarChamadas(turmaKey),
+  ]);
+  const t = turmaAtiva;
+  if (!t) return;
+  const colunas = dados.colunas;
+  const pesos   = dados.pesos;
+
+  const cabecalho = ["Nº","Nome","Situação",
+    ...RT_BIMESTRES.flatMap(b => [`MB${b.bimestre}`, `TF${b.bimestre}`]),
+    "TF Total", "%F", "MF"
+  ];
+
+  const linhas = alunos.map(a => {
+    const mbs = [], faltas = [];
+    const bimCols = RT_BIMESTRES.flatMap(b => {
+      const notas = dados.notas[String(b.bimestre)] || {};
+      const notasAluno = notas[a.num] || {};
+      const mt = _calcularMT(notasAluno, colunas, pesos);
+      const mb = _calcularMB(mt, notasAluno.rec);
+      const datas = _diasDeAulaNoBimestre(t.id, b.bimestre)
+        .filter(d => d >= b.inicio && d <= b.fim && d <= hoje());
+      const tf = _totalFaltasBimestre(chamadas, a.num, datas);
+      mbs.push(mb);
+      faltas.push({ tf, total: datas.length });
+      return [mb !== null ? mb.toFixed(1).replace(".",",") : "", tf];
+    });
+    const mf = _calcularMF(mbs);
+    const totalFaltas = faltas.reduce((s,f)=>s+f.tf,0);
+    const totalAulas  = faltas.reduce((s,f)=>s+f.total,0);
+    const pctF = totalAulas > 0 ? (totalFaltas/totalAulas*100).toFixed(0)+"%" : "—";
+    return [a.num, a.nome||"", a.situacao||"Matriculado",
+      ...bimCols, totalFaltas, pctF,
+      mf !== null ? mf.toFixed(1).replace(".",",") : ""
+    ];
+  });
+
+  const csv = [cabecalho, ...linhas]
+    .map(l => l.map(c => `"${String(c).replace(/"/g,'""')}"`).join(";"))
+    .join("\n");
+  baixarArquivo(
+    new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" }),
+    `conceito_final_${turmaKey.toLowerCase()}.csv`
+  );
 }

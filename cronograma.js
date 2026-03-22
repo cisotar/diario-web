@@ -61,9 +61,25 @@ function renderizarConteudo() {
       <span class="tab-bim-frac">${f}/${r}</span>
     </button>`; }).join("");
 
-  const abaAtiva = window._abaCronograma || "tala";
+  const abaAtiva = window._abaCronograma || (window.innerWidth <= 860 ? "chamada_mobile" : "chamada");
 
-  // Barra de info do bimestre — versão completa (cronograma) e simplificada (demais abas)
+  // ── Barra de progresso do bimestre ativo ──
+  const _bimProgBar = (feitas, totalReg, label, inicio, fim) => {
+    const p = totalReg > 0 ? Math.round(feitas/totalReg*100) : 0;
+    const cor = p === 100 ? "#4ade80" : p > 50 ? "var(--amber)" : "var(--teal,#0d9488)";
+    return `
+    <div class="bim-prog-wrap" id="bim-prog-wrap">
+      <div class="bim-prog-info">
+        <span>📅 ${label}: ${fmtData(inicio)} → ${fmtData(fim)}</span>
+        <span class="bim-prog-frac">${feitas}/${totalReg} aulas · ${p}%</span>
+      </div>
+      <div class="bim-prog-bar-bg">
+        <div class="bim-prog-bar-fill" style="width:${p}%;background:${cor}"></div>
+      </div>
+    </div>`;
+  };
+
+  // Bimestre-info completo (cronograma) — com hint-drag
   const bimInfoCronograma = `
     <div class="bimestre-info" id="bimestre-info-cron" style="${abaAtiva!=="cronograma"?"display:none":""}">
       <span>📅 ${bimObj.label}: ${fmtData(bimObj.inicio)} → ${fmtData(bimObj.fim)}</span>
@@ -72,10 +88,19 @@ function renderizarConteudo() {
         <span class="pct-badge">${pct}% concluído</span>
       </div>
     </div>`;
-  const bimInfoSimples = `
-    <div class="bimestre-info bimestre-info-simples" id="bimestre-info-simples" style="${abaAtiva==="cronograma"?"display:none":""}">
-      <span>📅 ${bimObj.label}: ${fmtData(bimObj.inicio)} → ${fmtData(bimObj.fim)}</span>
-    </div>`;
+  const bimInfoSimples = abaAtiva !== "cronograma"
+    ? _bimProgBar(feitas, totalReg, bimObj.label, bimObj.inicio, bimObj.fim)
+    : "";
+
+  // Abas de bimestre — sem mini SVG, só label (indicador movido para bim-prog-wrap)
+  const tabsBimSimples = RT_BIMESTRES.map(b => {
+    let f = 0, r = 0;
+    for (const s of getSlotsCompletos(t.id, b.bimestre)) {
+      if (!s.eventual) { r++; if (estadoAulas[chaveSlot(t.id,b.bimestre,s.slotId)]?.feita) f++; }
+    }
+    return `<button class="tab-bim ${b.bimestre===bimestreAtivo?"ativo":""}"
+      onclick="mudarBimestre(${b.bimestre})">${b.label}</button>`;
+  }).join("");
 
   main.innerHTML = `
     <div class="header-turma">
@@ -110,18 +135,19 @@ function renderizarConteudo() {
     <div class="tabs-cronograma-aba">
       <button type="button" class="tab-aba ${abaAtiva==="tala"?"ativo":""}"
         onclick="trocarAbaCronograma('tala')">👥 Tala</button>
-      <button type="button" class="tab-aba ${abaAtiva==="chamada"?"ativo":""}"
-        onclick="trocarAbaCronograma('chamada')">✅ Chamada</button>
+      <button type="button" class="tab-aba ${(abaAtiva==="chamada"||abaAtiva==="chamada_mobile")?"ativo":""}"
+        onclick="trocarAbaCronograma(window.innerWidth<=860?'chamada_mobile':'chamada')">✅ Chamada</button>
       <button type="button" class="tab-aba ${abaAtiva==="cronograma"?"ativo":""}"
         onclick="trocarAbaCronograma('cronograma')">📅 Cronograma</button>
       <button type="button" class="tab-aba ${abaAtiva==="notas"?"ativo":""}"
         onclick="trocarAbaCronograma('notas')">🎯 Notas</button>
     </div>
-    <div class="tabs-bimestre" style="${abaAtiva!=="cronograma"?"display:none":""}">${tabsBim}</div>
+    <div class="tabs-bimestre" id="tabs-bimestre-wrap" style="${abaAtiva!=="cronograma"?"display:none":""}">${tabsBim}</div>
+    <div class="tabs-bimestre" id="tabs-bimestre-outros" style="${abaAtiva==="cronograma"?"display:none":""}">${tabsBimSimples}</div>
     ${bimInfoCronograma}
     ${bimInfoSimples}
     <div id="secao-tala" style="${abaAtiva==="tala"?"":"display:none"}"></div>
-    <div id="secao-chamada" style="${abaAtiva==="chamada"?"":"display:none"}"></div>
+    <div id="secao-chamada" style="${(abaAtiva==="chamada"||abaAtiva==="chamada_mobile")?"":"display:none"}"></div>
     <div id="secao-notas" style="${abaAtiva==="notas"?"":"display:none"}"></div>
     <div id="secao-cronograma" style="${abaAtiva!=="cronograma"?"display:none":""}">
     <div class="tabela-wrapper">
@@ -209,28 +235,59 @@ function trocarAbaCronograma(aba) {
   const secTala  = document.getElementById("secao-tala");
   const secCham  = document.getElementById("secao-chamada");
   const secNotas = document.getElementById("secao-notas");
-  const tabsBim  = document.querySelector(".tabs-bimestre");
+  const tabsBimCron   = document.getElementById("tabs-bimestre-wrap");
+  const tabsBimOutros = document.getElementById("tabs-bimestre-outros");
   const bimCron  = document.getElementById("bimestre-info-cron");
-  const bimSimp  = document.getElementById("bimestre-info-simples");
   const btns     = document.querySelectorAll(".tab-aba");
   btns.forEach(b => b.classList.remove("ativo"));
-  document.querySelector(`.tab-aba[onclick*="'${aba}'"]`)?.classList.add("ativo");
+
+  const isChamada = aba === "chamada" || aba === "chamada_mobile";
+  document.querySelector(`.tab-aba[onclick*="'cronograma'"]`)?.classList.toggle("ativo", aba === "cronograma");
+  document.querySelector(`.tab-aba[onclick*="'tala'"]`)?.classList.toggle("ativo", aba === "tala");
+  document.querySelector(`.tab-aba[onclick*="'notas'"]`)?.classList.toggle("ativo", aba === "notas");
+  if (isChamada) document.querySelectorAll(".tab-aba").forEach(b => { if (b.textContent.includes("Chamada")) b.classList.add("ativo"); });
 
   if (secCron)  secCron.style.display  = aba === "cronograma" ? "" : "none";
   if (secTala)  secTala.style.display  = aba === "tala"       ? "" : "none";
-  if (secCham)  secCham.style.display  = aba === "chamada"    ? "" : "none";
+  if (secCham)  secCham.style.display  = isChamada            ? "" : "none";
   if (secNotas) secNotas.style.display = aba === "notas"      ? "" : "none";
-  if (tabsBim)  tabsBim.style.display  = aba === "cronograma" ? "" : "none";
+  if (tabsBimCron)   tabsBimCron.style.display   = aba === "cronograma" ? "" : "none";
+  if (tabsBimOutros) tabsBimOutros.style.display = aba === "cronograma" ? "none" : "";
   if (bimCron)  bimCron.style.display  = aba === "cronograma" ? "" : "none";
-  if (bimSimp)  bimSimp.style.display  = aba === "cronograma" ? "none" : "";
 
-  if (aba === "tala")    renderizarTala();
-  if (aba === "chamada") renderizarChamadaFrequencia();
-  if (aba === "notas")   renderizarNotas();
+  // Atualiza barra de progresso simples
+  _atualizarBimProgBar();
+
+  if (aba === "tala")          renderizarTala();
+  if (isChamada)               renderizarChamadaFrequencia();
+  if (aba === "notas")         renderizarNotas();
   if (aba === "cronograma") {
     const slots = getSlotsCompletos(turmaAtiva.id, bimestreAtivo);
     if (slots.length > 0) renderizarLinhas(slots);
   }
+}
+
+// Atualiza a barra de progresso do bimestre ativo (chamada quando muda o bimestre)
+function _atualizarBimProgBar() {
+  const wrap = document.getElementById("bim-prog-wrap");
+  if (!wrap) return;
+  const t      = turmaAtiva;
+  if (!t) return;
+  const bimObj = RT_BIMESTRES.find(b => b.bimestre === bimestreAtivo) || RT_BIMESTRES[0];
+  let feitas = 0, totalReg = 0;
+  for (const s of getSlotsCompletos(t.id, bimestreAtivo)) {
+    if (!s.eventual) { totalReg++; if (estadoAulas[chaveSlot(t.id,bimestreAtivo,s.slotId)]?.feita) feitas++; }
+  }
+  const p   = totalReg > 0 ? Math.round(feitas/totalReg*100) : 0;
+  const cor = p === 100 ? "#4ade80" : p > 50 ? "var(--amber)" : "var(--teal,#0d9488)";
+  wrap.innerHTML = `
+    <div class="bim-prog-info">
+      <span>📅 ${bimObj.label}: ${fmtData(bimObj.inicio)} → ${fmtData(bimObj.fim)}</span>
+      <span class="bim-prog-frac">${feitas}/${totalReg} aulas · ${p}%</span>
+    </div>
+    <div class="bim-prog-bar-bg">
+      <div class="bim-prog-bar-fill" style="width:${p}%;background:${cor}"></div>
+    </div>`;
 }
 
 
@@ -738,7 +795,28 @@ function onDrop(e, destSlotId) {
   renderizarLinhas(getSlotsCompletos(t.id, bimestreAtivo));
 }
 
-function mudarBimestre(num) { bimestreAtivo = num; selConteudos.clear(); renderizarConteudo(); }
+function mudarBimestre(num) {
+  bimestreAtivo = num;
+  selConteudos.clear();
+  // Atualiza tabs de bimestre ativos
+  document.querySelectorAll(".tab-bim").forEach(b => {
+    b.classList.toggle("ativo", b.getAttribute("onclick")?.includes(`(${num})`));
+  });
+  // Atualiza barra de progresso
+  _atualizarBimProgBar();
+  // Re-renderiza a aba ativa
+  const aba = window._abaCronograma || "chamada";
+  if (aba === "cronograma") {
+    const slots = getSlotsCompletos(turmaAtiva.id, bimestreAtivo);
+    renderizarLinhas(slots);
+  } else if (aba === "chamada" || aba === "chamada_mobile") {
+    _bimestreChamadaSel = num;
+    renderizarChamadaFrequencia();
+  } else if (aba === "notas") {
+    _bimestreNotasSel = num;
+    renderizarNotas();
+  }
+}
 
 function resetarOrdem() {
   if (!_autenticado) { _abrirModalGoogle(); return; }

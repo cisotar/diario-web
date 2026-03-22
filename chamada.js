@@ -53,7 +53,7 @@ function _alunoAtivoNaData(aluno, data) {
   return data < aluno.situacaoData;
 }
 
-async function renderizarChamadaFrequencia() {
+async function _renderizarChamadaDesktop() {
   const t     = turmaAtiva;
   if (!t) return;
   const secao = document.getElementById("secao-chamada");
@@ -289,3 +289,104 @@ async function chamadaTodosData(turmaKey, data, valor) {
 
 
 // ── Visão detalhada ──────────────────────────────────────────
+
+// ── Chamada Mobile — exibe apenas o dia atual ─────────────────
+
+async function renderizarChamadaFrequencia() {
+  // Redireciona para mobile se tela estreita e aba mobile ativa
+  if (window.innerWidth <= 860 && window._abaCronograma === "chamada_mobile") {
+    return _renderizarChamadaMobile();
+  }
+  return _renderizarChamadaDesktop();
+}
+
+async function _renderizarChamadaMobile() {
+  const t = turmaAtiva;
+  if (!t) return;
+  const secao = document.getElementById("secao-chamada");
+  if (!secao) return;
+
+  const turmaKey = t.serie + t.turma;
+  const [alunos, chamadas] = await Promise.all([
+    _carregarAlunos(turmaKey),
+    _carregarChamadas(turmaKey),
+  ]);
+
+  if (!_bimestreChamadaSel) _bimestreChamadaSel = bimestreAtivo;
+  const hoje_str = hoje();
+
+  // Data do dia — se não for dia de aula, mostra aviso
+  const datas = _diasDeAulaNoBimestre(t.id, _bimestreChamadaSel);
+  const dataAtual = datas.includes(hoje_str) ? hoje_str
+    : [...datas].reverse().find(d => d <= hoje_str) || datas[0] || hoje_str;
+
+  if (!_dataChamadaSel) _dataChamadaSel = dataAtual;
+
+  const alunosAtivos = alunos.filter(a => _alunoAtivoNaData(a, _dataChamadaSel));
+
+  const SITUACAO_LABEL = {
+    "":"Matriculado","AB":"Abandonou","NC":"Não compareceu",
+    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado"
+  };
+
+  const rows = alunosAtivos.map(a => {
+    const val = (chamadas[_dataChamadaSel] || {})[a.num] || "C";
+    const cls = val === "F" ? "chk-falta" : "chk-comp";
+    const sitLabel = a.situacao ? a.situacao : "";
+    const sitClass = a.situacao ? `badge-sit-${a.situacao.toLowerCase()}` : "";
+    return `<tr>
+      <td class="td-numero">${a.num}</td>
+      <td style="font-size:.9rem">${a.nome||"—"}
+        ${sitLabel ? `<span class="badge-situacao ${sitClass}" style="margin-left:4px;font-size:.65rem">${sitLabel}</span>` : ""}
+      </td>
+      <td style="text-align:center;width:64px">
+        <button type="button" class="btn-cf-mob ${cls}"
+          onclick="toggleChamadaMobile('${turmaKey}','${_dataChamadaSel}',${a.num},this)">
+          ${val}
+        </button>
+      </td>
+    </tr>`;
+  }).join("");
+
+  const datasOpts = datas.filter(d => d <= hoje_str).reverse().map(d =>
+    `<option value="${d}" ${d===_dataChamadaSel?"selected":""}>${fmtData(d)}</option>`
+  ).join("");
+
+  secao.innerHTML = `
+    <div class="chamada-mobile-wrap">
+      <div class="chamada-mobile-header">
+        <label style="font-size:.85rem;font-weight:600">
+          📅 Data da chamada:
+          <select class="gi gi-sm" style="margin-left:6px"
+            onchange="_dataChamadaSel=this.value;_renderizarChamadaMobile()">
+            ${datasOpts}
+          </select>
+        </label>
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button type="button" class="btn-add"
+            onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','C')">✓ Todos C</button>
+          <button type="button" class="btn-add" style="background:var(--text-muted)"
+            onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','F')">✗ Todos F</button>
+        </div>
+      </div>
+      <table class="tabela-gestao chamada-mob-tabela">
+        <thead><tr>
+          <th style="width:36px">Nº</th>
+          <th>Nome</th>
+          <th style="width:64px;text-align:center">C / F</th>
+        </tr></thead>
+        <tbody>${rows || '<tr><td colspan="3" class="td-vazio">Nenhum aluno ativo.</td></tr>'}</tbody>
+      </table>
+    </div>`;
+}
+
+async function toggleChamadaMobile(turmaKey, data, numAluno, btnEl) {
+  const chamadas = await _carregarChamadas(turmaKey);
+  if (!chamadas[data]) chamadas[data] = {};
+  const novo = chamadas[data][numAluno] === "F" ? "C" : "F";
+  chamadas[data][numAluno] = novo;
+  // Atualiza só o botão — sem re-render
+  btnEl.textContent = novo;
+  btnEl.className = `btn-cf-mob ${novo === "F" ? "chk-falta" : "chk-comp"}`;
+  await _salvarChamadas(turmaKey);
+}
