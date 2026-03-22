@@ -125,17 +125,17 @@ async function _renderizarChamadaDesktop() {
     </th>`;
   }).join("");
 
-  // ── Cabeçalho linha 2: número do dia ──
+  // ── Cabeçalho linha 2: número do dia (com popover C/F no hover) ──
   const thDias = datasVisiveis.map(d => {
     const isSel  = d === _dataChamadaSel;
     const isPast = d <= hoje_str;
     const dia    = d.split("-")[2];
     return `<th class="th-data-chamada${isSel ? " th-data-sel" : ""}">
-      <span class="th-dia-num">${dia}</span>
-      ${isPast ? `<div class="th-dia-btns">
-        <button type="button" class="btn-lote" style="font-size:.55rem;padding:1px 2px"
+      ${dia}
+      ${isPast ? `<div class="th-dia-popover">
+        <button type="button" class="btn-lote" style="font-size:.6rem;padding:2px 4px"
           onclick="chamadaTodosData('${turmaKey}','${d}','C')">C</button>
-        <button type="button" class="btn-lote btn-lote-off" style="font-size:.55rem;padding:1px 2px"
+        <button type="button" class="btn-lote btn-lote-off" style="font-size:.6rem;padding:2px 4px"
           onclick="chamadaTodosData('${turmaKey}','${d}','F')">F</button>
       </div>` : ""}
     </th>`;

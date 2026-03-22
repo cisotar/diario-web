@@ -1595,24 +1595,52 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .th-data-sel { background: var(--amber-light, #f0a84a33) !important; }
 /* Cabeçalho de dia da chamada — largura fixa igual em todos os bimestres */
 .th-data-chamada {
-  width: 30px;
-  min-width: 30px;
-  max-width: 30px;
+  width: 28px;
+  min-width: 28px;
+  max-width: 28px;
   text-align: center;
   font-size: .75rem;
-  padding: 4px 2px;
+  font-weight: 600;
+  padding: 5px 2px;
   position: relative;
   white-space: nowrap;
+  cursor: default;
 }
-.th-dia-num { display: block; }
-/* Botões C/F ocultos, aparecem no hover da coluna */
-.th-dia-btns {
+/* Popover C/F — flutua acima da tabela sem deformar a linha */
+.th-dia-popover {
   display: none;
-  gap: 1px;
-  justify-content: center;
-  margin-top: 2px;
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  background: var(--surface2, #1e2530);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 5px;
+  gap: 3px;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(0,0,0,.4);
+  white-space: nowrap;
 }
-.th-data-chamada:hover .th-dia-btns { display: flex; }
+.th-dia-popover::before {
+  content: "";
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top: none;
+  border-bottom-color: var(--border);
+}
+.th-data-chamada:hover .th-dia-popover { display: flex; }
+/* Coluna Nome da chamada — não quebra linha */
+.tabela-gestao td:nth-child(2),
+.tabela-gestao th:nth-child(2) {
+  min-width: 160px;
+  white-space: nowrap;
+}
 .th-mes-chamada {
   text-align: center;
   font-size: .7rem;
