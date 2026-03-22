@@ -11,29 +11,55 @@ function abrirPainelGestao() {
 
 // ── Sidebar: admin tem dois botões ───────────────────────────
 function _atualizarBotoesGestao() {
-  const papel   = _papel();
-  const btnEl   = document.getElementById("btn-gestao");
-  if (!btnEl) return;
+  const papel = _papel();
+  const btnEl = document.getElementById("btn-gestao");
+  const mobEl = document.getElementById("btn-mob-gestao");
+
+  // Limpa btn-meu-diario se existir (evita duplicatas entre sessões)
+  if (papel !== "admin") {
+    document.getElementById("btn-meu-diario")?.remove();
+  }
 
   if (papel === "admin") {
-    btnEl.style.display = "";
-    btnEl.innerHTML = "⚙ Painel de Gestão ADM";
-    btnEl.onclick   = _abrirPainelEscola;
+    if (btnEl) {
+      btnEl.style.display = "";
+      btnEl.innerHTML = "⚙ Painel de Gestão ADM";
+      btnEl.onclick   = _abrirPainelEscola;
+    }
     if (!document.getElementById("btn-meu-diario")) {
       const btn2 = document.createElement("button");
-      btn2.className = "btn-gestao-sidebar";
-      btn2.id        = "btn-meu-diario";
+      btn2.className   = "btn-gestao-sidebar";
+      btn2.id          = "btn-meu-diario";
       btn2.textContent = "👨‍🏫 Painel Professor";
-      btn2.onclick   = _abrirPainelProfessor;
-      btnEl.parentNode.insertBefore(btn2, btnEl.nextSibling);
+      btn2.onclick     = _abrirPainelProfessor;
+      btnEl?.parentNode.insertBefore(btn2, btnEl.nextSibling);
     }
+    if (mobEl) mobEl.style.display = "";
+
   } else if (papel === "coordenador") {
-    btnEl.style.display = "";
-    btnEl.textContent = "⚙ Painel";
-    btnEl.onclick     = _abrirPainelCoordenador;
+    if (btnEl) {
+      btnEl.style.display = "";
+      btnEl.textContent   = "⚙ Painel";
+      btnEl.onclick       = _abrirPainelCoordenador;
+    }
+    if (mobEl) mobEl.style.display = "";
+
+  } else if (papel === "professor") {
+    // Oculta btn-gestao; cria botão próprio do professor se não existir
+    if (btnEl) btnEl.style.display = "none";
+    if (mobEl) mobEl.style.display = "none";
+    if (!document.getElementById("btn-painel-prof")) {
+      const btn = document.createElement("button");
+      btn.className   = "btn-gestao-sidebar";
+      btn.id          = "btn-painel-prof";
+      btn.textContent = "⚙ Meu Painel";
+      btn.onclick     = _abrirPainelProfessor;
+      btnEl?.parentNode.appendChild(btn);
+    }
   } else {
-    // Professor comum — sem acesso a qualquer painel de gestão via sidebar
-    btnEl.style.display = "none";
+    // papel ainda null — oculta tudo
+    if (btnEl) btnEl.style.display = "none";
+    if (mobEl) mobEl.style.display = "none";
   }
 }
 
@@ -63,7 +89,7 @@ function _abrirPainelEscola(abaInicial) {
 function _abrirPainelProfessor(abaInicial) {
   const aba  = abaInicial || "minhas-turmas";
   const tabs = [
-    { id:"minhas-turmas", label:"🗓 Minhas Turmas",  fn: htmlProfTurmas, async: true },
+    { id:"minhas-turmas", label:"🗓 Minhas Turmas",  fn: htmlProfTurmas      },
     { id:"conteudos",     label:"📝 Conteúdos",       fn: htmlGestaoConteudos },
     { id:"perfil",        label:"👤 Meu Perfil",       fn: htmlGestaoPerfil    },
   ];
@@ -129,7 +155,7 @@ function _trocarAba(btn, secId, abaId) {
     case "bimestres":    sec.innerHTML = htmlGestaoBimestres();    break;
     case "perfil":       sec.innerHTML = htmlGestaoPerfil();       break;
     case "conteudos":    sec.innerHTML = htmlGestaoConteudos();    break;
-    case "minhas-turmas": htmlProfTurmas().then(h => sec.innerHTML = h); break;
+    case "minhas-turmas": sec.innerHTML = htmlProfTurmas();        break;
     case "usuarios":     sec.innerHTML = htmlGestaoUsuarios(); _carregarUsuarios();  break;
     case "diarios":      sec.innerHTML = htmlGestaoDiarios();  _carregarDiariosCoord(); break;
   }
