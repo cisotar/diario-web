@@ -19,94 +19,193 @@ function _disciplinasDaSerie(serie) {
 }
 
 function htmlProfTurmas() {
-  const uid       = _userAtual?.uid;
-  const diasNomes = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+  const DIAS = [
+    { idx: 1, label: "Segunda" },
+    { idx: 2, label: "Terça"   },
+    { idx: 3, label: "Quarta"  },
+    { idx: 4, label: "Quinta"  },
+    { idx: 5, label: "Sexta"   },
+  ];
 
-  // Todas as turmas visíveis do professor (legado + próprias)
-  const visiveis = _turmasVisiveis();
-
-  // Agrupa por serie+turma
-  const porChave = {};
-  for (const t of visiveis) {
-    const k = `${t.serie}${t.turma}`;
-    if (!porChave[k]) porChave[k] = { serie: t.serie, turma: t.turma, subtitulo: t.subtitulo||"", periodo: t.periodo||"manha", entradas: [] };
-    porChave[k].entradas.push(t);
+  // Monta mapa: { "diaSemana_aula": { turmaId, disciplina, sigla, serie, turma, ti } }
+  const ocupado = {};
+  for (let ti = 0; ti < RT_TURMAS.length; ti++) {
+    const t = RT_TURMAS[ti];
+    for (const h of (t.horarios || [])) {
+      ocupado[`${h.diaSemana}_${h.aula}`] = { ti, turmaId: t.id, disciplina: t.disciplina, sigla: t.sigla, serie: t.serie, turma: t.turma };
+    }
   }
 
-  // Completa com turmas-base que ainda não têm entrada (para o professor adicionar)
-  const base = RT_CONFIG.turmasBase || TURMAS_BASE || [];
-  for (const tb of base) {
-    const k = `${tb.serie}${tb.turma}`;
-    if (!porChave[k]) porChave[k] = { serie: tb.serie, turma: tb.turma, subtitulo: tb.subtitulo||"", periodo: tb.periodo||"manha", entradas: [] };
-  }
+  const renderTabela = (turno, labelTurno) => {
+    const periodos = RT_PERIODOS.filter(p => (p.turno || "manha") === turno);
+    const linhas = periodos.map(p => {
+      const isIntervalo = p.label.toLowerCase().includes("interval");
+      const cells = DIAS.map(dia => {
+        const chave = `${dia.idx}_${p.aula}`;
+        const oc    = ocupado[chave];
+        if (oc) {
+          return `<td class="grade-cell grade-ocupada" title="${oc.disciplina} — ${oc.serie}ª ${oc.turma}">
+            <div class="grade-disc">${oc.sigla || oc.disciplina}</div>
+            <div class="grade-turma">${oc.serie}ª ${oc.turma}</div>
+            <button type="button" class="grade-del-btn"
+              onclick="profRemoverHorario('${oc.turmaId}','${p.aula}',${dia.idx})"
+              title="Remover esta aula">×</button>
+          </td>`;
+        }
+        return `<td class="grade-cell grade-vazia"
+          onclick="profAbrirModalAula(${dia.idx},'${p.aula}','${turno}')"
+          title="Clique para registrar uma aula">
+          <span class="grade-vazio-txt">—</span>
+        </td>`;
+      }).join("");
 
-  // Ordena por série → turma
-  const chaves = Object.keys(porChave).sort((a,b) => {
-    const sa = porChave[a], sb = porChave[b];
-    return (+sa.serie - +sb.serie) || sa.turma.localeCompare(sb.turma);
-  });
-
-  const blocos = chaves.map((key) => {
-    const tb      = porChave[key];
-    const entradas = tb.entradas;
-    const turno    = tb.periodo || "manha";
-    const periodosDoTurno = RT_PERIODOS.filter(p => (p.turno||"manha") === turno);
-
-    const linhasDisc = entradas.map((t) => {
-      const ti = RT_TURMAS.indexOf(t);
-      const horariosHtml = t.horarios.map((h, hi) => `
-        <div class="horario-item">
-          <select class="gi gi-xs" onchange="editHorario(${ti},${hi},'diaSemana',+this.value)">
-            ${diasNomes.map((d,di) => `<option value="${di}" ${h.diaSemana===di?"selected":""}>${d}</option>`).join("")}
-          </select>
-          <select class="gi gi-sm" onchange="editHorario(${ti},${hi},'aula',this.value)">
-            ${periodosDoTurno.map(p => `<option value="${p.aula}" ${h.aula===p.aula?"selected":""}>${p.label} (${p.inicio})</option>`).join("")}
-          </select>
-          <button type="button" class="btn-icon-del" onclick="delHorario(${ti},${hi}); document.getElementById('g-minhas-turmas').innerHTML=htmlProfTurmas()">×</button>
-        </div>`).join("");
-      return `
-        <div class="prof-disc-linha" id="disc-linha-${t.id}">
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:4px">
-            <select class="gi" style="max-width:220px"
-              onchange="editTurmaField(${ti},'disciplina',this.value); _autoSigla(${ti},this.value)">
-              <option value="">— selecione —</option>
-              ${_disciplinasDaSerie(t.serie).map(d =>
-                `<option value="${d.replace(/"/g,'&quot;')}" ${t.disciplina===d?"selected":""}>${d}</option>`
-              ).join("")}
-              ${t.disciplina && !_disciplinasDaSerie(t.serie).includes(t.disciplina)
-                ? `<option value="${t.disciplina.replace(/"/g,'&quot;')}" selected>${t.disciplina} (manual)</option>`
-                : ""}
-            </select>
-            <input class="gi gi-xs" value="${t.sigla}" placeholder="Sigla" maxlength="6"
-              id="sigla-${t.id}"
-              onchange="editTurmaField(${ti},'sigla',this.value)" style="max-width:72px"/>
-            <button type="button" class="btn-icon-del" title="Remover esta disciplina desta turma"
-              onclick="delTurma(${ti}); document.getElementById('g-minhas-turmas').innerHTML=htmlProfTurmas()">🗑 remover</button>
-          </div>
-          <div class="horarios-lista">
-            ${horariosHtml}
-            <button type="button" class="btn-add-small" onclick="addHorario(${ti}); document.getElementById('g-minhas-turmas').innerHTML=htmlProfTurmas()">+ Horário</button>
-          </div>
-        </div>`;
+      return `<tr class="${isIntervalo ? "grade-intervalo" : ""}">
+        <td class="grade-periodo">
+          <div class="grade-aula-num">${p.aula.replace(/[mt]/,"")}</div>
+          <div class="grade-aula-hr">${p.inicio}</div>
+        </td>
+        ${cells}
+      </tr>`;
     }).join("");
 
-    const btnAdd = `<button type="button" class="btn-add-small" onclick="addDiscNaTurma('${tb.serie}','${tb.turma}','${tb.subtitulo||""}','${turno}')">+ Adicionar disciplina</button>`;
-
     return `
-      <div class="gestao-bloco" style="margin-bottom:12px">
-        <div class="gestao-bloco-header" style="margin-bottom:6px">
-          <h4>${tb.serie}ª ${tb.turma}${tb.subtitulo?" "+tb.subtitulo:""} <span style="font-size:.75rem;font-weight:400;color:var(--text-muted)">${turno==="tarde"?"tarde":"manhã"}</span></h4>
+      <div class="grade-wrap">
+        <div class="grade-titulo">${labelTurno}</div>
+        <div style="overflow-x:auto">
+          <table class="grade-tabela">
+            <thead>
+              <tr>
+                <th class="grade-th-hora">Aula</th>
+                ${DIAS.map(d => `<th>${d.label}</th>`).join("")}
+              </tr>
+            </thead>
+            <tbody>${linhas}</tbody>
+          </table>
         </div>
-        ${linhasDisc || '<p class="gestao-hint" style="margin:0 0 6px">Nenhuma disciplina adicionada ainda.</p>'}
-        ${btnAdd}
       </div>`;
-  }).join("");
+  };
+
+  const tabelaManha = renderTabela("manha", "🌅 Manhã — 7h00");
+  const tabelaTarde = renderTabela("tarde", "🌇 Tarde — 14h30");
 
   return `
-    <div style="max-width:780px">
-      <p class="gestao-hint">Para cada turma em que você leciona, adicione a disciplina e os horários das aulas.</p>
-      ${blocos || '<p class="gestao-hint">Nenhuma turma cadastrada. Aguarde o admin cadastrar as turmas da escola.</p>'}
+    <div style="max-width:900px">
+      <p class="gestao-hint">Clique em uma célula vazia para registrar uma aula. Passe o mouse sobre uma aula registrada para removê-la.</p>
+      ${tabelaManha}
+      <div style="margin-top:20px"></div>
+      ${tabelaTarde}
+    </div>
+
+    <!-- Modal inserir aula -->
+    <div id="modal-grade-aula" class="modal-overlay" style="display:none">
+      <div class="modal-box" style="max-width:420px">
+        <h3 class="modal-titulo">📅 Registrar aula</h3>
+        <p id="modal-grade-subtitulo" style="font-size:.85rem;color:var(--text-muted);margin-bottom:12px"></p>
+        <div class="modal-form">
+          <label>Turma
+            <select class="gi" id="modal-grade-turma" onchange="profAtualizarDiscSelect()"></select>
+          </label>
+          <label>Disciplina
+            <select class="gi" id="modal-grade-disc"></select>
+          </label>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-modal-cancel" onclick="document.getElementById('modal-grade-aula').style.display='none'">Cancelar</button>
+          <button type="button" class="btn-modal-ok" onclick="profConfirmarAula()">Registrar</button>
+        </div>
+      </div>
     </div>`;
+}
+
+let _gradeModalDia = null, _gradeModalAula = null, _gradeModalTurno = null;
+
+function profAbrirModalAula(diaSemana, aula, turno) {
+  const DIAS = ["","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+  _gradeModalDia   = diaSemana;
+  _gradeModalAula  = aula;
+  _gradeModalTurno = turno;
+
+  const periodo = RT_PERIODOS.find(p => p.aula === aula);
+  const sub = document.getElementById("modal-grade-subtitulo");
+  if (sub) sub.textContent = `${DIAS[diaSemana]} · ${periodo?.label || aula} (${periodo?.inicio || ""})`;
+
+  // Preenche select de turmas
+  const base   = RT_CONFIG.turmasBase || TURMAS_BASE || [];
+  const turmasSel = document.getElementById("modal-grade-turma");
+  if (!turmasSel) return;
+  turmasSel.innerHTML = base
+    .sort((a,b) => (+a.serie - +b.serie) || a.turma.localeCompare(b.turma))
+    .map(tb => `<option value="${tb.serie}|${tb.turma}|${tb.subtitulo||""}|${tb.periodo||"manha"}">${tb.serie}ª ${tb.turma}${tb.subtitulo?" "+tb.subtitulo:""}</option>`)
+    .join("");
+  profAtualizarDiscSelect();
+
+  document.getElementById("modal-grade-aula").style.display = "flex";
+}
+
+function profAtualizarDiscSelect() {
+  const turmasSel = document.getElementById("modal-grade-turma");
+  const discSel   = document.getElementById("modal-grade-disc");
+  if (!turmasSel || !discSel) return;
+  const [serie] = (turmasSel.value || "").split("|");
+  const discs = _disciplinasDaSerie(serie);
+  discSel.innerHTML = discs.map(d => `<option value="${d.replace(/"/g,'&quot;')}">${d}</option>`).join("")
+    || `<option value="">— nenhuma disciplina cadastrada —</option>`;
+}
+
+async function profConfirmarAula() {
+  const turmasSel = document.getElementById("modal-grade-turma");
+  const discSel   = document.getElementById("modal-grade-disc");
+  if (!turmasSel || !discSel) return;
+
+  const [serie, turma, subtitulo, periodo] = turmasSel.value.split("|");
+  const disciplina = discSel.value;
+  if (!disciplina) { alert("Selecione uma disciplina."); return; }
+
+  // Verifica conflito
+  const conflito = await _verificarConflitoHorario(serie, turma, _gradeModalDia, _gradeModalAula, null);
+  if (conflito) {
+    document.getElementById("modal-grade-aula").style.display = "none";
+    _mostrarModalConflito(conflito);
+    return;
+  }
+
+  const uid     = _userAtual?.uid;
+  const profUid = _isAdmin(_userAtual?.email) ? "global" : (uid || "anonimo");
+  const sigla   = disciplina.replace(/[aeiouáéíóúâêîôûãõàèìòùü\s]/gi,"").substring(0,3).toUpperCase()
+    || disciplina.substring(0,3).toUpperCase();
+
+  // Encontra ou cria entrada de turma+disciplina
+  let t = RT_TURMAS.find(x => x.serie===serie && x.turma===turma && x.disciplina===disciplina && x.profUid===profUid);
+  if (!t) {
+    const id = `${serie}${turma}_${sigla}_${profUid.substring(0,6)}_${Date.now()}`;
+    t = { id, serie, turma, subtitulo, disciplina, sigla, horarios: [], profUid, periodo };
+    RT_TURMAS.push(t);
+  }
+
+  // Adiciona horário
+  if (!t.horarios.find(h => h.diaSemana===_gradeModalDia && h.aula===_gradeModalAula)) {
+    t.horarios.push({ diaSemana: _gradeModalDia, aula: _gradeModalAula });
+  }
+
+  salvarTudo();
+  renderizarSidebar();
+  document.getElementById("modal-grade-aula").style.display = "none";
+  document.getElementById("g-minhas-turmas").innerHTML = htmlProfTurmas();
+}
+
+function profRemoverHorario(turmaId, aula, diaSemana) {
+  if (!confirm("Remover esta aula do horário?")) return;
+  const ti = RT_TURMAS.findIndex(t => t.id === turmaId);
+  if (ti < 0) return;
+  RT_TURMAS[ti].horarios = RT_TURMAS[ti].horarios.filter(h => !(h.aula===aula && h.diaSemana===diaSemana));
+  // Remove a entrada inteira se ficou sem horários e sem estado salvo
+  if (RT_TURMAS[ti].horarios.length === 0) {
+    const temEstado = Object.keys(estadoAulas).some(k => k.startsWith(turmaId));
+    if (!temEstado) RT_TURMAS.splice(ti, 1);
+  }
+  salvarTudo();
+  renderizarSidebar();
+  document.getElementById("g-minhas-turmas").innerHTML = htmlProfTurmas();
 }
 
 // Adiciona nova disciplina inline (sem prompt)
