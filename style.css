@@ -1954,6 +1954,12 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .grade-vazia:hover { background: rgba(13,148,136,.12); }
 .grade-vazio-txt { color: #334155; font-size: .75rem; }
 .grade-ocupada { background: rgba(201,125,32,.08); }
+.grade-ocupada-outro {
+  background: rgba(100,116,139,.1);
+  cursor: not-allowed;
+}
+.grade-ocupada-outro .grade-disc { color: #64748b; }
+.grade-ocupada-outro .grade-turma { color: #475569; }
 .grade-disc  { font-size: .82rem; font-weight: 700; color: var(--amber); }
 .grade-turma { font-size: .7rem; color: var(--text-muted); }
 .grade-del-btn {

@@ -27,13 +27,18 @@ function _atualizarBotoesGestao() {
       btn2.onclick   = _abrirPainelProfessor;
       btnEl.parentNode.insertBefore(btn2, btnEl.nextSibling);
     }
+    const mob = document.getElementById("btn-mob-gestao");
+    if (mob) mob.style.display = "";
   } else if (papel === "coordenador") {
     btnEl.style.display = "";
     btnEl.textContent = "⚙ Painel";
     btnEl.onclick     = _abrirPainelCoordenador;
+    const mob = document.getElementById("btn-mob-gestao");
+    if (mob) mob.style.display = "";
   } else {
-    // Professor comum — sem acesso a qualquer painel de gestão via sidebar
     btnEl.style.display = "none";
+    const mob = document.getElementById("btn-mob-gestao");
+    if (mob) mob.style.display = "none";
   }
 }
 
@@ -42,7 +47,6 @@ function _atualizarBotoesGestao() {
 // Abas: Turmas · Disciplinas/Áreas · Períodos · Bimestres · Usuários · Diários
 // ════════════════════════════════════════════════════════════════
 function _abrirPainelEscola(abaInicial) {
-  if (!_isAdmin(_userAtual?.email)) return; // proteção extra — nunca deve chegar aqui se não for admin
   if (!_isAdmin(_userAtual?.email)) return; // proteção extra
   const aba = abaInicial || "turmas";
   const tabs = [

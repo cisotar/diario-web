@@ -27,14 +27,18 @@ function htmlProfTurmas() {
     { idx: 5, label: "Sexta"   },
   ];
 
-  // Monta mapa apenas com as turmas do próprio professor
+  // Monta mapa com TODOS os horários de TODOS os professores
+  // (para visualização de conflitos) — edição só é permitida nos próprios
   const uid = _userAtual?.uid;
-  const minhasTurmas = RT_TURMAS.filter(t => t.profUid === uid || (_isAdmin(_userAtual?.email) && !t.profUid));
   const ocupado = {};
-  for (let ti = 0; ti < minhasTurmas.length; ti++) {
-    const t = minhasTurmas[ti];
+  for (let ti = 0; ti < RT_TURMAS.length; ti++) {
+    const t = RT_TURMAS[ti];
+    const isPropia = t.profUid === uid;
     for (const h of (t.horarios || [])) {
-      ocupado[`${h.diaSemana}_${h.aula}`] = { ti: RT_TURMAS.indexOf(t), turmaId: t.id, disciplina: t.disciplina, sigla: t.sigla, serie: t.serie, turma: t.turma };
+      const chave = `${h.diaSemana}_${h.aula}`;
+      if (!ocupado[chave]) {
+        ocupado[chave] = { ti, turmaId: t.id, disciplina: t.disciplina, sigla: t.sigla, serie: t.serie, turma: t.turma, isPropia };
+      }
     }
   }
 
@@ -46,13 +50,18 @@ function htmlProfTurmas() {
         const chave = `${dia.idx}_${p.aula}`;
         const oc    = ocupado[chave];
         if (oc) {
-          return `<td class="grade-cell grade-ocupada" title="${oc.disciplina} — ${oc.serie}ª ${oc.turma}">
+          const delBtn = oc.isPropia
+            ? `<button type="button" class="grade-del-btn"
+                onclick="profRemoverHorario('${oc.turmaId}','${p.aula}',${dia.idx})"
+                title="Remover esta aula">×</button>`
+            : "";
+          const cellClass = oc.isPropia ? "grade-cell grade-ocupada" : "grade-cell grade-ocupada grade-ocupada-outro";
+          return `<td class="${cellClass}" title="${oc.disciplina} — ${oc.serie}ª ${oc.turma}${oc.isPropia ? "" : " (outro professor)"}">
             <div class="grade-disc">${oc.sigla || oc.disciplina}</div>
             <div class="grade-turma">${oc.serie}ª ${oc.turma}</div>
-            <button type="button" class="grade-del-btn"
-              onclick="profRemoverHorario('${oc.turmaId}','${p.aula}',${dia.idx})"
-              title="Remover esta aula">×</button>
+            ${delBtn}
           </td>`;
+        }
         }
         return `<td class="grade-cell grade-vazia"
           onclick="profAbrirModalAula(${dia.idx},'${p.aula}','${turno}')"
