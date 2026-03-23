@@ -993,8 +993,25 @@ async function admHVerTodas() {
     }
   };
 
-  RT_TURMAS.forEach(t => addEntrada(t, t.profUid||"global",
-    t.profUid==="global"||!t.profUid ? "Admin" : (profs[t.profUid]?.nome||t.profUid)));
+  // Coleta todas as turmaIds já registradas pelos professores (evita duplicata com seed)
+  const turmaIdsProfs = new Set();
+  for (const [uid, perf] of Object.entries(profs)) {
+    if (_isAdmin(perf.email)) continue;
+    try {
+      const dSnap = await db.collection("diario").doc(uid).get();
+      if (dSnap.exists) {
+        JSON.parse(dSnap.data().RT_TURMAS||"[]").forEach(t => turmaIdsProfs.add(t.id));
+      }
+    } catch(e) {}
+  }
+
+  // Seed do admin: só adiciona turmas que não estão em nenhum diário de professor
+  RT_TURMAS.forEach(t => {
+    if (!turmaIdsProfs.has(t.id)) {
+      addEntrada(t, t.profUid||"global",
+        t.profUid==="global"||!t.profUid ? "Admin" : (profs[t.profUid]?.nome||t.profUid));
+    }
+  });
 
   for (const [uid, perf] of Object.entries(profs)) {
     if (_isAdmin(perf.email)) continue;
@@ -1071,32 +1088,4 @@ async function admHVerTodas() {
       <span style="font-size:.85rem;color:var(--text-muted)">${chaves.length} turma(s) com horários cadastrados</span>
     </div>
     ${grades}`;
-}
-
-// ── Corrige turmas sem profUid nos diários dos professores ───
-async function admCorrigirProfUid() {
-  if (!confirm("Remover turmas sem profUid dos diários dos professores?\nEsta operação é segura — não afeta aulas registradas.")) return;
-  const db   = firebase.firestore();
-  const snap = await db.collection("professores").where("status","==","aprovado").get();
-  let total  = 0;
-
-  for (const doc of snap.docs) {
-    if (_isAdmin(doc.data().email)) continue;
-    const uid    = doc.id;
-    const dSnap  = await db.collection("diario").doc(uid).get();
-    if (!dSnap.exists) continue;
-
-    const turmas  = JSON.parse(dSnap.data().RT_TURMAS || "[]");
-    const limpas  = turmas.filter(t => t.profUid === uid);
-    const removidas = turmas.length - limpas.length;
-
-    if (removidas > 0) {
-      await db.collection("diario").doc(uid).update({ RT_TURMAS: JSON.stringify(limpas) });
-      // Limpa também o localStorage desse uid se existir
-      try { localStorage.removeItem(`RT_TURMAS_${uid}`); } catch {}
-      total += removidas;
-      console.log(`[manutenção] ${doc.data().email}: ${removidas} turma(s) sem profUid removida(s)`);
-    }
-  }
-  alert(`✓ Concluído. ${total} entrada(s) sem profUid removida(s) dos diários dos professores.`);
 }
