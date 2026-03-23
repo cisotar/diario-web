@@ -117,11 +117,9 @@ function _renderizarPainel(titulo, tabs, abaAtiva, extraBtns) {
   ).join("");
 
   const secoesHtml = tabs.map(t => {
-    // Abas assíncronas ficam vazias e carregam após render
-    const isAsync = t.async || (t.fn && t.fn.constructor && t.fn.constructor.name === "AsyncFunction");
-    const conteudo = (t.id === abaAtiva && !isAsync) ? t.fn() : "";
+    const conteudo = t.id === abaAtiva ? t.fn() : "";
     return `<div id="g-${t.id}" class="gestao-secao${t.id===abaAtiva?" ativa":""}"
-      data-loaded="${(t.id===abaAtiva&&!isAsync)?'1':'0'}">${conteudo}</div>`;
+      data-loaded="${t.id===abaAtiva?'1':'0'}">${conteudo}</div>`;
   }).join("");
 
   document.getElementById("conteudo-principal").innerHTML = `
@@ -137,18 +135,9 @@ function _renderizarPainel(titulo, tabs, abaAtiva, extraBtns) {
       ${secoesHtml}
     </div>`;
 
-  // Pós-render para abas assíncronas
-  const _secAtiva = document.getElementById("g-" + abaAtiva);
-  if (abaAtiva === "usuarios")     { _carregarUsuarios(); }
-  if (abaAtiva === "diarios")      { _carregarDiariosCoord(); }
-  if (abaAtiva === "minhas-turmas" && _secAtiva) {
-    _secAtiva.innerHTML = "<div style='padding:20px;color:var(--text-muted)'>⏳ Carregando…</div>";
-    htmlProfTurmas().then(h => { _secAtiva.innerHTML = h; _secAtiva.dataset.loaded = "1"; });
-  }
-  if (abaAtiva === "horarios" && _secAtiva) {
-    _secAtiva.innerHTML = "<div style='padding:20px;color:var(--text-muted)'>⏳ Carregando…</div>";
-    htmlAdmHorarios().then(h => { _secAtiva.innerHTML = h; _secAtiva.dataset.loaded = "1"; });
-  }
+  // Pós-render para abas async (usuários, diários)
+  if (abaAtiva === "usuarios")  _carregarUsuarios();
+  if (abaAtiva === "diarios")   _carregarDiariosCoord();
 }
 
 function _trocarAba(btn, secId, abaId) {
@@ -168,7 +157,7 @@ function _trocarAba(btn, secId, abaId) {
     case "bimestres":    sec.innerHTML = htmlGestaoBimestres();    break;
     case "perfil":       sec.innerHTML = htmlGestaoPerfil();       break;
     case "conteudos":    sec.innerHTML = htmlGestaoConteudos();    break;
-    case "minhas-turmas": sec.innerHTML = "<div style='padding:20px;color:var(--text-muted)'>⏳ Carregando…</div>"; htmlProfTurmas().then(h => { sec.innerHTML = h; sec.dataset.loaded = "1"; }); break;
+    case "minhas-turmas": sec.innerHTML = htmlProfTurmas();        break;
     case "usuarios":     sec.innerHTML = htmlGestaoUsuarios(); _carregarUsuarios();  break;
     case "diarios":      sec.innerHTML = htmlGestaoDiarios();  _carregarDiariosCoord(); break;
   }
@@ -710,6 +699,9 @@ async function htmlAdmHorarios() {
           </select>
         </label>
       </div>
+      <button type="button" class="btn-add" onclick="admHVerTodas()"
+        style="align-self:flex-end;margin-bottom:0">📋 Ver Todas</button>
+      </div>
       <div id="adm-h-grade"></div>
     </div>
 
@@ -975,4 +967,108 @@ async function admHRemover() {
   _invalidarHorariosCache();
   document.getElementById("modal-adm-h").style.display = "none";
   admHCarregarGrade();
+}
+
+// ── Ver Todas as turmas de uma vez ───────────────────────────
+async function admHVerTodas() {
+  const cont = document.getElementById("adm-h-grade");
+  if (!cont) return;
+  cont.innerHTML = `<p class="gestao-hint">⏳ Carregando todas as turmas…</p>`;
+
+  // Carrega professores e diários
+  const db   = firebase.firestore();
+  const snap = await db.collection("professores").where("status","==","aprovado").get();
+  const profs = {};
+  snap.docs.forEach(d => { profs[d.id] = { nome: d.data().nome||d.data().email, email: d.data().email }; });
+
+  // Monta mapa global: "serie|turma|periodo" → "dia_aula" → [{...}]
+  const mapaGlobal = {};
+  const addEntrada = (t, profUid, profNome) => {
+    const key = `${t.serie}|${t.turma}|${t.subtitulo||""}|${t.periodo||"manha"}`;
+    if (!mapaGlobal[key]) mapaGlobal[key] = {};
+    for (const h of (t.horarios||[])) {
+      const chave = `${h.diaSemana}_${h.aula}`;
+      if (!mapaGlobal[key][chave]) mapaGlobal[key][chave] = [];
+      mapaGlobal[key][chave].push({ turmaId: t.id, disciplina: t.disciplina, sigla: t.sigla, profUid, profNome });
+    }
+  };
+
+  RT_TURMAS.forEach(t => addEntrada(t, t.profUid||"global",
+    t.profUid==="global"||!t.profUid ? "Admin" : (profs[t.profUid]?.nome||t.profUid)));
+
+  for (const [uid, perf] of Object.entries(profs)) {
+    if (_isAdmin(perf.email)) continue;
+    try {
+      const dSnap = await db.collection("diario").doc(uid).get();
+      if (!dSnap.exists) continue;
+      JSON.parse(dSnap.data().RT_TURMAS||"[]").forEach(t => addEntrada(t, uid, perf.nome));
+    } catch(e) {}
+  }
+
+  // Ordena turmas por série → turma
+  const chaves = Object.keys(mapaGlobal).sort((a,b) => {
+    const [sa, ta] = a.split("|"), [sb, tb] = b.split("|");
+    return (+sa - +sb) || ta.localeCompare(tb);
+  });
+
+  if (!chaves.length) {
+    cont.innerHTML = `<p class="gestao-hint">Nenhum horário cadastrado.</p>`;
+    return;
+  }
+
+  const DIAS = [{idx:1,label:"Seg"},{idx:2,label:"Ter"},{idx:3,label:"Qua"},{idx:4,label:"Qui"},{idx:5,label:"Sex"}];
+
+  const grades = chaves.map(key => {
+    const [serie, turma, subtitulo, periodo] = key.split("|");
+    const mapa = mapaGlobal[key];
+    const turno = periodo||"manha";
+    const periodos = RT_PERIODOS.filter(p => (p.turno||"manha") === turno);
+
+    const linhas = periodos.map(p => {
+      const isInt = p.label?.toLowerCase().includes("interval");
+      const cells = DIAS.map(dia => {
+        const chave    = `${dia.idx}_${p.aula}`;
+        const entradas = mapa[chave] || [];
+        const conteudo = entradas.map(e =>
+          `<div class="grade-disc">${e.sigla||e.disciplina||"—"}</div>
+           <div class="grade-turma" style="font-size:.62rem">${e.profNome}</div>`
+        ).join("<div style='border-top:1px solid var(--border);margin:1px 0'></div>");
+        const cls = entradas.length ? "grade-cell grade-ocupada" : "grade-cell grade-vazia";
+        return `<td class="${cls}" style="cursor:pointer;min-width:60px"
+          onclick="admHAbrirModal('${serie}','${turma}','${subtitulo}','${p.aula}',${dia.idx})"
+          title="${entradas.length?"Clique para editar":"Clique para adicionar"}">
+          ${conteudo || '<span class="grade-vazio-txt" style="font-size:.7rem">+</span>'}
+        </td>`;
+      }).join("");
+
+      return `<tr class="${isInt?"grade-intervalo":""}">
+        <td class="grade-periodo">
+          <div class="grade-aula-num">${p.aula.replace(/[mt]/,"")}</div>
+          <div class="grade-aula-hr">${p.inicio}</div>
+        </td>${cells}
+      </tr>`;
+    }).join("");
+
+    const labelTurno = turno==="tarde"?"🌇":"🌅";
+    const label = `${serie}ª ${turma}${subtitulo?" "+subtitulo:""}`;
+    return `
+      <div class="grade-wrap" style="margin-bottom:24px">
+        <div class="grade-titulo">${labelTurno} ${label}</div>
+        <div style="overflow-x:auto">
+          <table class="grade-tabela" style="font-size:.75rem">
+            <thead><tr>
+              <th class="grade-th-hora" style="width:48px">Aula</th>
+              ${DIAS.map(d=>`<th style="min-width:60px">${d.label}</th>`).join("")}
+            </tr></thead>
+            <tbody>${linhas}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }).join("");
+
+  cont.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <span style="font-size:.85rem;color:var(--text-muted)">${chaves.length} turma(s) com horários cadastrados</span>
+    </div>
+    ${grades}`;
 }
