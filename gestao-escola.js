@@ -111,18 +111,13 @@ function _abrirPainelCoordenador() {
 
 // ── Motor genérico de painel com abas ───────────────────────────
 
-// Mapa de funções de aba — preenchido por _renderizarPainel
 const _abaFns = {};
 
-// Carrega o conteúdo de uma aba de forma segura:
-// detecta automaticamente se a função é async e usa .then()
 function _carregarAba(abaId) {
   const sec = document.getElementById("g-" + abaId);
   const fn  = _abaFns[abaId];
   if (!sec || !fn) return;
-
   const resultado = fn();
-
   if (resultado && typeof resultado.then === "function") {
     sec.innerHTML = "<div style='padding:20px;color:var(--text-muted)'>⏳ Carregando…</div>";
     resultado.then(h => { sec.innerHTML = h; sec.dataset.loaded = "1"; });
@@ -130,8 +125,6 @@ function _carregarAba(abaId) {
     sec.innerHTML = resultado || "";
     sec.dataset.loaded = "1";
   }
-
-  // Callbacks especiais pós-render
   if (abaId === "usuarios") _carregarUsuarios();
   if (abaId === "diarios")  _carregarDiariosCoord();
 }
@@ -142,13 +135,11 @@ function _renderizarPainel(titulo, tabs, abaAtiva, extraBtns) {
        onclick="_trocarAba(this,'g-${t.id}','${t.id}')">${t.label}</button>`
   ).join("");
 
-  // Todas as seções nascem vazias — a ativa carrega via _carregarAba()
   const secoesHtml = tabs.map(t =>
     `<div id="g-${t.id}" class="gestao-secao${t.id===abaAtiva?" ativa":""}"
       data-loaded="0"></div>`
   ).join("");
 
-  // Registra todas as funções no mapa
   tabs.forEach(t => { _abaFns[t.id] = t.fn; });
 
   document.getElementById("conteudo-principal").innerHTML = `
@@ -164,7 +155,6 @@ function _renderizarPainel(titulo, tabs, abaAtiva, extraBtns) {
       ${secoesHtml}
     </div>`;
 
-  // Carrega a aba ativa
   _carregarAba(abaAtiva);
 }
 
@@ -996,45 +986,54 @@ async function admHVerTodas() {
   const profs = {};
   snap.docs.forEach(d => { profs[d.id] = { nome: d.data().nome||d.data().email, email: d.data().email }; });
 
-  // Monta mapa global: "serie|turma|periodo" → "dia_aula" → [{...}]
+  // Mapa agrupado APENAS por serie|turma (ignora subtítulo e turno para evitar duplicatas)
   const mapaGlobal = {};
+  const metaTurma  = {}; // serie|turma → { periodo, subtitulo } da turma-base
+  const base = RT_CONFIG.turmasBase || TURMAS_BASE || [];
+  base.forEach(tb => {
+    const k = `${tb.serie}|${tb.turma}`;
+    if (!metaTurma[k]) metaTurma[k] = { periodo: tb.periodo||"manha", subtitulo: tb.subtitulo||"" };
+  });
+
   const addEntrada = (t, profUid, profNome) => {
-    const key = `${t.serie}|${t.turma}|${t.subtitulo||""}|${t.periodo||"manha"}`;
+    const key = `${t.serie}|${t.turma}`;  // apenas serie+turma
     if (!mapaGlobal[key]) mapaGlobal[key] = {};
+    if (!metaTurma[key]) metaTurma[key] = { periodo: t.periodo||"manha", subtitulo: t.subtitulo||"" };
     for (const h of (t.horarios||[])) {
       const chave = `${h.diaSemana}_${h.aula}`;
       if (!mapaGlobal[key][chave]) mapaGlobal[key][chave] = [];
-      mapaGlobal[key][chave].push({ turmaId: t.id, disciplina: t.disciplina, sigla: t.sigla, profUid, profNome });
+      // evita duplicata exata (mesmo turmaId já adicionado)
+      if (!mapaGlobal[key][chave].some(e => e.turmaId === t.id)) {
+        mapaGlobal[key][chave].push({ turmaId: t.id, disciplina: t.disciplina, sigla: t.sigla, profUid, profNome });
+      }
     }
   };
 
-  // Coleta todas as turmaIds já registradas pelos professores (evita duplicata com seed)
-  const turmaIdsProfs = new Set();
-  for (const [uid, perf] of Object.entries(profs)) {
-    if (_isAdmin(perf.email)) continue;
-    try {
-      const dSnap = await db.collection("diario").doc(uid).get();
-      if (dSnap.exists) {
-        JSON.parse(dSnap.data().RT_TURMAS||"[]").forEach(t => turmaIdsProfs.add(t.id));
-      }
-    } catch(e) {}
-  }
-
-  // Seed do admin: só adiciona turmas que não estão em nenhum diário de professor
-  RT_TURMAS.forEach(t => {
-    if (!turmaIdsProfs.has(t.id)) {
-      addEntrada(t, t.profUid||"global",
-        t.profUid==="global"||!t.profUid ? "Admin" : (profs[t.profUid]?.nome||t.profUid));
-    }
-  });
-
+  // Carrega diários dos professores UMA única vez
+  const diariosProfs = {};
+  const chavesProfSet = new Set();
   for (const [uid, perf] of Object.entries(profs)) {
     if (_isAdmin(perf.email)) continue;
     try {
       const dSnap = await db.collection("diario").doc(uid).get();
       if (!dSnap.exists) continue;
-      JSON.parse(dSnap.data().RT_TURMAS||"[]").forEach(t => addEntrada(t, uid, perf.nome));
+      const turmas = JSON.parse(dSnap.data().RT_TURMAS||"[]");
+      diariosProfs[uid] = turmas;
+      turmas.forEach(t => chavesProfSet.add(`${t.serie}|${t.turma}|${t.disciplina}`));
     } catch(e) {}
+  }
+
+  // Seed do admin: só adiciona se nenhum professor já tem essa serie+turma+disciplina
+  RT_TURMAS.forEach(t => {
+    if (!chavesProfSet.has(`${t.serie}|${t.turma}|${t.disciplina}`)) {
+      addEntrada(t, t.profUid||"global",
+        t.profUid==="global"||!t.profUid ? "Admin" : (profs[t.profUid]?.nome||t.profUid));
+    }
+  });
+
+  // Turmas dos professores (usando dados já carregados)
+  for (const [uid, turmas] of Object.entries(diariosProfs)) {
+    turmas.forEach(t => addEntrada(t, uid, profs[uid].nome));
   }
 
   // Ordena turmas por série → turma
@@ -1051,9 +1050,11 @@ async function admHVerTodas() {
   const DIAS = [{idx:1,label:"Seg"},{idx:2,label:"Ter"},{idx:3,label:"Qua"},{idx:4,label:"Qui"},{idx:5,label:"Sex"}];
 
   const grades = chaves.map(key => {
-    const [serie, turma, subtitulo, periodo] = key.split("|");
+    const meta = metaTurma[key] || {};
+    const [serie, turma] = key.split("|");
+    const subtitulo = meta.subtitulo || "";
     const mapa = mapaGlobal[key];
-    const turno = periodo||"manha";
+    const turno = meta.periodo || "manha";
     const periodos = RT_PERIODOS.filter(p => (p.turno||"manha") === turno);
 
     const linhas = periodos.map(p => {
