@@ -119,7 +119,16 @@ async function carregarTudo() {
         try { ordemConteudos  = JSON.parse(d.aulaOrdem)     || {}; } catch {}
         try { linhasEventuais = JSON.parse(d.aulaEventuais) || {}; } catch {}
         try { const rc = JSON.parse(d.RT_CONTEUDOS); if (rc) RT_CONTEUDOS = rc; } catch {}
-        try { const rt = JSON.parse(d.RT_TURMAS); if (Array.isArray(rt)) RT_TURMAS = rt; } catch {}
+        try {
+          const rt = JSON.parse(d.RT_TURMAS);
+          if (Array.isArray(rt)) {
+            // Para professores: ignora turmas sem profUid correto (dados contaminados do seed)
+            const uid = _userAtual?.uid;
+            RT_TURMAS = _isAdmin(_userAtual?.email)
+              ? rt
+              : rt.filter(t => t.profUid === uid);
+          }
+        } catch {}
         // Verifica se há backup de emergência mais recente
         _restaurarEmergenciaSeNecessario(d);
       }
@@ -136,7 +145,12 @@ async function carregarTudo() {
   } catch {}
   try {
     const rt = JSON.parse(localStorage.getItem(`RT_TURMAS_${uidKey}`));
-    if (Array.isArray(rt) && rt.length) RT_TURMAS = rt;
+    if (Array.isArray(rt) && rt.length) {
+      const uid = _userAtual?.uid;
+      RT_TURMAS = _isAdmin(_userAtual?.email)
+        ? rt
+        : rt.filter(t => t.profUid === uid);
+    }
   } catch {}
   if (!localStorage.getItem(seedKey)) {
     if (typeof ESTADO !== "undefined" && Object.keys(ESTADO).length > 0)

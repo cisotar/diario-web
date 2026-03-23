@@ -30,7 +30,7 @@ function _atualizarBotoesGestao() {
       const btn2 = document.createElement("button");
       btn2.className   = "btn-gestao-sidebar";
       btn2.id          = "btn-meu-diario";
-      btn2.textContent = "👨‍🏫 Painel do Professor";
+      btn2.textContent = "👨‍🏫 Painel Professor";
       btn2.onclick     = _abrirPainelProfessor;
       btnEl?.parentNode.insertBefore(btn2, btnEl.nextSibling);
     }
@@ -94,7 +94,7 @@ function _abrirPainelProfessor(abaInicial) {
     { id:"conteudos",     label:"📝 Conteúdos",       fn: htmlGestaoConteudos },
     { id:"perfil",        label:"👤 Meu Perfil",       fn: htmlGestaoPerfil    },
   ];
-  _renderizarPainel("👨‍🏫 Painel do Professor", tabs, aba);
+  _renderizarPainel("📓 Meu Diário", tabs, aba);
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -110,42 +110,17 @@ function _abrirPainelCoordenador() {
 }
 
 // ── Motor genérico de painel com abas ───────────────────────────
-// Carrega o conteúdo de uma aba — funciona para funções síncronas e assíncronas
-function _carregarAba(abaId, tabsFn) {
-  const sec = document.getElementById("g-" + abaId);
-  if (!sec) return;
-  const fn = tabsFn[abaId];
-  if (!fn) return;
-  const resultado = fn();
-  if (resultado && typeof resultado.then === "function") {
-    sec.innerHTML = "<div style='padding:20px;color:var(--text-muted)'>⏳ Carregando…</div>";
-    resultado.then(h => { sec.innerHTML = h; sec.dataset.loaded = "1"; });
-  } else {
-    sec.innerHTML = resultado || "";
-    sec.dataset.loaded = "1";
-  }
-  // Callbacks especiais pós-render
-  if (abaId === "usuarios")  _carregarUsuarios();
-  if (abaId === "diarios")   _carregarDiariosCoord();
-}
-
-// Mapa de funções de aba — centralizado para evitar switch gigante
-const _abaFns = {};
-
 function _renderizarPainel(titulo, tabs, abaAtiva, extraBtns) {
   const tabsHtml = tabs.map(t =>
     `<button class="gtab${t.id===abaAtiva?" ativo":""}"
        onclick="_trocarAba(this,'g-${t.id}','${t.id}')">${t.label}</button>`
   ).join("");
 
-  // Todas as seções começam vazias — a aba ativa carrega via _carregarAba
-  const secoesHtml = tabs.map(t =>
-    `<div id="g-${t.id}" class="gestao-secao${t.id===abaAtiva?" ativa":""}"
-      data-loaded="0"></div>`
-  ).join("");
-
-  // Registra as funções no mapa
-  tabs.forEach(t => { _abaFns[t.id] = t.fn; });
+  const secoesHtml = tabs.map(t => {
+    const conteudo = t.id === abaAtiva ? t.fn() : "";
+    return `<div id="g-${t.id}" class="gestao-secao${t.id===abaAtiva?" ativa":""}"
+      data-loaded="${t.id===abaAtiva?'1':'0'}">${conteudo}</div>`;
+  }).join("");
 
   document.getElementById("conteudo-principal").innerHTML = `
     <div class="gestao-painel">
@@ -160,8 +135,9 @@ function _renderizarPainel(titulo, tabs, abaAtiva, extraBtns) {
       ${secoesHtml}
     </div>`;
 
-  // Carrega a aba ativa
-  _carregarAba(abaAtiva, _abaFns);
+  // Pós-render para abas async (usuários, diários)
+  if (abaAtiva === "usuarios")  _carregarUsuarios();
+  if (abaAtiva === "diarios")   _carregarDiariosCoord();
 }
 
 function _trocarAba(btn, secId, abaId) {
@@ -169,10 +145,22 @@ function _trocarAba(btn, secId, abaId) {
   document.querySelectorAll(".gestao-secao").forEach(s => s.classList.remove("ativa"));
   btn.classList.add("ativo");
   const sec = document.getElementById(secId);
-  if (!sec) return;
   sec.classList.add("ativa");
   if (sec.dataset.loaded === "1") return;
-  _carregarAba(abaId, _abaFns);
+  sec.dataset.loaded = "1";
+  // Renderiza conteúdo da aba sob demanda
+  switch(abaId) {
+    case "turmas":       sec.innerHTML = htmlEscolaTurmas();       break;
+    case "horarios":     sec.innerHTML = "<div style='padding:20px;color:var(--text-muted)'>⏳ Carregando…</div>"; htmlAdmHorarios().then(h => { sec.innerHTML = h; sec.dataset.loaded="1"; }); break;
+    case "disciplinas":  sec.innerHTML = htmlEscolaDisciplinas();  break;
+    case "periodos":     sec.innerHTML = htmlEscolaPeriodos();     break;
+    case "bimestres":    sec.innerHTML = htmlGestaoBimestres();    break;
+    case "perfil":       sec.innerHTML = htmlGestaoPerfil();       break;
+    case "conteudos":    sec.innerHTML = htmlGestaoConteudos();    break;
+    case "minhas-turmas": sec.innerHTML = htmlProfTurmas();        break;
+    case "usuarios":     sec.innerHTML = htmlGestaoUsuarios(); _carregarUsuarios();  break;
+    case "diarios":      sec.innerHTML = htmlGestaoDiarios();  _carregarDiariosCoord(); break;
+  }
 }
 
 // Alias para compatibilidade com código legado
@@ -1083,4 +1071,32 @@ async function admHVerTodas() {
       <span style="font-size:.85rem;color:var(--text-muted)">${chaves.length} turma(s) com horários cadastrados</span>
     </div>
     ${grades}`;
+}
+
+// ── Corrige turmas sem profUid nos diários dos professores ───
+async function admCorrigirProfUid() {
+  if (!confirm("Remover turmas sem profUid dos diários dos professores?\nEsta operação é segura — não afeta aulas registradas.")) return;
+  const db   = firebase.firestore();
+  const snap = await db.collection("professores").where("status","==","aprovado").get();
+  let total  = 0;
+
+  for (const doc of snap.docs) {
+    if (_isAdmin(doc.data().email)) continue;
+    const uid    = doc.id;
+    const dSnap  = await db.collection("diario").doc(uid).get();
+    if (!dSnap.exists) continue;
+
+    const turmas  = JSON.parse(dSnap.data().RT_TURMAS || "[]");
+    const limpas  = turmas.filter(t => t.profUid === uid);
+    const removidas = turmas.length - limpas.length;
+
+    if (removidas > 0) {
+      await db.collection("diario").doc(uid).update({ RT_TURMAS: JSON.stringify(limpas) });
+      // Limpa também o localStorage desse uid se existir
+      try { localStorage.removeItem(`RT_TURMAS_${uid}`); } catch {}
+      total += removidas;
+      console.log(`[manutenção] ${doc.data().email}: ${removidas} turma(s) sem profUid removida(s)`);
+    }
+  }
+  alert(`✓ Concluído. ${total} entrada(s) sem profUid removida(s) dos diários dos professores.`);
 }
