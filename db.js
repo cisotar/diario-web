@@ -28,7 +28,6 @@ async function _ativarOffline() {
   }
 }
 
-// Monitor de conexão — atualiza indicador e o flag global _online
 let _online = navigator.onLine;
 function _iniciarMonitorConexao() {
   const atualizar = (online) => {
@@ -64,15 +63,12 @@ function _atualizarIndicadorConexao() {
     el.style.background = "#2a0f0f";
     el.style.color = "#f87171";
     el.style.opacity = "1";
-    clearTimeout(el._timer); // mantém visível enquanto offline
+    clearTimeout(el._timer);
   }
 }
 
-// Retorna o doc do diário do professor logado
-// Flag: admin operando como professor (usa diario/{uid} em vez de diario/global)
 let _modoProf = false;
 
-// Retorna a chave de documento correta para o usuário atual
 function _docKey() {
   if (_isAdmin(_userAtual?.email) && !_modoProf) return "global";
   return _userAtual?.uid || "anonimo";
@@ -93,13 +89,11 @@ function _initFirebase() {
   }
 }
 
-// Retorna referência à coleção de professores
 function _dbProfessores() {
   try { return firebase.firestore().collection("professores"); }
   catch { return null; }
 }
 
-// Retorna referência ao documento de configuração global (bimestres)
 function _dbConfig() {
   try { return firebase.firestore().collection("config").doc("bimestres"); }
   catch { return null; }
@@ -139,7 +133,6 @@ async function _salvarBimestresFirestore() {
 let _saveTimer = null;
 function salvarTudo() {
   const uid = _userAtual ? (_isAdmin(_userAtual.email) ? "global" : _userAtual.uid) : "anonimo";
-  // Cache local de inicialização rápida (não é fonte de verdade)
   try {
     localStorage.setItem(`aulaEstado_${uid}`,    JSON.stringify(estadoAulas));
     localStorage.setItem(`aulaOrdem_${uid}`,     JSON.stringify(ordemConteudos));
@@ -147,8 +140,6 @@ function salvarTudo() {
     localStorage.setItem(`RT_CONTEUDOS_${uid}`,  JSON.stringify(RT_CONTEUDOS));
     localStorage.setItem(`RT_TURMAS_${uid}`,     JSON.stringify(RT_TURMAS));
   } catch(e) { console.warn("localStorage cheio ou indisponível:", e); }
-  // Persistência principal: Firestore (com suporte offline nativo)
-  // Debounce de 800 ms para agrupar alterações rápidas em uma única escrita
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(() => _salvarFirestore(), 800);
 }
@@ -158,7 +149,7 @@ async function _salvarFirestore() {
   const doc = _initFirebase();
   if (!doc) return;
   if (!_autenticado) { _abrirModalGoogle(); return; }
-  _ultimoAtualizado = new Date(); // marca timestamp do save local
+  _ultimoAtualizado = new Date();
   const payload = {
     aulaEstado:    JSON.stringify(estadoAulas),
     aulaOrdem:     JSON.stringify(ordemConteudos),
@@ -172,18 +163,15 @@ async function _salvarFirestore() {
     _mostrarIndicadorSync("✓ Salvo");
   } catch (e) {
     if (!_online) {
-      // Offline: o SDK já enfileirou a escrita — vai sincronizar quando voltar
       _mostrarIndicadorSync("💾 Salvo localmente — pendente de sincronização");
     } else {
       console.error("Erro ao salvar no Firestore:", e);
       _mostrarIndicadorSync("⚠ Erro ao salvar — verifique a conexão");
-      // Fallback de emergência: persiste no localStorage caso Firestore falhe online
       _salvarLocalStorageEmergencia();
     }
   }
 }
 
-// Fallback de emergência — usado apenas quando o Firestore falha com conexão ativa
 function _salvarLocalStorageEmergencia() {
   try {
     const uid = _userAtual ? (_isAdmin(_userAtual.email) ? "global" : _userAtual.uid) : "anonimo";
@@ -200,7 +188,6 @@ function _salvarLocalStorageEmergencia() {
   } catch(e) { console.error("Falha até no backup de emergência:", e); }
 }
 
-// Restaura backup de emergência se existir e for mais recente que o Firestore
 function _restaurarEmergenciaSeNecessario(dadosFirestore) {
   try {
     const uid  = _docKey() || "anonimo";
@@ -217,7 +204,6 @@ function _restaurarEmergenciaSeNecessario(dadosFirestore) {
       try { const rc = JSON.parse(bkp.RT_CONTEUDOS); if (rc) RT_CONTEUDOS = rc; } catch {}
       try { const rt = JSON.parse(bkp.RT_TURMAS); if (Array.isArray(rt)) RT_TURMAS = rt; } catch {}
       _mostrarIndicadorSync("⚠ Dados restaurados do backup local");
-      // Reenvia para o Firestore para reconciliar
       setTimeout(() => _salvarFirestore(), 1500);
       return true;
     }
@@ -244,13 +230,6 @@ function _mostrarIndicadorSync(texto) {
   _syncEl._timer = setTimeout(() => { _syncEl.style.opacity = "0"; }, 2500);
 }
 
-// Turmas-base derivadas de TURMAS: série+turma únicos (sem disciplina)
-// Usadas pelo admin para cadastrar e pelo professor para escolher onde leciona
-// TURMAS_BASE carregado de turmas_global.js
-
-// Estrutura de períodos padrão (gerada por _gerarPeriodosDeConfig)
-// Cada período tem: aula (id), label, inicio, fim, turno ("manha"|"tarde")
-
 let _diariosAssociados = {};
 
 async function _carregarDiariosAssociados(uids) {
@@ -264,7 +243,6 @@ async function _carregarDiariosAssociados(uids) {
       if (!dSnap.exists) continue;
       const d = dSnap.data();
       const todasTurmas = d.RT_TURMAS ? JSON.parse(d.RT_TURMAS) : [];
-      // Filtra só as turmas do próprio professor (exclui turmas "global" herdadas do admin)
       const turmasProf = todasTurmas.filter(t => t.profUid === uid);
       _diariosAssociados[uid] = {
         perfil:          pSnap.exists ? pSnap.data() : { uid },
@@ -285,36 +263,40 @@ function _ativarListenerFirestore() {
   const doc = _initFirebase();
   if (!doc) return;
   _listenerAtivo = true;
-  let _ultimoAtualizado = null; // timestamp do último save LOCAL
+  let _ultimoAtualizado = null;
   doc.onSnapshot(snap => {
     if (!snap.exists) return;
     const d = snap.data();
     const atualizado = d._atualizado ? new Date(d._atualizado) : null;
-    // Ignora snapshot que veio do próprio save local (menos de 3s atrás)
-    // mas só se foi este dispositivo que salvou
     if (_ultimoAtualizado && atualizado &&
         Math.abs(atualizado - _ultimoAtualizado) < 500) return;
     try { estadoAulas     = JSON.parse(d.aulaEstado)    || estadoAulas;    } catch {}
     try { ordemConteudos  = JSON.parse(d.aulaOrdem)     || ordemConteudos; } catch {}
     try { linhasEventuais = JSON.parse(d.aulaEventuais) || linhasEventuais;} catch {}
     try { const rc = JSON.parse(d.RT_CONTEUDOS); if (rc) RT_CONTEUDOS = rc; } catch {}
-    try { const rt = JSON.parse(d.RT_TURMAS);    if (Array.isArray(rt) && rt.length) RT_TURMAS = rt; } catch {}
+    try {
+      const rt = JSON.parse(d.RT_TURMAS);
+      if (Array.isArray(rt) && rt.length) {
+        // FIX item 5: professores filtram por profUid no snapshot também
+        const uid = _userAtual?.uid;
+        RT_TURMAS = _isAdmin(_userAtual?.email)
+          ? rt
+          : rt.filter(t => t.profUid === uid);
+      }
+    } catch {}
     const _uk = _userAtual?.uid || "anonimo";
     if (d.aulaEstado)    localStorage.setItem(`aulaEstado_${_uk}`,    d.aulaEstado);
     if (d.aulaOrdem)     localStorage.setItem(`aulaOrdem_${_uk}`,     d.aulaOrdem);
     if (d.aulaEventuais) localStorage.setItem(`aulaEventuais_${_uk}`, d.aulaEventuais);
     if (d.RT_CONTEUDOS)  localStorage.setItem(`RT_CONTEUDOS_${_uk}`,  d.RT_CONTEUDOS);
     if (d.RT_TURMAS)     localStorage.setItem(`RT_TURMAS_${_uk}`,     d.RT_TURMAS);
-    // Limpa backup de emergência após sincronização bem-sucedida
     try { localStorage.removeItem(`_emergencia_${_uk}`); } catch {}
-    // Atualiza a view ativa (cronograma ou calendário)
     const calVisivel = !!document.getElementById("cal-corpo");
     if (calVisivel && typeof _calRenderCorpo === "function") _calRenderCorpo();
     if (turmaAtiva && !calVisivel) renderizarConteudo();
     _mostrarIndicadorSync("↓ Sincronizado");
   }, err => console.warn("onSnapshot erro:", err));
 
-  // Listener separado para bimestres globais (atualiza em tempo real para todos)
   if (!_listenerBimAtivo) {
     _listenerBimAtivo = true;
     const cfg = _dbConfig();
@@ -334,4 +316,3 @@ function _ativarListenerFirestore() {
     }, err => console.warn("onSnapshot bimestres erro:", err));
   }
 }
-
