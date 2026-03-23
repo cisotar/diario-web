@@ -372,15 +372,21 @@ function profRemoverHorario(turmaId, aula, diaSemana) {
   RT_TURMAS[ti].horarios = RT_TURMAS[ti].horarios.filter(
     h => !(h.aula === aula && h.diaSemana === diaSemana)
   );
-  // Remove a entrada de turma se ficou sem horários
-  // (mantém estadoAulas intacto — os registros de aulas não são perdidos)
   if (!RT_TURMAS[ti].horarios.length) {
-    RT_TURMAS.splice(ti, 1);
+    const temEstado = Object.keys(estadoAulas).some(k => k.startsWith(turmaId));
+    if (!temEstado) RT_TURMAS.splice(ti, 1);
   }
   salvarTudo();
   _invalidarHorariosCache();
   renderizarSidebar();
   profSelecionarTurma();
+}
+
+// Helper: recarrega a seção "Minhas Turmas" de forma segura (async)
+function _recarregarMinhasTurmas() {
+  const sec = document.getElementById("g-minhas-turmas");
+  if (!sec) return;
+  htmlProfTurmas().then(h => { sec.innerHTML = h; });
 }
 
 // Adiciona nova disciplina inline (sem prompt)
@@ -406,7 +412,7 @@ function addDiscNaTurma(serie, turma, subtitulo, periodo) {
   if (RT_TURMAS.find(t => t.id === id)) return; // evita duplicata rápida
   RT_TURMAS.push({ id, serie, turma, subtitulo, disciplina:"", sigla, horarios:[], profUid, periodo });
   salvarTudo(); renderizarSidebar();
-  document.getElementById("g-minhas-turmas").innerHTML = htmlProfTurmas();
+  _recarregarMinhasTurmas();
 }
 
 
@@ -493,13 +499,13 @@ function addHorario(ti) {
   RT_TURMAS[ti].horarios.push({ diaSemana: 1, aula: prefixo + "1" });
   salvarTudo();
   const el = document.getElementById("g-minhas-turmas");
-  if (el) el.innerHTML = htmlProfTurmas();
+  _recarregarMinhasTurmas();
 }
 function delHorario(ti, hi) {
   RT_TURMAS[ti].horarios.splice(hi, 1);
   salvarTudo();
   const el = document.getElementById("g-minhas-turmas");
-  if (el) el.innerHTML = htmlProfTurmas();
+  _recarregarMinhasTurmas();
 }
 function delTurma(i) {
   const t = RT_TURMAS[i];
@@ -508,7 +514,7 @@ function delTurma(i) {
   salvarTudo();
   renderizarSidebar();
   const el = document.getElementById("g-minhas-turmas");
-  if (el) el.innerHTML = htmlProfTurmas();
+  _recarregarMinhasTurmas();
 }
 
 // ── Helpers de conteúdo ──────────────────────────────────────

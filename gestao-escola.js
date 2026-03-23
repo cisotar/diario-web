@@ -30,7 +30,7 @@ function _atualizarBotoesGestao() {
       const btn2 = document.createElement("button");
       btn2.className   = "btn-gestao-sidebar";
       btn2.id          = "btn-meu-diario";
-      btn2.textContent = "👨‍🏫 Painel Professor";
+      btn2.textContent = "👨‍🏫 Painel do Professor";
       btn2.onclick     = _abrirPainelProfessor;
       btnEl?.parentNode.insertBefore(btn2, btnEl.nextSibling);
     }
@@ -52,7 +52,7 @@ function _atualizarBotoesGestao() {
       const btn = document.createElement("button");
       btn.className   = "btn-gestao-sidebar";
       btn.id          = "btn-painel-prof";
-      btn.textContent = "⚙ Meu Painel";
+      btn.textContent = "⚙ Painel do Professor";
       btn.onclick     = _abrirPainelProfessor;
       btnEl?.parentNode.appendChild(btn);
     }
@@ -94,7 +94,7 @@ function _abrirPainelProfessor(abaInicial) {
     { id:"conteudos",     label:"📝 Conteúdos",       fn: htmlGestaoConteudos },
     { id:"perfil",        label:"👤 Meu Perfil",       fn: htmlGestaoPerfil    },
   ];
-  _renderizarPainel("📓 Meu Diário", tabs, aba);
+  _renderizarPainel("👨‍🏫 Painel do Professor", tabs, aba);
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -110,17 +110,46 @@ function _abrirPainelCoordenador() {
 }
 
 // ── Motor genérico de painel com abas ───────────────────────────
+
+// Mapa de funções de aba — preenchido por _renderizarPainel
+const _abaFns = {};
+
+// Carrega o conteúdo de uma aba de forma segura:
+// detecta automaticamente se a função é async e usa .then()
+function _carregarAba(abaId) {
+  const sec = document.getElementById("g-" + abaId);
+  const fn  = _abaFns[abaId];
+  if (!sec || !fn) return;
+
+  const resultado = fn();
+
+  if (resultado && typeof resultado.then === "function") {
+    sec.innerHTML = "<div style='padding:20px;color:var(--text-muted)'>⏳ Carregando…</div>";
+    resultado.then(h => { sec.innerHTML = h; sec.dataset.loaded = "1"; });
+  } else {
+    sec.innerHTML = resultado || "";
+    sec.dataset.loaded = "1";
+  }
+
+  // Callbacks especiais pós-render
+  if (abaId === "usuarios") _carregarUsuarios();
+  if (abaId === "diarios")  _carregarDiariosCoord();
+}
+
 function _renderizarPainel(titulo, tabs, abaAtiva, extraBtns) {
   const tabsHtml = tabs.map(t =>
     `<button class="gtab${t.id===abaAtiva?" ativo":""}"
        onclick="_trocarAba(this,'g-${t.id}','${t.id}')">${t.label}</button>`
   ).join("");
 
-  const secoesHtml = tabs.map(t => {
-    const conteudo = t.id === abaAtiva ? t.fn() : "";
-    return `<div id="g-${t.id}" class="gestao-secao${t.id===abaAtiva?" ativa":""}"
-      data-loaded="${t.id===abaAtiva?'1':'0'}">${conteudo}</div>`;
-  }).join("");
+  // Todas as seções nascem vazias — a ativa carrega via _carregarAba()
+  const secoesHtml = tabs.map(t =>
+    `<div id="g-${t.id}" class="gestao-secao${t.id===abaAtiva?" ativa":""}"
+      data-loaded="0"></div>`
+  ).join("");
+
+  // Registra todas as funções no mapa
+  tabs.forEach(t => { _abaFns[t.id] = t.fn; });
 
   document.getElementById("conteudo-principal").innerHTML = `
     <div class="gestao-painel">
@@ -135,9 +164,8 @@ function _renderizarPainel(titulo, tabs, abaAtiva, extraBtns) {
       ${secoesHtml}
     </div>`;
 
-  // Pós-render para abas async (usuários, diários)
-  if (abaAtiva === "usuarios")  _carregarUsuarios();
-  if (abaAtiva === "diarios")   _carregarDiariosCoord();
+  // Carrega a aba ativa
+  _carregarAba(abaAtiva);
 }
 
 function _trocarAba(btn, secId, abaId) {
@@ -145,22 +173,10 @@ function _trocarAba(btn, secId, abaId) {
   document.querySelectorAll(".gestao-secao").forEach(s => s.classList.remove("ativa"));
   btn.classList.add("ativo");
   const sec = document.getElementById(secId);
+  if (!sec) return;
   sec.classList.add("ativa");
   if (sec.dataset.loaded === "1") return;
-  sec.dataset.loaded = "1";
-  // Renderiza conteúdo da aba sob demanda
-  switch(abaId) {
-    case "turmas":       sec.innerHTML = htmlEscolaTurmas();       break;
-    case "horarios":     sec.innerHTML = "<div style='padding:20px;color:var(--text-muted)'>⏳ Carregando…</div>"; htmlAdmHorarios().then(h => { sec.innerHTML = h; sec.dataset.loaded="1"; }); break;
-    case "disciplinas":  sec.innerHTML = htmlEscolaDisciplinas();  break;
-    case "periodos":     sec.innerHTML = htmlEscolaPeriodos();     break;
-    case "bimestres":    sec.innerHTML = htmlGestaoBimestres();    break;
-    case "perfil":       sec.innerHTML = htmlGestaoPerfil();       break;
-    case "conteudos":    sec.innerHTML = htmlGestaoConteudos();    break;
-    case "minhas-turmas": sec.innerHTML = htmlProfTurmas();        break;
-    case "usuarios":     sec.innerHTML = htmlGestaoUsuarios(); _carregarUsuarios();  break;
-    case "diarios":      sec.innerHTML = htmlGestaoDiarios();  _carregarDiariosCoord(); break;
-  }
+  _carregarAba(abaId);
 }
 
 // Alias para compatibilidade com código legado
@@ -993,24 +1009,21 @@ async function admHVerTodas() {
     }
   };
 
-  // Coleta chaves serie|turma|disciplina já registradas pelos professores
-  const chavesProfSet = new Set();
+  // Coleta todas as turmaIds já registradas pelos professores (evita duplicata com seed)
+  const turmaIdsProfs = new Set();
   for (const [uid, perf] of Object.entries(profs)) {
     if (_isAdmin(perf.email)) continue;
     try {
       const dSnap = await db.collection("diario").doc(uid).get();
       if (dSnap.exists) {
-        JSON.parse(dSnap.data().RT_TURMAS||"[]").forEach(t => {
-          chavesProfSet.add(`${t.serie}|${t.turma}|${t.disciplina}`);
-        });
+        JSON.parse(dSnap.data().RT_TURMAS||"[]").forEach(t => turmaIdsProfs.add(t.id));
       }
     } catch(e) {}
   }
 
-  // Seed do admin: só adiciona se nenhum professor já tem essa serie+turma+disciplina
+  // Seed do admin: só adiciona turmas que não estão em nenhum diário de professor
   RT_TURMAS.forEach(t => {
-    const chave = `${t.serie}|${t.turma}|${t.disciplina}`;
-    if (!chavesProfSet.has(chave)) {
+    if (!turmaIdsProfs.has(t.id)) {
       addEntrada(t, t.profUid||"global",
         t.profUid==="global"||!t.profUid ? "Admin" : (profs[t.profUid]?.nome||t.profUid));
     }

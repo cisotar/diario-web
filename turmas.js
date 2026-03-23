@@ -18,7 +18,8 @@ const TURMAS = [
         "aula": "t7"
       }
     ],
-    "periodo": "tarde"
+    "periodo": "tarde",
+    "profUid": "global"
   },
   {
     "id": "1E_GEO",
@@ -37,7 +38,8 @@ const TURMAS = [
         "aula": "t3"
       }
     ],
-    "periodo": "tarde"
+    "periodo": "tarde",
+    "profUid": "global"
   },
   {
     "id": "2A_GEO",
@@ -56,7 +58,8 @@ const TURMAS = [
         "aula": "t6"
       }
     ],
-    "periodo": "tarde"
+    "periodo": "tarde",
+    "profUid": "global"
   },
   {
     "id": "2B_GEO",
@@ -75,7 +78,8 @@ const TURMAS = [
         "aula": "t5"
       }
     ],
-    "periodo": "tarde"
+    "periodo": "tarde",
+    "profUid": "global"
   },
   {
     "id": "2C_GEO",
@@ -94,7 +98,8 @@ const TURMAS = [
         "aula": "t2"
       }
     ],
-    "periodo": "tarde"
+    "periodo": "tarde",
+    "profUid": "global"
   },
   {
     "id": "2A_SOC",
@@ -113,7 +118,8 @@ const TURMAS = [
         "aula": "t7"
       }
     ],
-    "periodo": "tarde"
+    "periodo": "tarde",
+    "profUid": "global"
   },
   {
     "id": "2B_SOC",
@@ -132,7 +138,8 @@ const TURMAS = [
         "aula": "t1"
       }
     ],
-    "periodo": "tarde"
+    "periodo": "tarde",
+    "profUid": "global"
   },
   {
     "id": "2C_SOC",
@@ -151,7 +158,8 @@ const TURMAS = [
         "aula": "t7"
       }
     ],
-    "periodo": "tarde"
+    "periodo": "tarde",
+    "profUid": "global"
   },
   {
     "id": "3B_ATUAL",
@@ -170,7 +178,8 @@ const TURMAS = [
         "aula": "t4"
       }
     ],
-    "periodo": "tarde"
+    "periodo": "tarde",
+    "profUid": "global"
   },
   {
     "id": "1A_D1_glob",
