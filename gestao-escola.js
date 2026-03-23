@@ -30,7 +30,7 @@ function _atualizarBotoesGestao() {
       const btn2 = document.createElement("button");
       btn2.className   = "btn-gestao-sidebar";
       btn2.id          = "btn-meu-diario";
-      btn2.textContent = "👨‍🏫 Painel Professor";
+      btn2.textContent = "👨‍🏫 Painel do Professor";
       btn2.onclick     = _abrirPainelProfessor;
       btnEl?.parentNode.insertBefore(btn2, btnEl.nextSibling);
     }
@@ -78,7 +78,6 @@ function _abrirPainelEscola(abaInicial) {
     { id:"bimestres",   label:"📅 Bimestres",        fn: htmlGestaoBimestres   },
     { id:"usuarios",    label:"👥 Usuários",          fn: htmlGestaoUsuarios, async: true },
     { id:"diarios",     label:"📋 Diários",           fn: htmlGestaoDiarios, async: true },
-    { id:"manutencao",  label:"🔧 Manutenção",         fn: htmlAdmManutencao },
   ];
   _renderizarPainel("⚙ Painel de Gestão ADM", tabs, aba,
     `<button class="btn-exportar-js" onclick="exportarJS()" style="font-size:.8rem">⬇ aulas.js</button>`);
@@ -95,7 +94,7 @@ function _abrirPainelProfessor(abaInicial) {
     { id:"conteudos",     label:"📝 Conteúdos",       fn: htmlGestaoConteudos },
     { id:"perfil",        label:"👤 Meu Perfil",       fn: htmlGestaoPerfil    },
   ];
-  _renderizarPainel("📓 Meu Diário", tabs, aba);
+  _renderizarPainel("👨‍🏫 Painel do Professor", tabs, aba);
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -111,17 +110,42 @@ function _abrirPainelCoordenador() {
 }
 
 // ── Motor genérico de painel com abas ───────────────────────────
+// Carrega o conteúdo de uma aba — funciona para funções síncronas e assíncronas
+function _carregarAba(abaId, tabsFn) {
+  const sec = document.getElementById("g-" + abaId);
+  if (!sec) return;
+  const fn = tabsFn[abaId];
+  if (!fn) return;
+  const resultado = fn();
+  if (resultado && typeof resultado.then === "function") {
+    sec.innerHTML = "<div style='padding:20px;color:var(--text-muted)'>⏳ Carregando…</div>";
+    resultado.then(h => { sec.innerHTML = h; sec.dataset.loaded = "1"; });
+  } else {
+    sec.innerHTML = resultado || "";
+    sec.dataset.loaded = "1";
+  }
+  // Callbacks especiais pós-render
+  if (abaId === "usuarios")  _carregarUsuarios();
+  if (abaId === "diarios")   _carregarDiariosCoord();
+}
+
+// Mapa de funções de aba — centralizado para evitar switch gigante
+const _abaFns = {};
+
 function _renderizarPainel(titulo, tabs, abaAtiva, extraBtns) {
   const tabsHtml = tabs.map(t =>
     `<button class="gtab${t.id===abaAtiva?" ativo":""}"
        onclick="_trocarAba(this,'g-${t.id}','${t.id}')">${t.label}</button>`
   ).join("");
 
-  const secoesHtml = tabs.map(t => {
-    const conteudo = t.id === abaAtiva ? t.fn() : "";
-    return `<div id="g-${t.id}" class="gestao-secao${t.id===abaAtiva?" ativa":""}"
-      data-loaded="${t.id===abaAtiva?'1':'0'}">${conteudo}</div>`;
-  }).join("");
+  // Todas as seções começam vazias — a aba ativa carrega via _carregarAba
+  const secoesHtml = tabs.map(t =>
+    `<div id="g-${t.id}" class="gestao-secao${t.id===abaAtiva?" ativa":""}"
+      data-loaded="0"></div>`
+  ).join("");
+
+  // Registra as funções no mapa
+  tabs.forEach(t => { _abaFns[t.id] = t.fn; });
 
   document.getElementById("conteudo-principal").innerHTML = `
     <div class="gestao-painel">
@@ -136,9 +160,8 @@ function _renderizarPainel(titulo, tabs, abaAtiva, extraBtns) {
       ${secoesHtml}
     </div>`;
 
-  // Pós-render para abas async (usuários, diários)
-  if (abaAtiva === "usuarios")  _carregarUsuarios();
-  if (abaAtiva === "diarios")   _carregarDiariosCoord();
+  // Carrega a aba ativa
+  _carregarAba(abaAtiva, _abaFns);
 }
 
 function _trocarAba(btn, secId, abaId) {
@@ -146,23 +169,10 @@ function _trocarAba(btn, secId, abaId) {
   document.querySelectorAll(".gestao-secao").forEach(s => s.classList.remove("ativa"));
   btn.classList.add("ativo");
   const sec = document.getElementById(secId);
+  if (!sec) return;
   sec.classList.add("ativa");
   if (sec.dataset.loaded === "1") return;
-  sec.dataset.loaded = "1";
-  // Renderiza conteúdo da aba sob demanda
-  switch(abaId) {
-    case "turmas":       sec.innerHTML = htmlEscolaTurmas();       break;
-    case "horarios":     sec.innerHTML = "<div style='padding:20px;color:var(--text-muted)'>⏳ Carregando…</div>"; htmlAdmHorarios().then(h => { sec.innerHTML = h; sec.dataset.loaded="1"; }); break;
-    case "manutencao":  sec.innerHTML = htmlAdmManutencao(); break;
-    case "disciplinas":  sec.innerHTML = htmlEscolaDisciplinas();  break;
-    case "periodos":     sec.innerHTML = htmlEscolaPeriodos();     break;
-    case "bimestres":    sec.innerHTML = htmlGestaoBimestres();    break;
-    case "perfil":       sec.innerHTML = htmlGestaoPerfil();       break;
-    case "conteudos":    sec.innerHTML = htmlGestaoConteudos();    break;
-    case "minhas-turmas": sec.innerHTML = htmlProfTurmas();        break;
-    case "usuarios":     sec.innerHTML = htmlGestaoUsuarios(); _carregarUsuarios();  break;
-    case "diarios":      sec.innerHTML = htmlGestaoDiarios();  _carregarDiariosCoord(); break;
-  }
+  _carregarAba(abaId, _abaFns);
 }
 
 // Alias para compatibilidade com código legado
@@ -1073,149 +1083,4 @@ async function admHVerTodas() {
       <span style="font-size:.85rem;color:var(--text-muted)">${chaves.length} turma(s) com horários cadastrados</span>
     </div>
     ${grades}`;
-}
-
-// ════════════════════════════════════════════════════════════════
-// ABA: MANUTENÇÃO (admin) — limpeza e correções de dados
-// ════════════════════════════════════════════════════════════════
-
-function htmlAdmManutencao() {
-  return `
-    <div class="gestao-bloco" style="max-width:640px">
-      <div class="gestao-bloco-header">
-        <h3>🔧 Manutenção de Dados</h3>
-      </div>
-
-      <div style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px">
-        <h4 style="margin:0 0 8px;font-size:.95rem">Padronizar subtítulos das turmas</h4>
-        <p class="gestao-hint" style="margin-bottom:12px">
-          Remove variações como "(ADM)", "ADM", "TARDE", "(HUM)" etc. dos subtítulos de todas as turmas
-          em todos os diários. Executa uma única vez. Não afeta dados de aulas, chamadas ou notas.
-        </p>
-        <div style="margin-bottom:10px">
-          <label style="font-size:.82rem;font-weight:600;color:var(--text-mid)">
-            Subtítulo final para turmas de Ensino Médio (deixe em branco para remover):
-            <input class="gi" id="mnt-subtitulo-em" value="" placeholder="ex: TARDE (ou vazio)" style="margin-top:4px;max-width:200px">
-          </label>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button type="button" class="btn-modal-ok" onclick="admLimparSubtitulos()">
-            Executar limpeza
-          </button>
-          <span id="mnt-status" style="font-size:.82rem;color:var(--text-muted)"></span>
-        </div>
-      </div>
-
-      <div style="border:1px solid var(--border);border-radius:8px;padding:16px">
-        <h4 style="margin:0 0 8px;font-size:.95rem">Remover turmas sem horários</h4>
-        <p class="gestao-hint" style="margin-bottom:12px">
-          Remove entradas de turmas que não têm nenhum horário cadastrado em nenhum diário.
-          Útil para limpar entradas órfãs criadas acidentalmente.
-        </p>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button type="button" class="btn-modal-ok" onclick="admRemoverTurmasSemHorario()">
-            Executar limpeza
-          </button>
-          <span id="mnt-status2" style="font-size:.82rem;color:var(--text-muted)"></span>
-        </div>
-      </div>
-    </div>`;
-}
-
-async function admLimparSubtitulos() {
-  const novoSub = document.getElementById("mnt-subtitulo-em")?.value.trim() || "";
-  const status  = document.getElementById("mnt-status");
-  if (!confirm(`Padronizar subtítulos de TODAS as turmas de Ensino Médio para "${novoSub||"(vazio)"}"?\nEsta operação não pode ser desfeita.`)) return;
-  if (status) status.textContent = "⏳ Processando…";
-
-  const db   = firebase.firestore();
-  let totalEditado = 0;
-
-  // Função que limpa subtítulos em um array de turmas
-  const limpar = (turmas) => {
-    let alterou = false;
-    for (const t of turmas) {
-      // Só turmas de ensino médio (série 1, 2, 3)
-      if (!["1","2","3"].includes(String(t.serie))) continue;
-      if (t.subtitulo !== novoSub) {
-        t.subtitulo = novoSub;
-        alterou = true;
-        totalEditado++;
-      }
-    }
-    return alterou;
-  };
-
-  // 1. Limpa diario/global (RT_TURMAS em memória + Firestore)
-  const alterouLocal = limpar(RT_TURMAS);
-  if (alterouLocal) salvarTudo();
-
-  // 2. Limpa diários de todos os professores
-  try {
-    const snap = await db.collection("professores").where("status","==","aprovado").get();
-    for (const doc of snap.docs) {
-      if (_isAdmin(doc.data().email)) continue;
-      const uid = doc.id;
-      const dSnap = await db.collection("diario").doc(uid).get();
-      if (!dSnap.exists) continue;
-      const turmas = JSON.parse(dSnap.data().RT_TURMAS || "[]");
-      if (limpar(turmas)) {
-        await db.collection("diario").doc(uid).update({ RT_TURMAS: JSON.stringify(turmas) });
-      }
-    }
-  } catch(e) {
-    if (status) status.textContent = "❌ Erro: " + e.message;
-    return;
-  }
-
-  // 3. Limpa turmas-base em RT_CONFIG
-  if (Array.isArray(RT_CONFIG.turmasBase)) {
-    let alterouBase = false;
-    for (const tb of RT_CONFIG.turmasBase) {
-      if (!["1","2","3"].includes(String(tb.serie))) continue;
-      if (tb.subtitulo !== novoSub) { tb.subtitulo = novoSub; alterouBase = true; }
-    }
-    if (alterouBase) await _salvarConfigEscola();
-  }
-
-  _invalidarHorariosCache?.();
-  if (status) status.textContent = `✓ ${totalEditado} entrada(s) corrigida(s).`;
-}
-
-async function admRemoverTurmasSemHorario() {
-  const status = document.getElementById("mnt-status2");
-  if (!confirm("Remover todas as entradas de turmas sem horários em todos os diários?")) return;
-  if (status) status.textContent = "⏳ Processando…";
-
-  const db = firebase.firestore();
-  let total = 0;
-
-  const limpar = (turmas) => {
-    const antes = turmas.length;
-    const depois = turmas.filter(t => (t.horarios||[]).length > 0);
-    total += antes - depois.length;
-    return { alterou: depois.length < antes, turmas: depois };
-  };
-
-  // diario/global
-  const { alterou: a1, turmas: t1 } = limpar([...RT_TURMAS]);
-  if (a1) { RT_TURMAS.length = 0; t1.forEach(t => RT_TURMAS.push(t)); salvarTudo(); }
-
-  // diários dos professores
-  try {
-    const snap = await db.collection("professores").where("status","==","aprovado").get();
-    for (const doc of snap.docs) {
-      if (_isAdmin(doc.data().email)) continue;
-      const dSnap = await db.collection("diario").doc(doc.id).get();
-      if (!dSnap.exists) continue;
-      const { alterou, turmas } = limpar(JSON.parse(dSnap.data().RT_TURMAS || "[]"));
-      if (alterou) await db.collection("diario").doc(doc.id).update({ RT_TURMAS: JSON.stringify(turmas) });
-    }
-  } catch(e) {
-    if (status) status.textContent = "❌ Erro: " + e.message;
-    return;
-  }
-
-  _invalidarHorariosCache?.();
-  if (status) status.textContent = `✓ ${total} entrada(s) removida(s).`;
 }
