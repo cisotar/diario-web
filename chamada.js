@@ -166,15 +166,22 @@ async function _renderizarChamadaDesktop() {
   };
 
   const rows = alunos.map(a => {
-    // TF e %F calculados sobre todas as datas passadas do bimestre
+    // TF e %F calculados sobre TODOS OS SLOTS passados do bimestre
+    // (um dia com 2 aulas conta como 2 slots)
     let totalAulas  = 0;
     let totalFaltas = 0;
     const isEE = a.situacao === "EE";
-    for (const d of datasPassadas) {
-      if (!_alunoAtivoNaData(a, d)) continue;
+    for (const s of slotsPassados) {
+      if (!_alunoAtivoNaData(a, s.data)) continue;
       totalAulas++;
-      // EE nunca tem falta
-      if (!isEE && (chamadas[d] || {})[a.num] === "F") totalFaltas++;
+      if (!isEE) {
+        const slotKey = _chaveSlotChamada(s.data, s.aula);
+        // Tenta chave por slot primeiro, depois chave por data (legado)
+        const regSlot = (chamadas[slotKey] || {})[a.num];
+        const regData = (chamadas[s.data] || {})[a.num];
+        const val = regSlot !== undefined ? regSlot : regData;
+        if (val === "F") totalFaltas++;
+      }
     }
 
     const tds = slotsVisiveis.map(s => {
