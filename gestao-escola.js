@@ -30,7 +30,7 @@ function _atualizarBotoesGestao() {
       const btn2 = document.createElement("button");
       btn2.className   = "btn-gestao-sidebar";
       btn2.id          = "btn-meu-diario";
-      btn2.textContent = "👨‍🏫 Painel Professor";
+      btn2.textContent = "👨‍🏫 Painel do Professor";
       btn2.onclick     = _abrirPainelProfessor;
       btnEl?.parentNode.insertBefore(btn2, btnEl.nextSibling);
     }
@@ -52,7 +52,7 @@ function _atualizarBotoesGestao() {
       const btn = document.createElement("button");
       btn.className   = "btn-gestao-sidebar";
       btn.id          = "btn-painel-prof";
-      btn.textContent = "⚙ Meu Painel";
+      btn.textContent = "⚙ Painel do Professor";
       btn.onclick     = _abrirPainelProfessor;
       btnEl?.parentNode.appendChild(btn);
     }
@@ -94,7 +94,7 @@ function _abrirPainelProfessor(abaInicial) {
     { id:"conteudos",     label:"📝 Conteúdos",       fn: htmlGestaoConteudos },
     { id:"perfil",        label:"👤 Meu Perfil",       fn: htmlGestaoPerfil    },
   ];
-  _renderizarPainel("📓 Meu Diário", tabs, aba);
+  _renderizarPainel("👨‍🏫 Painel do Professor", tabs, aba);
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -698,9 +698,8 @@ async function htmlAdmHorarios() {
             <option value="">—</option>
           </select>
         </label>
-      </div>
-      <button type="button" class="btn-add" onclick="admHVerTodas()"
-        style="align-self:flex-end;margin-bottom:0">📋 Ver Todas</button>
+        <button type="button" class="btn-add" onclick="admHVerTodas()"
+          style="align-self:flex-end;margin-bottom:0">📋 Ver Todas</button>
       </div>
       <div id="adm-h-grade"></div>
     </div>
@@ -993,31 +992,33 @@ async function admHVerTodas() {
     }
   };
 
-  // Carrega diários dos professores UMA única vez (evita double-fetch)
-  const diariosProfs = {};
-  const chavesProfSet = new Set(); // serie|turma|disciplina já nos diários
+  // Coleta todas as turmaIds já registradas pelos professores (evita duplicata com seed)
+  const turmaIdsProfs = new Set();
   for (const [uid, perf] of Object.entries(profs)) {
     if (_isAdmin(perf.email)) continue;
     try {
       const dSnap = await db.collection("diario").doc(uid).get();
-      if (!dSnap.exists) continue;
-      const turmas = JSON.parse(dSnap.data().RT_TURMAS||"[]");
-      diariosProfs[uid] = turmas;
-      turmas.forEach(t => chavesProfSet.add(`${t.serie}|${t.turma}|${t.disciplina}`));
+      if (dSnap.exists) {
+        JSON.parse(dSnap.data().RT_TURMAS||"[]").forEach(t => turmaIdsProfs.add(t.id));
+      }
     } catch(e) {}
   }
 
-  // Seed do admin: só adiciona se nenhum professor já tem essa serie+turma+disciplina
+  // Seed do admin: só adiciona turmas que não estão em nenhum diário de professor
   RT_TURMAS.forEach(t => {
-    if (!chavesProfSet.has(`${t.serie}|${t.turma}|${t.disciplina}`)) {
+    if (!turmaIdsProfs.has(t.id)) {
       addEntrada(t, t.profUid||"global",
         t.profUid==="global"||!t.profUid ? "Admin" : (profs[t.profUid]?.nome||t.profUid));
     }
   });
 
-  // Adiciona turmas dos professores (usando dados já carregados — sem segundo fetch)
-  for (const [uid, turmas] of Object.entries(diariosProfs)) {
-    turmas.forEach(t => addEntrada(t, uid, profs[uid].nome));
+  for (const [uid, perf] of Object.entries(profs)) {
+    if (_isAdmin(perf.email)) continue;
+    try {
+      const dSnap = await db.collection("diario").doc(uid).get();
+      if (!dSnap.exists) continue;
+      JSON.parse(dSnap.data().RT_TURMAS||"[]").forEach(t => addEntrada(t, uid, perf.nome));
+    } catch(e) {}
   }
 
   // Ordena turmas por série → turma
