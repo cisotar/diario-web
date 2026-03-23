@@ -981,15 +981,26 @@ async function admHVerTodas() {
   const profs = {};
   snap.docs.forEach(d => { profs[d.id] = { nome: d.data().nome||d.data().email, email: d.data().email }; });
 
-  // Monta mapa global: "serie|turma|periodo" → "dia_aula" → [{...}]
+  // Monta mapa global agrupado SOMENTE por serie|turma (ignora subtítulo e turno)
   const mapaGlobal = {};
+  const metaTurma  = {}; // serie|turma → {periodo, subtitulo} da turma-base
+  // Pré-popula metadados das turmas-base
+  const base = RT_CONFIG.turmasBase || TURMAS_BASE || [];
+  base.forEach(tb => {
+    const key = `${tb.serie}|${tb.turma}`;
+    if (!metaTurma[key]) metaTurma[key] = { periodo: tb.periodo||"manha", subtitulo: tb.subtitulo||"" };
+  });
   const addEntrada = (t, profUid, profNome) => {
-    const key = `${t.serie}|${t.turma}|${t.subtitulo||""}|${t.periodo||"manha"}`;
+    const key = `${t.serie}|${t.turma}`;
     if (!mapaGlobal[key]) mapaGlobal[key] = {};
+    // Registra metadados se ainda não existir
+    if (!metaTurma[key]) metaTurma[key] = { periodo: t.periodo||"manha", subtitulo: t.subtitulo||"" };
     for (const h of (t.horarios||[])) {
       const chave = `${h.diaSemana}_${h.aula}`;
       if (!mapaGlobal[key][chave]) mapaGlobal[key][chave] = [];
-      mapaGlobal[key][chave].push({ turmaId: t.id, disciplina: t.disciplina, sigla: t.sigla, profUid, profNome });
+      // Evita duplicatas: mesma turmaId+diaSemana+aula
+      const jaExiste = mapaGlobal[key][chave].some(e => e.turmaId === t.id);
+      if (!jaExiste) mapaGlobal[key][chave].push({ turmaId: t.id, disciplina: t.disciplina, sigla: t.sigla, profUid, profNome });
     }
   };
 
@@ -1019,9 +1030,11 @@ async function admHVerTodas() {
   const DIAS = [{idx:1,label:"Seg"},{idx:2,label:"Ter"},{idx:3,label:"Qua"},{idx:4,label:"Qui"},{idx:5,label:"Sex"}];
 
   const grades = chaves.map(key => {
-    const [serie, turma, subtitulo, periodo] = key.split("|");
+    const [serie, turma] = key.split("|");
+    const meta = metaTurma[key] || {};
+    const subtitulo = meta.subtitulo || "";
     const mapa = mapaGlobal[key];
-    const turno = periodo||"manha";
+    const turno = meta.periodo || "manha";
     const periodos = RT_PERIODOS.filter(p => (p.turno||"manha") === turno);
 
     const linhas = periodos.map(p => {
