@@ -78,6 +78,7 @@ function _abrirPainelEscola(abaInicial) {
     { id:"bimestres",   label:"📅 Bimestres",        fn: htmlGestaoBimestres   },
     { id:"usuarios",    label:"👥 Usuários",          fn: htmlGestaoUsuarios, async: true },
     { id:"diarios",     label:"📋 Diários",           fn: htmlGestaoDiarios, async: true },
+    { id:"manutencao",  label:"🔧 Manutenção",         fn: htmlAdmManutencao },
   ];
   _renderizarPainel("⚙ Painel de Gestão ADM", tabs, aba,
     `<button class="btn-exportar-js" onclick="exportarJS()" style="font-size:.8rem">⬇ aulas.js</button>`);
@@ -152,6 +153,7 @@ function _trocarAba(btn, secId, abaId) {
   switch(abaId) {
     case "turmas":       sec.innerHTML = htmlEscolaTurmas();       break;
     case "horarios":     sec.innerHTML = "<div style='padding:20px;color:var(--text-muted)'>⏳ Carregando…</div>"; htmlAdmHorarios().then(h => { sec.innerHTML = h; sec.dataset.loaded="1"; }); break;
+    case "manutencao":  sec.innerHTML = htmlAdmManutencao(); break;
     case "disciplinas":  sec.innerHTML = htmlEscolaDisciplinas();  break;
     case "periodos":     sec.innerHTML = htmlEscolaPeriodos();     break;
     case "bimestres":    sec.innerHTML = htmlGestaoBimestres();    break;
@@ -981,26 +983,15 @@ async function admHVerTodas() {
   const profs = {};
   snap.docs.forEach(d => { profs[d.id] = { nome: d.data().nome||d.data().email, email: d.data().email }; });
 
-  // Monta mapa global agrupado SOMENTE por serie|turma (ignora subtítulo e turno)
+  // Monta mapa global: "serie|turma|periodo" → "dia_aula" → [{...}]
   const mapaGlobal = {};
-  const metaTurma  = {}; // serie|turma → {periodo, subtitulo} da turma-base
-  // Pré-popula metadados das turmas-base
-  const base = RT_CONFIG.turmasBase || TURMAS_BASE || [];
-  base.forEach(tb => {
-    const key = `${tb.serie}|${tb.turma}`;
-    if (!metaTurma[key]) metaTurma[key] = { periodo: tb.periodo||"manha", subtitulo: tb.subtitulo||"" };
-  });
   const addEntrada = (t, profUid, profNome) => {
-    const key = `${t.serie}|${t.turma}`;
+    const key = `${t.serie}|${t.turma}|${t.subtitulo||""}|${t.periodo||"manha"}`;
     if (!mapaGlobal[key]) mapaGlobal[key] = {};
-    // Registra metadados se ainda não existir
-    if (!metaTurma[key]) metaTurma[key] = { periodo: t.periodo||"manha", subtitulo: t.subtitulo||"" };
     for (const h of (t.horarios||[])) {
       const chave = `${h.diaSemana}_${h.aula}`;
       if (!mapaGlobal[key][chave]) mapaGlobal[key][chave] = [];
-      // Evita duplicatas: mesma turmaId+diaSemana+aula
-      const jaExiste = mapaGlobal[key][chave].some(e => e.turmaId === t.id);
-      if (!jaExiste) mapaGlobal[key][chave].push({ turmaId: t.id, disciplina: t.disciplina, sigla: t.sigla, profUid, profNome });
+      mapaGlobal[key][chave].push({ turmaId: t.id, disciplina: t.disciplina, sigla: t.sigla, profUid, profNome });
     }
   };
 
@@ -1030,11 +1021,9 @@ async function admHVerTodas() {
   const DIAS = [{idx:1,label:"Seg"},{idx:2,label:"Ter"},{idx:3,label:"Qua"},{idx:4,label:"Qui"},{idx:5,label:"Sex"}];
 
   const grades = chaves.map(key => {
-    const [serie, turma] = key.split("|");
-    const meta = metaTurma[key] || {};
-    const subtitulo = meta.subtitulo || "";
+    const [serie, turma, subtitulo, periodo] = key.split("|");
     const mapa = mapaGlobal[key];
-    const turno = meta.periodo || "manha";
+    const turno = periodo||"manha";
     const periodos = RT_PERIODOS.filter(p => (p.turno||"manha") === turno);
 
     const linhas = periodos.map(p => {
@@ -1084,4 +1073,149 @@ async function admHVerTodas() {
       <span style="font-size:.85rem;color:var(--text-muted)">${chaves.length} turma(s) com horários cadastrados</span>
     </div>
     ${grades}`;
+}
+
+// ════════════════════════════════════════════════════════════════
+// ABA: MANUTENÇÃO (admin) — limpeza e correções de dados
+// ════════════════════════════════════════════════════════════════
+
+function htmlAdmManutencao() {
+  return `
+    <div class="gestao-bloco" style="max-width:640px">
+      <div class="gestao-bloco-header">
+        <h3>🔧 Manutenção de Dados</h3>
+      </div>
+
+      <div style="border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:16px">
+        <h4 style="margin:0 0 8px;font-size:.95rem">Padronizar subtítulos das turmas</h4>
+        <p class="gestao-hint" style="margin-bottom:12px">
+          Remove variações como "(ADM)", "ADM", "TARDE", "(HUM)" etc. dos subtítulos de todas as turmas
+          em todos os diários. Executa uma única vez. Não afeta dados de aulas, chamadas ou notas.
+        </p>
+        <div style="margin-bottom:10px">
+          <label style="font-size:.82rem;font-weight:600;color:var(--text-mid)">
+            Subtítulo final para turmas de Ensino Médio (deixe em branco para remover):
+            <input class="gi" id="mnt-subtitulo-em" value="" placeholder="ex: TARDE (ou vazio)" style="margin-top:4px;max-width:200px">
+          </label>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button type="button" class="btn-modal-ok" onclick="admLimparSubtitulos()">
+            Executar limpeza
+          </button>
+          <span id="mnt-status" style="font-size:.82rem;color:var(--text-muted)"></span>
+        </div>
+      </div>
+
+      <div style="border:1px solid var(--border);border-radius:8px;padding:16px">
+        <h4 style="margin:0 0 8px;font-size:.95rem">Remover turmas sem horários</h4>
+        <p class="gestao-hint" style="margin-bottom:12px">
+          Remove entradas de turmas que não têm nenhum horário cadastrado em nenhum diário.
+          Útil para limpar entradas órfãs criadas acidentalmente.
+        </p>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button type="button" class="btn-modal-ok" onclick="admRemoverTurmasSemHorario()">
+            Executar limpeza
+          </button>
+          <span id="mnt-status2" style="font-size:.82rem;color:var(--text-muted)"></span>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function admLimparSubtitulos() {
+  const novoSub = document.getElementById("mnt-subtitulo-em")?.value.trim() || "";
+  const status  = document.getElementById("mnt-status");
+  if (!confirm(`Padronizar subtítulos de TODAS as turmas de Ensino Médio para "${novoSub||"(vazio)"}"?\nEsta operação não pode ser desfeita.`)) return;
+  if (status) status.textContent = "⏳ Processando…";
+
+  const db   = firebase.firestore();
+  let totalEditado = 0;
+
+  // Função que limpa subtítulos em um array de turmas
+  const limpar = (turmas) => {
+    let alterou = false;
+    for (const t of turmas) {
+      // Só turmas de ensino médio (série 1, 2, 3)
+      if (!["1","2","3"].includes(String(t.serie))) continue;
+      if (t.subtitulo !== novoSub) {
+        t.subtitulo = novoSub;
+        alterou = true;
+        totalEditado++;
+      }
+    }
+    return alterou;
+  };
+
+  // 1. Limpa diario/global (RT_TURMAS em memória + Firestore)
+  const alterouLocal = limpar(RT_TURMAS);
+  if (alterouLocal) salvarTudo();
+
+  // 2. Limpa diários de todos os professores
+  try {
+    const snap = await db.collection("professores").where("status","==","aprovado").get();
+    for (const doc of snap.docs) {
+      if (_isAdmin(doc.data().email)) continue;
+      const uid = doc.id;
+      const dSnap = await db.collection("diario").doc(uid).get();
+      if (!dSnap.exists) continue;
+      const turmas = JSON.parse(dSnap.data().RT_TURMAS || "[]");
+      if (limpar(turmas)) {
+        await db.collection("diario").doc(uid).update({ RT_TURMAS: JSON.stringify(turmas) });
+      }
+    }
+  } catch(e) {
+    if (status) status.textContent = "❌ Erro: " + e.message;
+    return;
+  }
+
+  // 3. Limpa turmas-base em RT_CONFIG
+  if (Array.isArray(RT_CONFIG.turmasBase)) {
+    let alterouBase = false;
+    for (const tb of RT_CONFIG.turmasBase) {
+      if (!["1","2","3"].includes(String(tb.serie))) continue;
+      if (tb.subtitulo !== novoSub) { tb.subtitulo = novoSub; alterouBase = true; }
+    }
+    if (alterouBase) await _salvarConfigEscola();
+  }
+
+  _invalidarHorariosCache?.();
+  if (status) status.textContent = `✓ ${totalEditado} entrada(s) corrigida(s).`;
+}
+
+async function admRemoverTurmasSemHorario() {
+  const status = document.getElementById("mnt-status2");
+  if (!confirm("Remover todas as entradas de turmas sem horários em todos os diários?")) return;
+  if (status) status.textContent = "⏳ Processando…";
+
+  const db = firebase.firestore();
+  let total = 0;
+
+  const limpar = (turmas) => {
+    const antes = turmas.length;
+    const depois = turmas.filter(t => (t.horarios||[]).length > 0);
+    total += antes - depois.length;
+    return { alterou: depois.length < antes, turmas: depois };
+  };
+
+  // diario/global
+  const { alterou: a1, turmas: t1 } = limpar([...RT_TURMAS]);
+  if (a1) { RT_TURMAS.length = 0; t1.forEach(t => RT_TURMAS.push(t)); salvarTudo(); }
+
+  // diários dos professores
+  try {
+    const snap = await db.collection("professores").where("status","==","aprovado").get();
+    for (const doc of snap.docs) {
+      if (_isAdmin(doc.data().email)) continue;
+      const dSnap = await db.collection("diario").doc(doc.id).get();
+      if (!dSnap.exists) continue;
+      const { alterou, turmas } = limpar(JSON.parse(dSnap.data().RT_TURMAS || "[]"));
+      if (alterou) await db.collection("diario").doc(doc.id).update({ RT_TURMAS: JSON.stringify(turmas) });
+    }
+  } catch(e) {
+    if (status) status.textContent = "❌ Erro: " + e.message;
+    return;
+  }
+
+  _invalidarHorariosCache?.();
+  if (status) status.textContent = `✓ ${total} entrada(s) removida(s).`;
 }
