@@ -38,9 +38,8 @@ async function _carregarHorariosGlobais() {
       for (const t of turmas) {
         for (const h of (t.horarios || [])) {
           const chave = `${h.diaSemana}_${h.aula}`;
-          if (!cache[chave]) {
-            cache[chave] = { disciplina: t.disciplina, sigla: t.sigla, serie: t.serie, turma: t.turma, profUid: uid };
-          }
+          if (!cache[chave]) cache[chave] = [];
+          cache[chave].push({ disciplina: t.disciplina, sigla: t.sigla, serie: t.serie, turma: t.turma, profUid: uid });
         }
       }
     }
@@ -135,16 +134,21 @@ function _renderGradeTurma(tb, uid, profUid, DIAS, horariosGlobais) {
   const periodos = RT_PERIODOS.filter(p => (p.turno||"manha") === turno);
   if (!periodos.length) return `<p class="gestao-hint">Nenhum período configurado para este turno.</p>`;
 
-  // Horários de TODOS nesta série+turma
+  // Horários de TODOS nesta série+turma — cache agora é array por slot
   const todos = {};
-  // 1. Dos horários globais (Firestore de outros profs)
-  for (const [chave, dados] of Object.entries(horariosGlobais)) {
-    if (dados.serie === tb.serie && dados.turma === tb.turma) {
-      const isPropia = dados.profUid === uid || dados.profUid === profUid;
-      todos[chave] = { ...dados, isPropia };
+  // 1. Dos horários globais (Firestore de outros profs) — itera array
+  for (const [chave, lista] of Object.entries(horariosGlobais)) {
+    for (const dados of lista) {
+      if (dados.serie === tb.serie && dados.turma === tb.turma) {
+        const isPropia = dados.profUid === uid || dados.profUid === profUid;
+        // Próprio sobrescreve (tem botão ×); outro só preenche se slot vazio
+        if (isPropia || !todos[chave]) {
+          todos[chave] = { ...dados, isPropia };
+        }
+      }
     }
   }
-  // 2. Das turmas locais do prof (RT_TURMAS)
+  // 2. Das turmas locais do prof (RT_TURMAS) — sempre sobrescreve com dado local
   for (const t of RT_TURMAS) {
     if (t.serie !== tb.serie || t.turma !== tb.turma) continue;
     const isPropia = t.profUid === uid || t.profUid === profUid;
@@ -382,13 +386,6 @@ function profRemoverHorario(turmaId, aula, diaSemana) {
   profSelecionarTurma();
 }
 
-// Helper: recarrega a seção "Minhas Turmas" de forma segura (async)
-function _recarregarMinhasTurmas() {
-  const sec = document.getElementById("g-minhas-turmas");
-  if (!sec) return;
-  htmlProfTurmas().then(h => { sec.innerHTML = h; });
-}
-
 // Adiciona nova disciplina inline (sem prompt)
 function _autoSigla(ti, disciplina) {
   // Sugere sigla a partir das 3 primeiras letras consoantes ou iniciais
@@ -412,7 +409,7 @@ function addDiscNaTurma(serie, turma, subtitulo, periodo) {
   if (RT_TURMAS.find(t => t.id === id)) return; // evita duplicata rápida
   RT_TURMAS.push({ id, serie, turma, subtitulo, disciplina:"", sigla, horarios:[], profUid, periodo });
   salvarTudo(); renderizarSidebar();
-  _recarregarMinhasTurmas();
+  document.getElementById("g-minhas-turmas").innerHTML = htmlProfTurmas();
 }
 
 
@@ -499,13 +496,13 @@ function addHorario(ti) {
   RT_TURMAS[ti].horarios.push({ diaSemana: 1, aula: prefixo + "1" });
   salvarTudo();
   const el = document.getElementById("g-minhas-turmas");
-  _recarregarMinhasTurmas();
+  if (el) el.innerHTML = htmlProfTurmas();
 }
 function delHorario(ti, hi) {
   RT_TURMAS[ti].horarios.splice(hi, 1);
   salvarTudo();
   const el = document.getElementById("g-minhas-turmas");
-  _recarregarMinhasTurmas();
+  if (el) el.innerHTML = htmlProfTurmas();
 }
 function delTurma(i) {
   const t = RT_TURMAS[i];
@@ -514,7 +511,7 @@ function delTurma(i) {
   salvarTudo();
   renderizarSidebar();
   const el = document.getElementById("g-minhas-turmas");
-  _recarregarMinhasTurmas();
+  if (el) el.innerHTML = htmlProfTurmas();
 }
 
 // ── Helpers de conteúdo ──────────────────────────────────────
