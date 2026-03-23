@@ -993,21 +993,24 @@ async function admHVerTodas() {
     }
   };
 
-  // Coleta todas as turmaIds já registradas pelos professores (evita duplicata com seed)
-  const turmaIdsProfs = new Set();
+  // Coleta chaves serie|turma|disciplina já registradas pelos professores
+  const chavesProfSet = new Set();
   for (const [uid, perf] of Object.entries(profs)) {
     if (_isAdmin(perf.email)) continue;
     try {
       const dSnap = await db.collection("diario").doc(uid).get();
       if (dSnap.exists) {
-        JSON.parse(dSnap.data().RT_TURMAS||"[]").forEach(t => turmaIdsProfs.add(t.id));
+        JSON.parse(dSnap.data().RT_TURMAS||"[]").forEach(t => {
+          chavesProfSet.add(`${t.serie}|${t.turma}|${t.disciplina}`);
+        });
       }
     } catch(e) {}
   }
 
-  // Seed do admin: só adiciona turmas que não estão em nenhum diário de professor
+  // Seed do admin: só adiciona se nenhum professor já tem essa serie+turma+disciplina
   RT_TURMAS.forEach(t => {
-    if (!turmaIdsProfs.has(t.id)) {
+    const chave = `${t.serie}|${t.turma}|${t.disciplina}`;
+    if (!chavesProfSet.has(chave)) {
       addEntrada(t, t.profUid||"global",
         t.profUid==="global"||!t.profUid ? "Admin" : (profs[t.profUid]?.nome||t.profUid));
     }
