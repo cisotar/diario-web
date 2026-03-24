@@ -148,11 +148,11 @@ async function _renderizarChamadaDesktop() {
     const dia    = s.data.split("-")[2];
     const title  = s.inicio ? `${dia} · ${s.inicio}` : dia;
     return `<th class="th-data-chamada${isSel ? " th-data-sel" : ""}" title="${title}">
-      ${dia}
+      <span class="th-dia-num">${dia}</span>
       ${isPast ? `<div class="th-dia-popover">
-        <button type="button" class="btn-lote" style="font-size:.6rem;padding:2px 4px"
+        <button type="button" class="btn-lote"
           onclick="chamadaTodosData('${turmaKey}','${s.data}','C')">C</button>
-        <button type="button" class="btn-lote btn-lote-off" style="font-size:.6rem;padding:2px 4px"
+        <button type="button" class="btn-lote btn-lote-off"
           onclick="chamadaTodosData('${turmaKey}','${s.data}','F')">F</button>
       </div>` : ""}
     </th>`;
@@ -166,22 +166,15 @@ async function _renderizarChamadaDesktop() {
   };
 
   const rows = alunos.map(a => {
-    // TF e %F calculados sobre TODOS OS SLOTS passados do bimestre
-    // (um dia com 2 aulas conta como 2 slots)
+    // TF e %F calculados sobre todas as datas passadas do bimestre
     let totalAulas  = 0;
     let totalFaltas = 0;
     const isEE = a.situacao === "EE";
-    for (const s of slotsPassados) {
-      if (!_alunoAtivoNaData(a, s.data)) continue;
+    for (const d of datasPassadas) {
+      if (!_alunoAtivoNaData(a, d)) continue;
       totalAulas++;
-      if (!isEE) {
-        const slotKey = _chaveSlotChamada(s.data, s.aula);
-        // Tenta chave por slot primeiro, depois chave por data (legado)
-        const regSlot = (chamadas[slotKey] || {})[a.num];
-        const regData = (chamadas[s.data] || {})[a.num];
-        const val = regSlot !== undefined ? regSlot : regData;
-        if (val === "F") totalFaltas++;
-      }
+      // EE nunca tem falta
+      if (!isEE && (chamadas[d] || {})[a.num] === "F") totalFaltas++;
     }
 
     const tds = slotsVisiveis.map(s => {
