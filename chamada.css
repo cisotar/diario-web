@@ -1,0 +1,267 @@
+/* ============================================================
+   CHAMADA.CSS — Tabela de Chamadas · Diário de Classe 2026
+   Depende das variáveis CSS definidas em style.css (:root)
+   ============================================================ */
+
+/* ── Abas cronograma / chamada ──────────────────────────────── */
+.tabs-cronograma-aba {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.tab-aba {
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: 6px 6px 0 0;
+  padding: 6px 16px;
+  font-size: .85rem;
+  color: var(--text-mid);
+  cursor: pointer;
+  border-bottom-color: transparent;
+}
+.tab-aba.ativo {
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 600;
+  border-bottom-color: var(--bg);
+}
+
+/* ── Badges de situação do aluno ────────────────────────────── */
+.badge-situacao {
+  display: inline-block;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: .75rem;
+  font-weight: 700;
+}
+.badge-sit-ok  { background: #e6f4ea; color: #2d7a4f; }
+.badge-sit-ab  { background: #fce8e8; color: #c0392b; }
+.badge-sit-nc  { background: #fff3cd; color: #856404; }
+.badge-sit-tr  { background: #e8f0fe; color: #1a73e8; }
+.badge-sit-rm  { background: #f3e8fd; color: #7b1fa2; }
+.badge-sit-rc  { background: #fce8f3; color: #c2185b; }
+.badge-sit-ee  { background: #e0f2fe; color: #0369a1; }
+.aluno-inativo td { opacity: .55; }
+
+/* ── Botões C / F ────────────────────────────────────────────── */
+.btn-cf {
+  width: 30px;
+  height: 22px;
+  border: none;
+  border-radius: 4px;
+  font-size: .75rem;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+  vertical-align: middle;
+  display: inline-block;
+}
+.chk-comp         { background: #e6f4ea; color: #2d7a4f; }
+.chk-comp:hover   { background: #c8e6c9; }
+.chk-falta        { background: #fce8e8; color: #c0392b; }
+.chk-falta:hover  { background: #ffcdd2; }
+
+/* ── Cabeçalho de dia ────────────────────────────────────────── */
+.th-data-sel { background: rgba(240,168,74,.2) !important; }
+
+.th-data-chamada {
+  width: 36px;
+  min-width: 36px;
+  max-width: 36px;
+  padding: 4px 0 3px;
+  position: relative;
+  vertical-align: middle;
+  overflow: visible;
+  /* alinhamento centralizado explícito */
+  text-align: center !important;
+}
+
+/* Número do dia — garante centralização independente de herança */
+.th-dia-num {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-size: .75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 0;
+  padding: 0;
+}
+
+/* Botões C/F em lote no cabeçalho */
+.th-lote {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  margin-top: 3px;
+}
+.btn-lote {
+  background: var(--green, #2d7a4f);
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 2px 4px;
+  font-size: .68rem;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1.4;
+  min-width: 22px;
+  text-align: center;
+}
+.btn-lote:hover { opacity: .85; }
+.btn-lote-off   { background: var(--text-muted, #718096); }
+
+/* ── Popover C/F — flutua acima do th ───────────────────────── */
+.th-dia-popover {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  background: var(--bg-sidebar, #1e2530);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 5px 8px;
+  gap: 5px;
+  flex-direction: row;
+  align-items: center;
+  box-shadow: 0 -4px 15px rgba(0,0,0,.4);
+  white-space: nowrap;
+}
+.th-dia-popover::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom: none;
+  border-top-color: var(--border);
+}
+.th-data-chamada:hover .th-dia-popover { display: flex; }
+
+/* Botões C/F dentro do popover — levemente maiores */
+.th-dia-popover .btn-lote {
+  font-size: .77rem;
+  padding: 3px 6px;
+  line-height: 1.6;
+  min-width: 24px;
+}
+
+/* ── Tabela de chamada ───────────────────────────────────────── */
+.tabela-chamada {
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: collapse;
+}
+.tabela-chamada th,
+.tabela-chamada td {
+  border: 1px solid var(--border) !important;
+}
+.tabela-chamada thead th {
+  border-color: rgba(255,255,255,.10) !important;
+}
+/* Células de dia: padding zero, centralizado */
+.tabela-chamada td:not(.td-numero):not(.td-nome):not(.td-freq-total):not(.td-freq-pct) {
+  padding: 4px 0;
+  text-align: center;
+  vertical-align: middle;
+}
+.tabela-chamada .col-num  { width: 36px; }
+.tabela-chamada .col-nome { min-width: 160px; white-space: nowrap; }
+.tabela-chamada .col-sit  { width: 48px; }
+.tabela-chamada .col-freq { width: 36px; }
+
+/* ── Cabeçalho de mês ────────────────────────────────────────── */
+.th-mes-chamada {
+  text-align: center;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  padding: 2px 0;
+  background: #1a2235;
+  color: #7dd3fc;
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+.btn-mes-chamada {
+  background: transparent;
+  border: none;
+  color: #7dd3fc;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background .15s, color .15s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+.btn-mes-chamada:hover { background: rgba(125,211,252,.15); }
+.btn-mes-chamada.ativo { background: #0d9488; color: #fff; }
+
+/* ── Barra de filtro de mês ──────────────────────────────────── */
+.filtro-meses-chamada {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  padding: 4px 2px;
+}
+.btn-mes-filtro {
+  background: var(--bg-sidebar, #1e2530);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: .75rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.btn-mes-filtro:hover { border-color: #7dd3fc; color: #7dd3fc; }
+.btn-mes-filtro.ativo { background: #0d9488; border-color: #0d9488; color: #fff; }
+
+/* ── Colunas TF / %F ─────────────────────────────────────────── */
+.th-freq {
+  text-align: center;
+  font-size: .72rem;
+  font-weight: 700;
+  padding: 4px 6px;
+  background: #1a2235;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+.td-freq-total, .td-freq-pct {
+  text-align: center;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+.freq-critica { color: #f87171; font-weight: 700; }
+
+/* ── Linha com alta frequência de faltas ─────────────────────── */
+.row-alta-falta td       { background: rgba(239,68,68,.08) !important; }
+.row-alta-falta:hover td { background: rgba(239,68,68,.15) !important; }
+
+/* ── Chamada Mobile ──────────────────────────────────────────── */
+.chamada-mobile-wrap   { padding: 4px 0; }
+.chamada-mobile-header { margin-bottom: 12px; }
+.chamada-mob-tabela td,
+.chamada-mob-tabela th { padding: 10px 8px; }
+.btn-cf-mob {
+  width: 48px; height: 36px;
+  border: none; border-radius: 6px;
+  font-size: .9rem; font-weight: 700;
+  cursor: pointer;
+}

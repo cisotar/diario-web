@@ -1,6 +1,27 @@
 // CRONOGRAMA.JS — Cronograma, edição, drag&drop, checkboxes, modais, exportação
 // Dependências: globals.js, db.js, auth.js
 
+// ── Salvar com debounce longo (evita re-renders excessivos do onSnapshot) ──────
+// salvarTudo() já grava no localStorage imediatamente.
+// Aqui estendemos o timer de Firestore de 800 ms para 30 s, de forma que o
+// onSnapshot só dispara (e re-renderiza a página) depois de 30 s de inatividade
+// ou ao fechar a aba.
+function _salvarCron() {
+  salvarTudo();                      // localStorage imediato + inicia timer 800 ms
+  clearTimeout(_saveTimer);          // cancela o timer de 800 ms
+  _saveTimer = setTimeout(() => _salvarFirestore(), 30000); // reagenda para 30 s
+  _mostrarIndicadorSync('💾 Gravado localmente');
+}
+
+window.addEventListener('beforeunload', () => {
+  if (_saveTimer) {
+    clearTimeout(_saveTimer);
+    _salvarFirestore(); // flush ao sair da página
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 function renderizarBemVindo() {
   document.getElementById("conteudo-principal").innerHTML = `
     <div class="bem-vindo">
@@ -11,12 +32,14 @@ function renderizarBemVindo() {
 }
 
 function renderizarConteudo() {
+  // Visão detalhada sempre ativa
+  visaoDetalhada = true;
+
   const t = turmaAtiva;
   const main = document.getElementById("conteudo-principal");
   const bimObj = RT_BIMESTRES.find(b => b.bimestre === bimestreAtivo);
   const slots  = getSlotsCompletos(t.id, bimestreAtivo);
   const total  = slots.length;
-  const labelTurma = t.subtitulo ? `${t.serie}ª Série ${t.turma} — ${t.subtitulo}` : `${t.serie}ª Série ${t.turma}`;
 
   // ── Contagem do bimestre ativo (para pct-badge) ──
   let feitas = 0, totalReg = 0;
@@ -40,29 +63,11 @@ function renderizarConteudo() {
 
   const abaAtiva = window._abaCronograma || (window.innerWidth <= 860 ? "chamada_mobile" : "chamada");
 
-  // Helper: gera barra de progresso do bimestre ativo
-  const _bimProgBar = (f, r, label, inicio, fim) => {
-    const p   = r > 0 ? Math.round(f/r*100) : 0;
-    const cor = p === 100 ? "#4ade80" : p > 50 ? "var(--amber)" : "var(--teal,#0d9488)";
-    return `
-    <div class="bim-prog-wrap" id="bim-prog-wrap">
-      <div class="bim-prog-info">
-        <span>📅 ${label}: ${fmtData(inicio)} → ${fmtData(fim)}</span>
-        <span class="bim-prog-frac">${f}/${r} aulas · ${p}%</span>
-      </div>
-      <div class="bim-prog-bar-bg">
-        <div class="bim-prog-bar-fill" style="width:${p}%;background:${cor}"></div>
-      </div>
-    </div>`;
-  };
-
-  // Tabs de bimestre simples (sem mini SVG)
   const tabsBimSimples = RT_BIMESTRES.map(b =>
     `<button class="tab-bim ${b.bimestre===bimestreAtivo?"ativo":""}"
       onclick="mudarBimestre(${b.bimestre})">${b.label}</button>`
   ).join("");
 
-  // Barra de info completa do cronograma (com hint-drag e pct)
   const bimInfoCronograma = `
     <div class="bimestre-info" id="bimestre-info-cron">
       <span>📅 ${bimObj.label}: ${fmtData(bimObj.inicio)} → ${fmtData(bimObj.fim)}</span>
@@ -84,11 +89,6 @@ function renderizarConteudo() {
       <div style="display:flex;gap:8px;align-items:center">
         <button type="button" class="btn-editar-horarios" onclick="abrirModalHorarios()"
           title="Editar horários desta turma">🕐 Horários</button>
-        <button type="button" class="btn-visao-det" id="btn-visao-det"
-          onclick="alternarVisao()"
-          title="Alternar entre visão padrão e detalhada">
-          ${visaoDetalhada ? "📋 Visão Padrão" : "📋 Visão Detalhada"}
-        </button>
       </div>
       <div class="stat-circulo" title="Total do ano: ${totalFeitasGeral}/${totalRegGeral} aulas dadas (${pctGeral}%)">
         <svg viewBox="0 0 36 36" class="stat-svg">
@@ -195,7 +195,6 @@ function renderizarConteudo() {
 }
 
 // ── Sistema de Chamadas ───────────────────────────────────────
-// Estrutura: RT_CHAMADAS[turmaKey][data][numAluno] = "C"|"F"
 
 function trocarAbaCronograma(aba) {
   window._abaCronograma = aba;
@@ -217,7 +216,6 @@ function trocarAbaCronograma(aba) {
   if (secCham)  secCham.style.display  = isChamada            ? "" : "none";
   if (secNotas) secNotas.style.display = aba === "notas"      ? "" : "none";
 
-  // Barra de progresso: visível em chamada e notas (dentro das seções — gerenciada por cada uma)
   const progWrap = document.getElementById("bim-prog-wrap");
   if (progWrap) progWrap.style.display = (aba === "tala" || aba === "cronograma") ? "none" : "";
 
@@ -230,7 +228,6 @@ function trocarAbaCronograma(aba) {
   }
 }
 
-// Atualiza a barra de progresso do bimestre ativo (chamada quando muda o bimestre)
 function _atualizarBimProgBar() {
   const wrap = document.getElementById("bim-prog-wrap");
   if (!wrap) return;
@@ -253,18 +250,14 @@ function _atualizarBimProgBar() {
     </div>`;
 }
 
+// alternarVisao mantido por compatibilidade (botão removido da UI)
+function alternarVisao() { visaoDetalhada = true; }
 
-function alternarVisao() {
-  visaoDetalhada = !visaoDetalhada;
-  renderizarConteudo();
-}
-
-// Salva detalhe selecionado no dropdown de uma linha
 function salvarDetalhe(slotId, valor) {
   const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
   if (!estadoAulas[ch]) estadoAulas[ch] = {};
   estadoAulas[ch].detalhe = valor;
-  salvarTudo();
+  _salvarCron();
 }
 
 // ── Modal de horários da turma ativa ─────────────────────────
@@ -291,11 +284,6 @@ function _renderizarCorpoHorarios() {
   const diasNomes = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
   const turno = t.periodo || "manha";
   const periodos = RT_PERIODOS.filter(p => (p.turno||"manha") === turno);
-  // Fallback: se nenhum período bate com o turno, mostra todos
-  const opcoesPerido = (periodos.length ? periodos : RT_PERIODOS)
-    .map(p => `<option value="${p.aula}">${p.label} (${p.inicio}–${p.fim})</option>`)
-    .join("");
-
   const horariosHtml = (t.horarios||[]).map((h, hi) => `
     <div class="horario-item" style="margin-bottom:8px">
       <select class="gi gi-xs" onchange="editHorario(${ti},${hi},'diaSemana',+this.value);_renderizarCorpoHorarios()">
@@ -341,13 +329,14 @@ function renderizarLinhas(slots) {
   const tbody  = document.getElementById("tbody-aulas");
   if (!tbody) return;
   tbody.innerHTML = "";
-  // Chave específica por bimestre; fallback para chave sem bimestre (migração)
   const chaveC = `${t.serie}_${t.disciplina}_b${bimestreAtivo}`;
   const conts  = RT_CONTEUDOS[chaveC] || RT_CONTEUDOS[`${t.serie}_${t.disciplina}`] || [];
   const slotsReg = slots.filter(s => !s.eventual);
   const ordem    = getOrdem(t.id, bimestreAtivo, slotsReg.length);
+  const diaHoje  = hoje();
   let regIdx = 0;
   let lineNum = 0;
+
   for (const slot of slots) {
     lineNum++;
     const slotId = slot.slotId;
@@ -366,16 +355,17 @@ function renderizarLinhas(slots) {
       conteudoExibido = est.conteudoEditado ?? conteudoBase;
       editado         = est.conteudoEditado != null && est.conteudoEditado !== conteudoBase;
     }
+
     const selecionado = selConteudos.has(slotId);
-    const passada     = slot.data < hoje();
+    const passada     = slot.data < diaHoje;
+    const ehHoje      = slot.data === diaHoje;
     const rowBase     = slot.eventual ? "row-eventual" : (feita ? "row-feita" : (passada ? "row-pendente" : "row-futura"));
-    const rowClass    = `${rowBase}${selecionado ? " row-sel-cont" : ""}`;
+    const rowClass    = `${rowBase}${selecionado ? " row-sel-cont" : ""}${ehHoje ? " row-hoje" : ""}`;
+
     const tr = document.createElement("tr");
     tr.className    = rowClass;
     tr.dataset.slot = slotId;
 
-    // FIX: passa "this" para toggleCampo para permitir reversão imediata do
-    // checkbox caso o visitante não esteja autenticado.
     const mkChk = (campo, val, title) => `
       <label class="checkbox-wrapper" title="${title} · Shift+clique para intervalo">
         <input type="checkbox" ${val?"checked":""}
@@ -384,6 +374,14 @@ function renderizarLinhas(slots) {
         <span class="checkmark ${campo==='feita'?'':'checkmark-alt'}"></span>
       </label>`;
 
+    // ── Bloco AD (aula desenvolvida) ──────────────────────────
+    const chaveBase    = `${t.serie}_${t.disciplina}_b${bimestreAtivo}`;
+    const lista        = RT_CONTEUDOS[chaveBase] || RT_CONTEUDOS[`${t.serie}_${t.disciplina}`] || [];
+    const detalheAtual = est.detalhe || "";
+    const opts = lista.map(c =>
+      `<option value="${c.replace(/"/g,'&quot;')}" ${detalheAtual===c?"selected":""}>${c}</option>`
+    ).join("");
+
     tr.innerHTML = `
       <td class="td-numero">${slot.eventual ? `<span class="tag-eventual" title="Aula eventual">E</span>` : lineNum}</td>
       <td class="td-conteudo" data-slot="${slotId}">
@@ -391,6 +389,7 @@ function renderizarLinhas(slots) {
           <span class="drag-handle-cont ${selecionado?"handle-sel":""}"
             data-slot="${slotId}" draggable="true"
             title="Clique para selecionar · Shift+clique para intervalo · Arrastar para reorganizar">⠿</span>
+          <span class="cont-label">AP</span>
           <span class="conteudo-texto ${editado?"editado":""}"
             data-slot="${slotId}"
             title="${editado?"Editado · clique para editar":"Clique para editar"}"
@@ -398,21 +397,16 @@ function renderizarLinhas(slots) {
           ${editado?'<span class="badge-editado">✎</span>':""}
           ${slot.eventual?`<button class="btn-del-eventual" onclick="removerEventual('${slotId}')" title="Remover esta aula eventual">×</button>`:""}
         </div>
-        ${visaoDetalhada ? (() => {
-          const chaveBase = `${turmaAtiva.serie}_${turmaAtiva.disciplina}_b${bimestreAtivo}`;
-          const lista = RT_CONTEUDOS[chaveBase] || RT_CONTEUDOS[`${turmaAtiva.serie}_${turmaAtiva.disciplina}`] || [];
-          const detalheAtual = est.detalhe || "";
-          const opts = lista.map(c =>
-            `<option value="${c.replace(/"/g,'&quot;')}" ${detalheAtual===c?"selected":""}>${c}</option>`
-          ).join("");
-          return `<select class="detalhe-select"
+        <div class="conteudo-ad-row">
+          <span class="cont-label">AD</span>
+          <select class="detalhe-select"
             onchange="salvarDetalhe('${slotId}',this.value)"
-            title="Detalhe / sub-item desta aula">
-            <option value="">— detalhe —</option>
+            title="Aula desenvolvida — o que foi efetivamente trabalhado">
+            <option value="">— selecione —</option>
             ${opts}
           </select>
-          ${detalheAtual ? `<span class="detalhe-exibido">${detalheAtual}</span>` : ""}`;
-        })() : ""}
+          ${detalheAtual ? `<span class="detalhe-exibido">${detalheAtual}</span>` : ""}
+        </div>
         <input type="text" class="anotacao-input"
           placeholder="Anotação…"
           value="${(est.anotacao||'').replace(/"/g,'&quot;')}"
@@ -425,6 +419,7 @@ function renderizarLinhas(slots) {
       <td class="td-registro" id="reg-${slotId}">${feita?fmtData(est.dataFeita):"—"}</td>
       <td class="td-check">${mkChk("chamada", !!est.chamada,   "Chamada realizada?")}</td>
       <td class="td-check">${mkChk("conteudoEntregue", !!est.conteudoEntregue, "Material entregue?")}</td>`;
+
     const spanTxt = tr.querySelector(".conteudo-texto");
     spanTxt.addEventListener("click", () => iniciarEdicao(spanTxt, slotId, conteudoBase));
     const handle = tr.querySelector(".drag-handle-cont");
@@ -464,7 +459,7 @@ function iniciarEdicao(spanEl, slotId, base) {
       RT_CONTEUDOS[chaveC][ordem[regIdx]] = novo || base;
     }
     delete estadoAulas[ch].conteudoEditado;
-    salvarTudo();
+    _salvarCron();
     const editado = false;
     const exibido = novo || base || "";
     spanEl.classList.remove("editando");
@@ -491,27 +486,19 @@ function salvarAnotacao(slotId, valor) {
   if (!estadoAulas[ch]) estadoAulas[ch] = {};
   if (valor.trim() === "") delete estadoAulas[ch].anotacao;
   else estadoAulas[ch].anotacao = valor.trim();
-  salvarTudo();
+  _salvarCron();
 }
 
-// FIX: recebe o elemento <input> (inputEl) para reverter o checkbox
-// imediatamente no DOM se o visitante não estiver autenticado.
-// Antes, o check ficava visualmente marcado até o modal fechar.
 // Clique numa checkbox: clique simples toggle, shift+clique aplica intervalo
 function onChkClick(e, slotId, campo, inputEl) {
-  // Impede seleção de texto ao usar shift+clique
   if (e.shiftKey) {
     e.preventDefault();
     window.getSelection()?.removeAllRanges();
   }
 
-  // O browser já togglou checked antes do onclick — lê o valor atual
   const novoValor = inputEl.checked;
 
   if (e.shiftKey && ultimoChkSlot && ultimoChkCampo === campo) {
-    // Shift+clique: o loop vai atualizar todos os checkboxes do intervalo
-    // incluindo o destino — não reverter aqui
-
     const todos = [...document.querySelectorAll(
       `#tabela-aulas input[data-campo="${campo}"]`
     )].map(i => i.dataset.slot);
@@ -520,7 +507,6 @@ function onChkClick(e, slotId, campo, inputEl) {
     const iB = todos.indexOf(slotId);
     if (iA === -1 || iB === -1) return;
 
-    // Inclui ambos os extremos — slice é exclusivo no fim, por isso ate+1
     const de  = Math.min(iA, iB);
     const ate = Math.max(iA, iB);
     const valor = ultimoChkValor;
@@ -537,11 +523,9 @@ function onChkClick(e, slotId, campo, inputEl) {
       }
     }
 
-    // Registra nova âncora antes do setTimeout
     ultimoChkSlot = slotId;
-    salvarTudo();
+    _salvarCron();
 
-    // setTimeout: deixa o browser terminar o evento antes de atualizar o DOM
     setTimeout(() => {
       for (const sid of slotsDoIntervalo) {
         const chkEl = document.querySelector(
@@ -559,7 +543,6 @@ function onChkClick(e, slotId, campo, inputEl) {
     return;
   }
 
-  // Clique simples: toggle normal + registra âncora
   toggleCampo(slotId, campo, novoValor, inputEl);
   ultimoChkSlot  = slotId;
   ultimoChkCampo = campo;
@@ -575,7 +558,6 @@ function marcarColuna(campo, valor) {
   for (const s of slots) {
     const ch = chaveSlot(t.id, bimestreAtivo, s.slotId);
     if (!estadoAulas[ch]) estadoAulas[ch] = {};
-    // Para AD: ao marcar, pula aulas futuras; ao desmarcar, desmarca todas
     if (campo === "feita" && valor && s.data && s.data > hoje()) continue;
     if (estadoAulas[ch][campo] !== valor) {
       estadoAulas[ch][campo] = valor;
@@ -599,15 +581,16 @@ function toggleCampo(slotId, campo, val, inputEl) {
     const tr  = document.querySelector(`tr[data-slot="${slotId}"]`);
     const reg = document.getElementById(`reg-${slotId}`);
     if (tr) {
-      const slot  = getSlotsCompletos(turmaAtiva.id, bimestreAtivo).find(s => s.slotId===slotId);
-      const pass  = slot && slot.data < hoje();
-      const ev    = slot?.eventual;
-      tr.className = `${ev?"row-eventual":(val?"row-feita":(pass?"row-pendente":"row-futura"))}${selConteudos.has(slotId)?" row-sel-cont":""}`;
+      const slot   = getSlotsCompletos(turmaAtiva.id, bimestreAtivo).find(s => s.slotId===slotId);
+      const pass   = slot && slot.data < hoje();
+      const ev     = slot?.eventual;
+      const ehHoje = slot && slot.data === hoje();
+      tr.className = `${ev?"row-eventual":(val?"row-feita":(pass?"row-pendente":"row-futura"))}${selConteudos.has(slotId)?" row-sel-cont":""}${ehHoje?" row-hoje":""}`;
     }
     if (reg) reg.textContent = val ? fmtData(hoje()) : "—";
     atualizarStats();
   }
-  salvarTudo();
+  _salvarCron();
 }
 
 function atualizarStats() {
@@ -628,13 +611,11 @@ function onHandleClick(e, slotId) {
   e.stopPropagation();
   const todos = [...document.querySelectorAll(".drag-handle-cont[data-slot]")].map(h => h.dataset.slot);
   if (e.shiftKey && ultimoSelecionado && todos.includes(ultimoSelecionado)) {
-    // Shift+clique: seleciona intervalo
     const iA = todos.indexOf(ultimoSelecionado);
     const iB = todos.indexOf(slotId);
     const [de, ate] = iA < iB ? [iA, iB] : [iB, iA];
     for (let i = de; i <= ate; i++) selConteudos.add(todos[i]);
   } else {
-    // Clique simples: toggle da linha
     if (selConteudos.has(slotId)) {
       selConteudos.delete(slotId);
     } else {
@@ -645,9 +626,7 @@ function onHandleClick(e, slotId) {
   atualizarVisualizacaoSel();
 }
 
-// Clique fora da tabela ou em linha (não no handle) limpa a seleção
 function _initPrevenirSelecaoShift() {
-  // Impede seleção de texto na tabela ao usar shift+clique nos checkboxes
   document.addEventListener("mousedown", e => {
     if (e.shiftKey && e.target.closest(".tabela-aulas")) {
       e.preventDefault();
@@ -756,7 +735,7 @@ function onDrop(e, destSlotId) {
     const ch = chaveSlot(t.id, bimestreAtivo, s.slotId);
     if (estadoAulas[ch]) delete estadoAulas[ch].conteudoEditado;
   });
-  salvarTudo();
+  _salvarCron();
   selConteudos.clear();
   renderizarLinhas(getSlotsCompletos(t.id, bimestreAtivo));
 }
@@ -764,11 +743,9 @@ function onDrop(e, destSlotId) {
 function mudarBimestre(num) {
   bimestreAtivo = num;
   selConteudos.clear();
-  // Atualiza tabs de bimestre ativos
   document.querySelectorAll(".tab-bim").forEach(b => {
     b.classList.toggle("ativo", b.getAttribute("onclick")?.includes(`(${num})`));
   });
-  // Re-renderiza a aba ativa (cada seção reconstrói sua própria barra de progresso)
   const aba = window._abaCronograma || "chamada";
   if (aba === "cronograma") {
     const slots = getSlotsCompletos(turmaAtiva.id, bimestreAtivo);
@@ -837,14 +814,15 @@ function exportarCSV() {
   const slotsReg = slots.filter(s=>!s.eventual);
   const ordem = getOrdem(t.id, bimestreAtivo, slotsReg.length);
   let rIdx = 0;
-  const linhas = [["#","Data","Horário","Conteúdos/Atividades","Chamada","Entregue","Dada?","Registro"]];
+  const linhas = [["#","Data","Horário","AP","AD","Chamada","Entregue","Dada?","Registro"]];
   slots.forEach((slot, i) => {
     const ch  = chaveSlot(t.id, bimestreAtivo, slot.slotId);
     const est = estadoAulas[ch] || {};
-    let cont  = slot.eventual ? (slot.descricao||"") : (est.conteudoEditado ?? (conts[ordem[rIdx]]||""));
+    let ap    = slot.eventual ? (slot.descricao||"") : (est.conteudoEditado ?? (conts[ordem[rIdx]]||""));
+    let ad    = est.detalhe || "";
     if (!slot.eventual) rIdx++;
     const horarioFmt = slot.eventual ? slot.inicio : (slot.label ? `${slot.label} (${slot.inicio}–${slot.fim})` : slot.inicio);
-    linhas.push([i+1, fmtData(slot.data), horarioFmt, cont,
+    linhas.push([i+1, fmtData(slot.data), horarioFmt, ap, ad,
       est.chamada?"Sim":"Não", est.conteudoEntregue?"Sim":"Não",
       est.feita?"Sim":"Não", est.feita?fmtData(est.dataFeita):"",
     ]);
@@ -905,7 +883,6 @@ function exportarJS() {
     },
   ];
 
-  // Baixa um arquivo por vez com pequeno delay para não bloquear o browser
   arquivos.forEach((arq, i) => {
     setTimeout(() => {
       baixarArquivo(new Blob([arq.conteudo],{type:"application/javascript;charset=utf-8;"}), arq.nome);
