@@ -1579,7 +1579,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 
 /* ── Chamada: botões C/F ─────────────────────────────────────── */
 .btn-cf {
-  width: 26px;
+  width: 28px;
   height: 22px;
   border: none;
   border-radius: 4px;
@@ -1587,10 +1587,9 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   font-weight: 700;
   cursor: pointer;
   line-height: 1;
-  vertical-align: middle;
 }
-.chk-comp { background: #dbeafe; color: #1d4ed8; }
-.chk-comp:hover { background: #bfdbfe; }
+.chk-comp { background: #e6f4ea; color: #2d7a4f; }
+.chk-comp:hover { background: #c8e6c9; }
 .chk-falta { background: #fce8e8; color: #c0392b; }
 .chk-falta:hover { background: #ffcdd2; }
 .th-data-sel { background: var(--amber-light, #f0a84a33) !important; }
@@ -1602,17 +1601,9 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   text-align: center;
   font-size: .75rem;
   font-weight: 600;
-  padding: 4px 0;
+  padding: 5px 0;
   position: relative;
   vertical-align: middle;
-  overflow: visible;
-}
-/* Número do dia — bloco centralizado explicitamente */
-.th-dia-num {
-  display: block;
-  text-align: center;
-  width: 100%;
-  line-height: 1.4;
 }
 /* Popover C/F — flutua ACIMA, botões lado a lado horizontalmente */
 .th-dia-popover {
@@ -1624,12 +1615,12 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   z-index: 200;
   background: var(--surface2, #1e2530);
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 5px 8px;
-  gap: 5px;
+  border-radius: 6px;
+  padding: 4px 6px;
+  gap: 4px;
   flex-direction: row;
   align-items: center;
-  box-shadow: 0 -4px 15px rgba(0,0,0,.4);
+  box-shadow: 0 -4px 12px rgba(0,0,0,.4);
   white-space: nowrap;
 }
 .th-dia-popover::after {
@@ -1643,13 +1634,6 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   border-top-color: var(--border);
 }
 .th-data-chamada:hover .th-dia-popover { display: flex; }
-/* Botões C/F dentro do popover — 28% maiores */
-.th-dia-popover .btn-lote {
-  font-size: .77rem;
-  padding: 3px 6px;
-  line-height: 1.6;
-  min-width: 24px;
-}
 /* Tabela de chamada — layout fixo para colunas uniformes */
 .tabela-chamada {
   table-layout: fixed;
@@ -1659,6 +1643,12 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .tabela-chamada .col-nome { min-width: 160px; white-space: nowrap; }
 .tabela-chamada .col-sit  { width: 48px; }
 .tabela-chamada .col-freq { width: 36px; }
+/* Células das colunas de dia: padding zero para alinhar com o th */
+.tabela-chamada td:not(.td-numero):not(.td-nome):not(.td-freq-total):not(.td-freq-pct) {
+  padding: 4px 0;
+  text-align: center;
+  vertical-align: middle;
+}
 .th-mes-chamada {
   text-align: center;
   font-size: .7rem;
