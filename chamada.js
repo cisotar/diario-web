@@ -1,8 +1,9 @@
 // CHAMADA.JS — Sistema de chamadas e frequência
 // Dependências: globals.js, db.js, auth.js
 
-const _SITS_INATIVAS = ["AB","TR","RM","RC","NC"];
-const _SITS_SEMPRE_C  = ["EE"];  // Educação Especial — presença sempre C, nunca F
+const _SITS_INATIVAS = ["AB","TR","RM","RC","NC","EV"];
+const _SITS_SEMPRE_C  = ["EE"];
+const _SITS_SEMPRE_F  = ["EV"];
 
 let RT_CHAMADAS = {};
 
@@ -41,6 +42,8 @@ let _dataChamadaSel     = null;
 let _bimestreChamadaSel = null;
 // Mês filtrado na chamada ("YYYY-MM" ou null = todos)
 let _mesChamadaSel      = null;
+let _chamadaOcultarInativos = false;
+let _chamadaFiltroSit = null;
 
 function _diasDeAulaNoBimestre(turmaId, bim) {
   // Retorna datas únicas (para seletor de data e cálculo de TF)
@@ -160,21 +163,102 @@ async function _renderizarChamadaDesktop() {
 
   // ── Linhas de alunos ──
   const SITUACAO_LABEL = {
-    "":"Matriculado","AB":"Abandonou","NC":"Não compareceu",
+    "":"Matriculado","AB":"Abandonou","NC":"Não comparecimento",
     "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado",
-    "EE":"Educação Especial"
+    "EE":"Educação Especial","EV":"Evadido"
   };
 
-  const rows = alunos.map(a => {
+  // ── Contagem por situação ──
+  const contsSit = {
+    total: alunos.length,
+    ativos: alunos.filter(a => !a.situacao).length,
+    AB: alunos.filter(a => a.situacao==="AB").length,
+    NC: alunos.filter(a => a.situacao==="NC").length,
+    TR: alunos.filter(a => a.situacao==="TR").length,
+    RM: alunos.filter(a => a.situacao==="RM").length,
+    RC: alunos.filter(a => a.situacao==="RC").length,
+    EE: alunos.filter(a => a.situacao==="EE").length,
+    EV: alunos.filter(a => a.situacao==="EV").length,
+  };
+
+  // _mkSit usa aspas simples no onclick para não quebrar o atributo HTML
+  const _mkSit = (cls, sigla, desc, n) => {
+    if (n === 0) return "";
+    const ativo = _chamadaFiltroSit === (sigla || null);
+    // valor para o onclick — null literal ou string com aspas simples
+    const nextVal = sigla ? `'${sigla}'` : "null";
+    const clearOrSet = ativo ? "null" : nextVal;
+    return `<span class="sit-item${ativo ? " sit-item-ativo" : ""}"
+      onclick="_chamadaFiltroSit=${clearOrSet};renderizarChamadaFrequencia()"
+      style="cursor:pointer" title="${ativo ? "Remover filtro" : "Filtrar por " + desc}">
+      <span class="badge-situacao badge-sit-${cls}">${sigla || "✓"}</span>
+      <span class="sit-desc">${desc} (${n})</span>
+    </span>`;
+  };
+
+  const legendaHtmlCham = `<div class="sit-legenda">
+      <span class="sit-legenda-titulo">Situação (${contsSit.total} alunos):</span>
+      ${_mkSit("ok","","Matriculado",contsSit.ativos)}
+      ${_mkSit("ab","AB","Abandonou",contsSit.AB)}
+      ${_mkSit("nc","NC","Não comparecimento",contsSit.NC)}
+      ${_mkSit("tr","TR","Transferido",contsSit.TR)}
+      ${_mkSit("rm","RM","Remanejado",contsSit.RM)}
+      ${_mkSit("rc","RC","Reclassificado",contsSit.RC)}
+      ${_mkSit("ee","EE","Ed. Especial",contsSit.EE)}
+      ${_mkSit("ev","EV","Evadido",contsSit.EV)}
+      ${_chamadaFiltroSit !== null
+        ? `<button class="btn-toggle-inativos" style="padding:2px 8px;font-size:.7rem"
+            onclick="_chamadaFiltroSit=null;renderizarChamadaFrequencia()">✕ limpar</button>`
+        : ""}
+    </div>`;
+
+  // ── Filtros ──
+  const alunosFiltrados = (() => {
+    let lista = _chamadaOcultarInativos
+      ? alunos.filter(a => !["AB","NC","TR","RM","RC","EV"].includes(a.situacao))
+      : alunos;
+    if (_chamadaFiltroSit !== null)
+      lista = lista.filter(a => (a.situacao || "") === (_chamadaFiltroSit || ""));
+    return lista;
+  })();
+
+  // ── Resumo TF / TC / %F por coluna de dia ──
+  const _resumo = slotsVisiveis.map(s => {
+    if (s.data > hoje_str) return { tf: null, tc: null };
+    const slotKey = _chaveSlotChamada(s.data, s.aula);
+    let tf = 0, tc = 0;
+    for (const a of alunosFiltrados) {
+      if (!_alunoAtivoNaData(a, s.data)) continue;
+      const _isEE = a.situacao === "EE", _isEV = a.situacao === "EV";
+      let v;
+      if (_isEE) v = "C";
+      else if (_isEV) v = "F";
+      else v = (chamadas[slotKey]||{})[a.num] ?? (chamadas[s.data]||{})[a.num] ?? "C";
+      if (v === "F") tf++; else tc++;
+    }
+    return { tf, tc };
+  });
+
+  const _tdR = (v, cor) => `<td style="text-align:center;font-size:.7rem;font-weight:700;color:${cor};padding:2px 0">${v}</td>`;
+  const trTF  = `<tr class="tr-resumo-chamada"><td colspan="3" class="td-resumo-label">TF</td>${_resumo.map(r => r.tf===null?`<td></td>`:_tdR(r.tf, r.tf>0?"#f87171":"#475569")).join("")}<td colspan="2"></td></tr>`;
+  const trTC  = `<tr class="tr-resumo-chamada"><td colspan="3" class="td-resumo-label">TC</td>${_resumo.map(r => r.tc===null?`<td></td>`:_tdR(r.tc, r.tc>0?"#4ade80":"#475569")).join("")}<td colspan="2"></td></tr>`;
+  const trPct = `<tr class="tr-resumo-chamada"><td colspan="3" class="td-resumo-label">%F</td>${_resumo.map(r => {
+    if (r.tf===null) return `<td></td>`;
+    const tot=r.tf+r.tc, pct=tot>0?Math.round(r.tf/tot*100):0;
+    return _tdR(pct+"%", pct>20?"#f87171":"#475569");
+  }).join("")}<td colspan="2"></td></tr>`;
+
+  const rows = alunosFiltrados.map(a => {
     // TF e %F calculados sobre todas as datas passadas do bimestre
     let totalAulas  = 0;
     let totalFaltas = 0;
     const isEE = a.situacao === "EE";
+    const isEV = a.situacao === "EV";
     for (const d of datasPassadas) {
       if (!_alunoAtivoNaData(a, d)) continue;
       totalAulas++;
-      // EE nunca tem falta
-      if (!isEE && (chamadas[d] || {})[a.num] === "F") totalFaltas++;
+      if (isEV) totalFaltas++;
+      else if (!isEE && (chamadas[d] || {})[a.num] === "F") totalFaltas++;
     }
 
     const tds = slotsVisiveis.map(s => {
@@ -186,24 +270,19 @@ async function _renderizarChamadaDesktop() {
         return `<td style="text-align:center;color:var(--text-muted);font-size:.7rem">—</td>`;
       }
 
-      // EE: sempre C, botão desabilitado
-      // Chave do slot atual; default = valor do slot anterior do mesmo dia (se existir)
       const slotKey = _chaveSlotChamada(d, s.aula);
       let val;
-      if (isEE) {
-        val = "C";
-      } else if ((chamadas[slotKey] || {})[a.num] !== undefined) {
-        val = chamadas[slotKey][a.num]; // registro independente
-      } else {
-        // Herda do primeiro slot do dia (ou "C" se passado)
-        val = (chamadas[d] || {})[a.num] || (isPast ? "C" : "");
-      }
+      if (isEE)       val = "C";
+      else if (isEV)  val = "F";
+      else if ((chamadas[slotKey] || {})[a.num] !== undefined) val = chamadas[slotKey][a.num];
+      else val = (chamadas[d] || {})[a.num] || (isPast ? "C" : "");
       if (!val) return `<td></td>`;
       const cls = val === "F" ? "chk-falta" : "chk-comp";
+      const autoTitle = isEE ? "Ed. Especial — presença automática" : "Evadido — falta automática";
       return `<td style="text-align:center">
         <button type="button" class="btn-cf ${cls}"
-          ${isEE
-            ? `disabled title="Educação Especial — presença automática" style="opacity:.6;cursor:default"`
+          ${(isEE || isEV)
+            ? `disabled title="${autoTitle}" style="opacity:.7;cursor:default"`
             : `onclick="toggleChamadaSlot('${turmaKey}','${slotKey}','${d}',${a.num})"`
           }>${val}</button>
       </td>`;
@@ -294,11 +373,16 @@ async function _renderizarChamadaDesktop() {
             onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','C')">✓ Todos C</button>
           <button type="button" class="btn-add" style="background:var(--text-muted)"
             onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','F')">✗ Todos F</button>
+          <button type="button" class="btn-toggle-inativos"
+            onclick="_chamadaOcultarInativos=!_chamadaOcultarInativos;renderizarChamadaFrequencia()">
+            ${_chamadaOcultarInativos ? "👁 Mostrar inativos" : "🚫 Ocultar inativos"}
+          </button>
         </div>
       </div>
       <div class="tabs-bimestre" style="margin-bottom:4px">${tabsBimChamada}</div>
       ${_bimProgBarChamada(_feitasCham, _totalRegCham, bimObj)}
       ${filtroMeses}
+      ${legendaHtmlCham}
       <div style="overflow-x:auto">
         <table class="tabela-gestao tabela-chamada" style="min-width:0">
           <colgroup>
@@ -310,7 +394,7 @@ async function _renderizarChamadaDesktop() {
             <col class="col-freq">
           </colgroup>
           <thead>
-            <tr>
+            <tr class="thead-chamada-row">
               <th style="width:36px" rowspan="2">Nº</th>
               <th rowspan="2">Nome</th>
               <th rowspan="2" style="width:48px;text-align:center" title="Situação">Sit.</th>
@@ -323,6 +407,7 @@ async function _renderizarChamadaDesktop() {
             </tr>
           </thead>
           <tbody>${rows || '<tr><td colspan="10" class="td-vazio">Nenhum aluno cadastrado.</td></tr>'}</tbody>
+          <tfoot>${trTF}${trTC}${trPct}</tfoot>
         </table>
       </div>
     </div>`;
@@ -400,14 +485,15 @@ async function _renderizarChamadaMobile() {
   const alunosAtivos = alunos.filter(a => _alunoAtivoNaData(a, _dataChamadaSel));
 
   const SITUACAO_LABEL = {
-    "":"Matriculado","AB":"Abandonou","NC":"Não compareceu",
+    "":"Matriculado","AB":"Abandonou","NC":"Não comparecimento",
     "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado",
-    "EE":"Educação Especial"
+    "EE":"Educação Especial","EV":"Evadido"
   };
 
   const rows = alunosAtivos.map(a => {
     const isEE  = a.situacao === "EE";
-    const val   = isEE ? "C" : ((chamadas[_dataChamadaSel] || {})[a.num] || "C");
+    const isEV2 = a.situacao === "EV";
+    const val   = isEE ? "C" : isEV2 ? "F" : ((chamadas[_dataChamadaSel] || {})[a.num] || "C");
     const cls   = val === "F" ? "chk-falta" : "chk-comp";
     const sitLabel = a.situacao ? a.situacao : "";
     const sitClass = a.situacao ? `badge-sit-${a.situacao.toLowerCase()}` : "";
@@ -418,7 +504,7 @@ async function _renderizarChamadaMobile() {
       </td>
       <td style="text-align:center;width:64px">
         <button type="button" class="btn-cf-mob ${cls}"
-          ${isEE ? 'disabled title="Educação Especial — presença automática"' : `onclick="toggleChamadaMobile('${turmaKey}','${_dataChamadaSel}',${a.num},this)"`}>
+          ${(isEE||isEV2) ? `disabled title="${isEE?'Ed. Especial — presença automática':'Evadido — falta automática'}"` : `onclick="toggleChamadaMobile('${turmaKey}','${_dataChamadaSel}',${a.num},this)"`}>
           ${val}
         </button>
       </td>
@@ -444,6 +530,10 @@ async function _renderizarChamadaMobile() {
             onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','C')">✓ Todos C</button>
           <button type="button" class="btn-add" style="background:var(--text-muted)"
             onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','F')">✗ Todos F</button>
+          <button type="button" class="btn-toggle-inativos"
+            onclick="_chamadaOcultarInativos=!_chamadaOcultarInativos;renderizarChamadaFrequencia()">
+            ${_chamadaOcultarInativos ? "👁 Mostrar inativos" : "🚫 Ocultar inativos"}
+          </button>
         </div>
       </div>
       <table class="tabela-gestao chamada-mob-tabela">

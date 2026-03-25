@@ -29,12 +29,13 @@ async function renderizarTala() {
   };
   const _mkSit = (cls, sigla, desc, n) => {
     if (n === 0) return "";
-    const ativo = _talaFiltroSit === (sigla || null) || (_talaFiltroSit === "" && sigla === "");
-    const novoFiltro = (sigla === "" ? null : sigla);
+    const ativo = _talaFiltroSit === (sigla || null);
+    const nextVal = sigla ? `'${sigla}'` : "null";
+    const clearOrSet = ativo ? "null" : nextVal;
     return `<span class="sit-item${ativo ? " sit-item-ativo" : ""}"
-      onclick="_talaFiltroSit=(_talaFiltroSit===${JSON.stringify(sigla||null)}?null:${JSON.stringify(sigla||null)});renderizarTala()"
-      title="${ativo ? "Clique para remover filtro" : "Clique para filtrar"}" style="cursor:pointer">
-      <span class="badge-situacao badge-sit-${cls}">${sigla||"✓"}</span>
+      onclick="_talaFiltroSit=${clearOrSet};renderizarTala()"
+      style="cursor:pointer" title="${ativo ? "Remover filtro" : "Filtrar por " + desc}">
+      <span class="badge-situacao badge-sit-${cls}">${sigla || "✓"}</span>
       <span class="sit-desc">${desc} (${n})</span>
     </span>`;
   };
@@ -48,12 +49,18 @@ async function renderizarTala() {
       ${_mkSit("rc","RC","Reclassificado",contsSit.RC)}
       ${_mkSit("ee","EE","Ed. Especial",contsSit.EE)}
       ${_mkSit("ev","EV","Evadido",contsSit.EV)}
-      ${_talaFiltroSit !== null ? `<button type="button" class="btn-toggle-inativos" style="padding:2px 8px;font-size:.7rem" onclick="_talaFiltroSit=null;renderizarTala()">✕ limpar filtro</button>` : ""}
+      ${_talaFiltroSit !== null
+        ? `<button class="btn-toggle-inativos" style="padding:2px 8px;font-size:.7rem"
+            onclick="_talaFiltroSit=null;renderizarTala()">✕ limpar</button>`
+        : ""}
     </div>`;
 
   const alunosVisiveis = (() => {
-    let lista = _talaOcultarInativos ? alunos.filter(a => !["AB","NC","TR","RM","RC","EV"].includes(a.situacao)) : alunos;
-    if (_talaFiltroSit !== null) lista = lista.filter(a => (a.situacao||"") === (_talaFiltroSit||""));
+    let lista = _talaOcultarInativos
+      ? alunos.filter(a => !["AB","NC","TR","RM","RC","EV"].includes(a.situacao))
+      : alunos;
+    if (_talaFiltroSit !== null)
+      lista = lista.filter(a => (a.situacao || "") === (_talaFiltroSit || ""));
     return lista;
   })();
 

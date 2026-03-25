@@ -226,10 +226,12 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
   const _mkSitN = (cls, sigla, desc, n) => {
     if (n === 0) return "";
     const ativo = _notasFiltroSit === (sigla || null);
+    const nextVal = sigla ? `'${sigla}'` : "null";
+    const clearOrSet = ativo ? "null" : nextVal;
     return `<span class="sit-item${ativo ? " sit-item-ativo" : ""}"
-      onclick="_notasFiltroSit=(_notasFiltroSit===${JSON.stringify(sigla||null)}?null:${JSON.stringify(sigla||null)});renderizarNotas()"
-      title="${ativo ? "Clique para remover filtro" : "Clique para filtrar"}" style="cursor:pointer">
-      <span class="badge-situacao badge-sit-${cls}">${sigla||"✓"}</span>
+      onclick="_notasFiltroSit=${clearOrSet};renderizarNotas()"
+      style="cursor:pointer" title="${ativo ? "Remover filtro" : "Filtrar por " + desc}">
+      <span class="badge-situacao badge-sit-${cls}">${sigla || "✓"}</span>
       <span class="sit-desc">${desc} (${n})</span>
     </span>`;
   };
@@ -243,7 +245,10 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
       ${_mkSitN("rc","RC","Reclassificado",contsSitN.RC)}
       ${_mkSitN("ee","EE","Ed. Especial",contsSitN.EE)}
       ${_mkSitN("ev","EV","Evadido",contsSitN.EV)}
-      ${_notasFiltroSit !== null ? `<button type="button" class="btn-toggle-inativos" style="padding:2px 8px;font-size:.7rem" onclick="_notasFiltroSit=null;renderizarNotas()">✕ limpar filtro</button>` : ""}
+      ${_notasFiltroSit !== null
+        ? `<button class="btn-toggle-inativos" style="padding:2px 8px;font-size:.7rem"
+            onclick="_notasFiltroSit=null;renderizarNotas()">✕ limpar</button>`
+        : ""}
     </div>`;
 
   const alunosVisiveis = (() => {
@@ -251,7 +256,7 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
       ? alunos.filter(a => !["AB","NC","TR","RM","RC","EV"].includes(a.situacao))
       : alunos;
     if (_notasFiltroSit !== null)
-      lista = lista.filter(a => (a.situacao||"") === (_notasFiltroSit||""));
+      lista = lista.filter(a => (a.situacao || "") === (_notasFiltroSit || ""));
     return lista;
   })();
 
