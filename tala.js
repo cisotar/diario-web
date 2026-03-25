@@ -1,6 +1,8 @@
 // TALA.JS — Lista de alunos (edição, situação, CRUD)
 // Dependências: globals.js, db.js, auth.js
 
+let _talaOcultarInativos = false;
+
 async function renderizarTala() {
   const t = turmaAtiva;
   if (!t) return;
@@ -10,10 +12,42 @@ async function renderizarTala() {
   const turmaKey = t.serie + t.turma;
   const alunos   = await _carregarAlunos(turmaKey);
   const adm      = _isAdmin(_userAtual?.email);
-  const SITUACOES = ["","AB","NC","TR","RM","RC","EE"];
-  const SITUACAO_LABEL = { "":"Matriculado","AB":"Abandonou","NC":"Não compareceu","TR":"Transferido","RM":"Remanejado","RC":"Reclassificado","EE":"Educação Especial" };
+  const SITUACOES = ["","AB","NC","TR","RM","RC","EE","EV"];
+  const SITUACAO_LABEL = { "":"Matriculado","AB":"Abandonou","NC":"Não compareceu","TR":"Transferido","RM":"Remanejado","RC":"Reclassificado","EE":"Educação Especial","EV":"Evadido" };
 
-  const rows = alunos.map((a, idx) => {
+  const alunosVisiveis = _talaOcultarInativos
+    ? alunos.filter(a => !_SITS_INATIVAS.includes(a.situacao))
+    : alunos;
+
+  const contsSit = {
+    total: alunos.length,
+    ativos: alunos.filter(a => !a.situacao).length,
+    AB: alunos.filter(a => a.situacao==="AB").length,
+    NC: alunos.filter(a => a.situacao==="NC").length,
+    TR: alunos.filter(a => a.situacao==="TR").length,
+    RM: alunos.filter(a => a.situacao==="RM").length,
+    RC: alunos.filter(a => a.situacao==="RC").length,
+    EE: alunos.filter(a => a.situacao==="EE").length,
+    EV: alunos.filter(a => a.situacao==="EV").length,
+  };
+
+  const _mkSitItem = (cls, sigla, desc, n) => n > 0
+    ? `<span class="sit-item"><span class="badge-situacao badge-sit-${cls}">${sigla}</span><span class="sit-desc">${desc} (${n})</span></span>`
+    : "";
+
+  const legendaHtml = `<div class="sit-legenda">
+      <span class="sit-legenda-titulo">Situação (${contsSit.total} alunos):</span>
+      ${_mkSitItem("ok","✓","Matriculado",contsSit.ativos)}
+      ${_mkSitItem("ab","AB","Abandonou",contsSit.AB)}
+      ${_mkSitItem("nc","NC","Não comparecimento",contsSit.NC)}
+      ${_mkSitItem("tr","TR","Transferido",contsSit.TR)}
+      ${_mkSitItem("rm","RM","Remanejado",contsSit.RM)}
+      ${_mkSitItem("rc","RC","Reclassificado",contsSit.RC)}
+      ${_mkSitItem("ee","EE","Educação Especial",contsSit.EE)}
+      ${_mkSitItem("ev","EV","Evadido",contsSit.EV)}
+    </div>`;
+
+  const rows = alunosVisiveis.map((a, idx) => {
     const sitOpts = SITUACOES.map(s =>
       `<option value="${s}" ${(a.situacao||"") === s?"selected":""}>${s||"—"} ${SITUACAO_LABEL[s]||""}</option>`
     ).join("");
@@ -55,10 +89,15 @@ async function renderizarTala() {
         <h3>Lista de Alunos — ${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""}</h3>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <span style="font-size:.8rem;color:var(--text-muted)">${alunos.length} aluno(s)</span>
+          <button type="button" class="btn-toggle-inativos"
+            onclick="_talaOcultarInativos=!_talaOcultarInativos;renderizarTala()">
+            ${_talaOcultarInativos ? "👁 Mostrar inativos" : "🚫 Ocultar inativos"}
+          </button>
           ${btnAdd}
           <button type="button" class="btn-exportar-js" onclick="baixarTalaCSV('${turmaKey}')">⬇ tala_${turmaKey.toLowerCase()}.csv</button>
         </div>
       </div>
+      ${legendaHtml}
       <div class="tabela-wrapper">
         <table class="tabela-gestao">
           <thead><tr>
@@ -113,7 +152,7 @@ async function baixarTalaCSV(turmaKey) {
   const SITUACAO_LABEL = {
     "":"Matriculado","AB":"Abandonou","NC":"Não compareceu",
     "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado",
-    "EE":"Educação Especial"
+    "EE":"Educação Especial","EV":"Evadido"
   };
   const cab = ["Nº","Nome","Matrícula","Situação","Data Situação"];
   const linhas = lista.map(a => [

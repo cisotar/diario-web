@@ -9,6 +9,7 @@
 // }
 
 let RT_NOTAS = {};
+let _notasOcultarInativos = false;
 
 const _COLUNAS_PADRAO = [
   { id: "AM", sigla: "AM", label: "Avaliação Mensal",  editavel: true, tipo: "fixo" },
@@ -163,7 +164,7 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
 
   const SITUACAO_LABEL = {
     "":"Matriculado","AB":"Abandonou","NC":"Não compareceu",
-    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado","EE":"Educação Especial"
+    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado","EE":"Educação Especial","EV":"Evadido"
   };
 
   // Cabeçalho de colunas — sigla editável (exceto PP), drag & drop, tooltip com label
@@ -210,8 +211,38 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
       </div>
     </td>`).join("");
 
+  const contsSitN = {
+    total: alunos.length,
+    ativos: alunos.filter(a => !a.situacao).length,
+    AB: alunos.filter(a => a.situacao==="AB").length,
+    NC: alunos.filter(a => a.situacao==="NC").length,
+    TR: alunos.filter(a => a.situacao==="TR").length,
+    RM: alunos.filter(a => a.situacao==="RM").length,
+    RC: alunos.filter(a => a.situacao==="RC").length,
+    EE: alunos.filter(a => a.situacao==="EE").length,
+    EV: alunos.filter(a => a.situacao==="EV").length,
+  };
+  const _mkSitN = (cls, sigla, desc, n) => n > 0
+    ? `<span class="sit-item"><span class="badge-situacao badge-sit-${cls}">${sigla}</span><span class="sit-desc">${desc} (${n})</span></span>`
+    : "";
+  const legendaHtmlNotas = `<div class="sit-legenda">
+      <span class="sit-legenda-titulo">Situação (${contsSitN.total} alunos):</span>
+      ${_mkSitN("ok","✓","Matriculado",contsSitN.ativos)}
+      ${_mkSitN("ab","AB","Abandonou",contsSitN.AB)}
+      ${_mkSitN("nc","NC","Não comparecimento",contsSitN.NC)}
+      ${_mkSitN("tr","TR","Transferido",contsSitN.TR)}
+      ${_mkSitN("rm","RM","Remanejado",contsSitN.RM)}
+      ${_mkSitN("rc","RC","Reclassificado",contsSitN.RC)}
+      ${_mkSitN("ee","EE","Educação Especial",contsSitN.EE)}
+      ${_mkSitN("ev","EV","Evadido",contsSitN.EV)}
+    </div>`;
+
+  const alunosVisiveis = _notasOcultarInativos
+    ? alunos.filter(a => !_SITS_INATIVAS.includes(a.situacao))
+    : alunos;
+
   // Linhas de alunos
-  const rows = alunos.map(a => {
+  const rows = alunosVisiveis.map(a => {
     const notasAluno = notas[a.num] || {};
     const mt = _calcularMT(notasAluno, colunas, pesos);
     const mb = _calcularMB(mt, notasAluno.rec);
@@ -279,6 +310,10 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
         <h3>Notas — ${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""} · ${t.disciplina}</h3>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button type="button" class="btn-add" onclick="adicionarColunaNotas('${turmaKey}')">+ Coluna</button>
+          <button type="button" class="btn-toggle-inativos"
+            onclick="_notasOcultarInativos=!_notasOcultarInativos;renderizarNotas()">
+            ${_notasOcultarInativos ? "👁 Mostrar inativos" : "🚫 Ocultar inativos"}
+          </button>
           <button type="button" class="btn-exportar-js" onclick="baixarNotasCSV('${turmaKey}','${bimStr}')">⬇ notas_${turmaKey.toLowerCase()}_b${bimStr}.csv</button>
         </div>
       </div>
@@ -317,6 +352,7 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
         </table>
       </div>
       ${legendaColunas}
+      ${legendaHtmlNotas}
     </div>`;
 }
 
@@ -338,7 +374,7 @@ async function _renderizarConceitoFinal(secao, t, turmaKey, alunos, dadosNotas, 
 
   const SITUACAO_LABEL = {
     "":"Matriculado","AB":"Abandonou","NC":"Não compareceu",
-    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado","EE":"Educação Especial"
+    "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado","EE":"Educação Especial","EV":"Evadido"
   };
 
   // Cabeçalho: Nº | Nome | Sit. | MB1 | TF1 | MB2 | TF2 | MB3 | TF3 | MB4 | TF4 | TF | %F | MF
@@ -400,6 +436,21 @@ async function _renderizarConceitoFinal(secao, t, turmaKey, alunos, dadosNotas, 
         <button type="button" class="btn-exportar-js" onclick="baixarConceitoFinalCSV('${turmaKey}')">⬇ conceito_final_${turmaKey.toLowerCase()}.csv</button>
       </div>
       <div class="tabs-bimestre" style="margin-bottom:8px">${tabsBim}</div>
+      ${(() => {
+        const cs = { total:alunos.length, ativos:alunos.filter(a=>!a.situacao).length,
+          AB:alunos.filter(a=>a.situacao==="AB").length, NC:alunos.filter(a=>a.situacao==="NC").length,
+          TR:alunos.filter(a=>a.situacao==="TR").length, RM:alunos.filter(a=>a.situacao==="RM").length,
+          RC:alunos.filter(a=>a.situacao==="RC").length, EE:alunos.filter(a=>a.situacao==="EE").length,
+          EV:alunos.filter(a=>a.situacao==="EV").length };
+        const _m = (cls,s,d,n) => n>0?`<span class="sit-item"><span class="badge-situacao badge-sit-${cls}">${s}</span><span class="sit-desc">${d} (${n})</span></span>`:"";
+        return `<div class="sit-legenda">
+          <span class="sit-legenda-titulo">Situação (${cs.total} alunos):</span>
+          ${_m("ok","✓","Matriculado",cs.ativos)}${_m("ab","AB","Abandonou",cs.AB)}
+          ${_m("nc","NC","Não comparecimento",cs.NC)}${_m("tr","TR","Transferido",cs.TR)}
+          ${_m("rm","RM","Remanejado",cs.RM)}${_m("rc","RC","Reclassificado",cs.RC)}
+          ${_m("ee","EE","Educação Especial",cs.EE)}${_m("ev","EV","Evadido",cs.EV)}
+        </div>`;
+      })()}
       <div class="notas-legenda">
         <span><strong>MB</strong> Média Bimestral</span>
         <span><strong>TF</strong> Total de Faltas</span>
