@@ -1804,18 +1804,20 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .row-hoje td:first-child { border-left: 3px solid var(--amber) !important; }
 .row-hoje td:last-child  { border-right: 2px solid var(--amber) !important; }
 
-/* ── Labels AP / AD no cronograma detalhado ──────────────────── */
-.cont-label {
+/* ── AP / AD no cronograma detalhado ────────────────────────── */
+.cont-label-ap,
+.cont-label-ad {
   flex-shrink: 0;
-  font-size: .62rem;
+  font-size: .845rem;   /* mesmo tamanho que o texto ao lado */
   font-weight: 800;
-  letter-spacing: .06em;
+  letter-spacing: .04em;
   text-transform: uppercase;
-  color: var(--text-muted);
   align-self: center;
-  min-width: 18px;
+  line-height: 1.45;
+  min-width: 22px;
 }
-.conteudo-cell .cont-label { color: var(--amber); }
+.cont-label-ap { color: var(--amber); }
+.cont-label-ad { color: var(--teal); }
 
 .conteudo-ad-row {
   display: flex;
@@ -1823,5 +1825,11 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   gap: 5px;
   margin-top: 4px;
 }
-.conteudo-ad-row .cont-label { color: var(--teal); }
-.conteudo-ad-row .detalhe-select { flex: 1; }
+.conteudo-ad-row .detalhe-select { flex: 1; font-size: .845rem; }
+
+/* Coluna AD (checkbox) antes de Conteúdos */
+.td-ad-check {
+  text-align: center;
+  vertical-align: middle;
+  padding: 0 6px;
+}
