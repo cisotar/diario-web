@@ -10,6 +10,7 @@
 
 let RT_NOTAS = {};
 let _notasOcultarInativos = false;
+let _notasFiltroSit = null;
 
 const _COLUNAS_PADRAO = [
   { id: "AM", sigla: "AM", label: "Avaliação Mensal",  editavel: true, tipo: "fixo" },
@@ -222,24 +223,37 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
     EE: alunos.filter(a => a.situacao==="EE").length,
     EV: alunos.filter(a => a.situacao==="EV").length,
   };
-  const _mkSitN = (cls, sigla, desc, n) => n > 0
-    ? `<span class="sit-item"><span class="badge-situacao badge-sit-${cls}">${sigla}</span><span class="sit-desc">${desc} (${n})</span></span>`
-    : "";
+  const _mkSitN = (cls, sigla, desc, n) => {
+    if (n === 0) return "";
+    const ativo = _notasFiltroSit === (sigla || null);
+    return `<span class="sit-item${ativo ? " sit-item-ativo" : ""}"
+      onclick="_notasFiltroSit=(_notasFiltroSit===${JSON.stringify(sigla||null)}?null:${JSON.stringify(sigla||null)});renderizarNotas()"
+      title="${ativo ? "Clique para remover filtro" : "Clique para filtrar"}" style="cursor:pointer">
+      <span class="badge-situacao badge-sit-${cls}">${sigla||"✓"}</span>
+      <span class="sit-desc">${desc} (${n})</span>
+    </span>`;
+  };
   const legendaHtmlNotas = `<div class="sit-legenda">
       <span class="sit-legenda-titulo">Situação (${contsSitN.total} alunos):</span>
-      ${_mkSitN("ok","✓","Matriculado",contsSitN.ativos)}
+      ${_mkSitN("ok","","Matriculado",contsSitN.ativos)}
       ${_mkSitN("ab","AB","Abandonou",contsSitN.AB)}
       ${_mkSitN("nc","NC","Não comparecimento",contsSitN.NC)}
       ${_mkSitN("tr","TR","Transferido",contsSitN.TR)}
       ${_mkSitN("rm","RM","Remanejado",contsSitN.RM)}
       ${_mkSitN("rc","RC","Reclassificado",contsSitN.RC)}
-      ${_mkSitN("ee","EE","Educação Especial",contsSitN.EE)}
+      ${_mkSitN("ee","EE","Ed. Especial",contsSitN.EE)}
       ${_mkSitN("ev","EV","Evadido",contsSitN.EV)}
+      ${_notasFiltroSit !== null ? `<button type="button" class="btn-toggle-inativos" style="padding:2px 8px;font-size:.7rem" onclick="_notasFiltroSit=null;renderizarNotas()">✕ limpar filtro</button>` : ""}
     </div>`;
 
-  const alunosVisiveis = _notasOcultarInativos
-    ? alunos.filter(a => !_SITS_INATIVAS.includes(a.situacao))
-    : alunos;
+  const alunosVisiveis = (() => {
+    let lista = _notasOcultarInativos
+      ? alunos.filter(a => !["AB","NC","TR","RM","RC","EV"].includes(a.situacao))
+      : alunos;
+    if (_notasFiltroSit !== null)
+      lista = lista.filter(a => (a.situacao||"") === (_notasFiltroSit||""));
+    return lista;
+  })();
 
   // Linhas de alunos
   const rows = alunosVisiveis.map(a => {
@@ -334,6 +348,7 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
           <div class="bim-prog-bar-bg"><div class="bim-prog-bar-fill" style="width:${p}%;background:${cor}"></div></div>
         </div>`;
       })()}
+      ${legendaHtmlNotas}
       <div style="overflow-x:auto">
         <table class="tabela-gestao tabela-notas">
           <thead>
@@ -352,7 +367,6 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
         </table>
       </div>
       ${legendaColunas}
-      ${legendaHtmlNotas}
     </div>`;
 }
 
@@ -437,19 +451,17 @@ async function _renderizarConceitoFinal(secao, t, turmaKey, alunos, dadosNotas, 
       </div>
       <div class="tabs-bimestre" style="margin-bottom:8px">${tabsBim}</div>
       ${(() => {
-        const cs = { total:alunos.length, ativos:alunos.filter(a=>!a.situacao).length,
-          AB:alunos.filter(a=>a.situacao==="AB").length, NC:alunos.filter(a=>a.situacao==="NC").length,
-          TR:alunos.filter(a=>a.situacao==="TR").length, RM:alunos.filter(a=>a.situacao==="RM").length,
-          RC:alunos.filter(a=>a.situacao==="RC").length, EE:alunos.filter(a=>a.situacao==="EE").length,
-          EV:alunos.filter(a=>a.situacao==="EV").length };
-        const _m = (cls,s,d,n) => n>0?`<span class="sit-item"><span class="badge-situacao badge-sit-${cls}">${s}</span><span class="sit-desc">${d} (${n})</span></span>`:"";
-        return `<div class="sit-legenda">
-          <span class="sit-legenda-titulo">Situação (${cs.total} alunos):</span>
-          ${_m("ok","✓","Matriculado",cs.ativos)}${_m("ab","AB","Abandonou",cs.AB)}
+        const cs={total:alunos.length,ativos:alunos.filter(a=>!a.situacao).length,
+          AB:alunos.filter(a=>a.situacao==="AB").length,NC:alunos.filter(a=>a.situacao==="NC").length,
+          TR:alunos.filter(a=>a.situacao==="TR").length,RM:alunos.filter(a=>a.situacao==="RM").length,
+          RC:alunos.filter(a=>a.situacao==="RC").length,EE:alunos.filter(a=>a.situacao==="EE").length,
+          EV:alunos.filter(a=>a.situacao==="EV").length};
+        const _m=(cls,s,d,n)=>n>0?`<span class="sit-item"><span class="badge-situacao badge-sit-${cls}">${s||"✓"}</span><span class="sit-desc">${d} (${n})</span></span>`:"";
+        return `<div class="sit-legenda"><span class="sit-legenda-titulo">Situação (${cs.total} alunos):</span>
+          ${_m("ok","","Matriculado",cs.ativos)}${_m("ab","AB","Abandonou",cs.AB)}
           ${_m("nc","NC","Não comparecimento",cs.NC)}${_m("tr","TR","Transferido",cs.TR)}
           ${_m("rm","RM","Remanejado",cs.RM)}${_m("rc","RC","Reclassificado",cs.RC)}
-          ${_m("ee","EE","Educação Especial",cs.EE)}${_m("ev","EV","Evadido",cs.EV)}
-        </div>`;
+          ${_m("ee","EE","Ed. Especial",cs.EE)}${_m("ev","EV","Evadido",cs.EV)}</div>`;
       })()}
       <div class="notas-legenda">
         <span><strong>MB</strong> Média Bimestral</span>

@@ -2,6 +2,7 @@
 // Dependências: globals.js, db.js, auth.js
 
 let _talaOcultarInativos = false;
+let _talaFiltroSit = null;
 
 async function renderizarTala() {
   const t = turmaAtiva;
@@ -13,11 +14,7 @@ async function renderizarTala() {
   const alunos   = await _carregarAlunos(turmaKey);
   const adm      = _isAdmin(_userAtual?.email);
   const SITUACOES = ["","AB","NC","TR","RM","RC","EE","EV"];
-  const SITUACAO_LABEL = { "":"Matriculado","AB":"Abandonou","NC":"Não compareceu","TR":"Transferido","RM":"Remanejado","RC":"Reclassificado","EE":"Educação Especial","EV":"Evadido" };
-
-  const alunosVisiveis = _talaOcultarInativos
-    ? alunos.filter(a => !_SITS_INATIVAS.includes(a.situacao))
-    : alunos;
+  const SITUACAO_LABEL = { "":"Matriculado","AB":"Abandonou","NC":"Não comparecimento","TR":"Transferido","RM":"Remanejado","RC":"Reclassificado","EE":"Educação Especial","EV":"Evadido" };
 
   const contsSit = {
     total: alunos.length,
@@ -30,22 +27,35 @@ async function renderizarTala() {
     EE: alunos.filter(a => a.situacao==="EE").length,
     EV: alunos.filter(a => a.situacao==="EV").length,
   };
-
-  const _mkSitItem = (cls, sigla, desc, n) => n > 0
-    ? `<span class="sit-item"><span class="badge-situacao badge-sit-${cls}">${sigla}</span><span class="sit-desc">${desc} (${n})</span></span>`
-    : "";
-
+  const _mkSit = (cls, sigla, desc, n) => {
+    if (n === 0) return "";
+    const ativo = _talaFiltroSit === (sigla || null) || (_talaFiltroSit === "" && sigla === "");
+    const novoFiltro = (sigla === "" ? null : sigla);
+    return `<span class="sit-item${ativo ? " sit-item-ativo" : ""}"
+      onclick="_talaFiltroSit=(_talaFiltroSit===${JSON.stringify(sigla||null)}?null:${JSON.stringify(sigla||null)});renderizarTala()"
+      title="${ativo ? "Clique para remover filtro" : "Clique para filtrar"}" style="cursor:pointer">
+      <span class="badge-situacao badge-sit-${cls}">${sigla||"✓"}</span>
+      <span class="sit-desc">${desc} (${n})</span>
+    </span>`;
+  };
   const legendaHtml = `<div class="sit-legenda">
       <span class="sit-legenda-titulo">Situação (${contsSit.total} alunos):</span>
-      ${_mkSitItem("ok","✓","Matriculado",contsSit.ativos)}
-      ${_mkSitItem("ab","AB","Abandonou",contsSit.AB)}
-      ${_mkSitItem("nc","NC","Não comparecimento",contsSit.NC)}
-      ${_mkSitItem("tr","TR","Transferido",contsSit.TR)}
-      ${_mkSitItem("rm","RM","Remanejado",contsSit.RM)}
-      ${_mkSitItem("rc","RC","Reclassificado",contsSit.RC)}
-      ${_mkSitItem("ee","EE","Educação Especial",contsSit.EE)}
-      ${_mkSitItem("ev","EV","Evadido",contsSit.EV)}
+      ${_mkSit("ok","","Matriculado",contsSit.ativos)}
+      ${_mkSit("ab","AB","Abandonou",contsSit.AB)}
+      ${_mkSit("nc","NC","Não comparecimento",contsSit.NC)}
+      ${_mkSit("tr","TR","Transferido",contsSit.TR)}
+      ${_mkSit("rm","RM","Remanejado",contsSit.RM)}
+      ${_mkSit("rc","RC","Reclassificado",contsSit.RC)}
+      ${_mkSit("ee","EE","Ed. Especial",contsSit.EE)}
+      ${_mkSit("ev","EV","Evadido",contsSit.EV)}
+      ${_talaFiltroSit !== null ? `<button type="button" class="btn-toggle-inativos" style="padding:2px 8px;font-size:.7rem" onclick="_talaFiltroSit=null;renderizarTala()">✕ limpar filtro</button>` : ""}
     </div>`;
+
+  const alunosVisiveis = (() => {
+    let lista = _talaOcultarInativos ? alunos.filter(a => !["AB","NC","TR","RM","RC","EV"].includes(a.situacao)) : alunos;
+    if (_talaFiltroSit !== null) lista = lista.filter(a => (a.situacao||"") === (_talaFiltroSit||""));
+    return lista;
+  })();
 
   const rows = alunosVisiveis.map((a, idx) => {
     const sitOpts = SITUACOES.map(s =>
@@ -88,7 +98,6 @@ async function renderizarTala() {
       <div class="gestao-bloco-header">
         <h3>Lista de Alunos — ${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""}</h3>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <span style="font-size:.8rem;color:var(--text-muted)">${alunos.length} aluno(s)</span>
           <button type="button" class="btn-toggle-inativos"
             onclick="_talaOcultarInativos=!_talaOcultarInativos;renderizarTala()">
             ${_talaOcultarInativos ? "👁 Mostrar inativos" : "🚫 Ocultar inativos"}

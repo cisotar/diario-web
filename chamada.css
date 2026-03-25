@@ -282,23 +282,7 @@
   cursor: pointer;
 }
 
-/* ── Legenda de situações ────────────────────────────────────── */
-.sit-legenda {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 10px;
-  font-size: .75rem;
-}
-.sit-legenda-titulo {
-  font-size: .72rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-right: 2px;
-}
-/* Badge EV — evadido */
-.badge-sit-ev { background: #fef3c7; color: #92400e; }
+
 
 /* ── Itens da legenda com descrição ────────────────────────── */
 .sit-legenda {
@@ -352,3 +336,70 @@
 }
 .tr-resumo-tc td { border-top: none !important; }
 .tr-resumo-pct td { border-top: none !important; }
+
+/* ── Badge EV ────────────────────────────────────────────────── */
+.badge-sit-ev { background: #fef3c7; color: #92400e; }
+
+/* ── Legenda de situações ────────────────────────────────────── */
+.sit-legenda {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px 10px;
+  margin-bottom: 10px;
+}
+.sit-legenda-titulo {
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.sit-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 5px;
+  padding: 2px 5px 2px 2px;
+  transition: background .12s;
+}
+.sit-item:hover { background: var(--amber-pale); }
+.sit-item-ativo {
+  background: var(--amber-pale);
+  outline: 1.5px solid var(--amber);
+}
+.sit-desc {
+  font-size: .72rem;
+  color: var(--text-mid);
+  white-space: nowrap;
+}
+
+/* ── Botão ocultar/mostrar inativos ─────────────────────────── */
+.btn-toggle-inativos {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--text-mid);
+  font-family: 'DM Sans', sans-serif;
+  font-size: .78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .13s;
+}
+.btn-toggle-inativos:hover { border-color: var(--amber); color: var(--amber); }
+
+/* ── Linhas de resumo TF / TC / %F ──────────────────────────── */
+.tr-resumo-chamada td {
+  background: #0d1520 !important;
+  border-color: #1e2d40 !important;
+}
+.td-resumo-label {
+  text-align: right;
+  font-size: .7rem;
+  font-weight: 700;
+  color: #64748b;
+  padding: 3px 6px !important;
+  white-space: nowrap;
+  letter-spacing: .04em;
+}
