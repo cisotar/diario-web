@@ -1,14 +1,8 @@
 // CRONOGRAMA.JS — Cronograma, edição, drag&drop, checkboxes, modais, exportação
 // Dependências: globals.js, db.js, auth.js
 
-// ── Salvar com debounce longo — evita re-renders do onSnapshot ───────────────
-// Cada alteração grava no localStorage imediatamente (via salvarTudo interno)
-// e agenda o Firestore para 30 s. O onSnapshot só dispara após esse envio,
-// portanto a página não re-renderiza durante a edição.
 let _cronSaveTimer = null;
-
 function _salvarCron() {
-  // 1. localStorage imediato (cache local)
   const uid = _userAtual ? (_isAdmin(_userAtual.email) ? "global" : _userAtual.uid) : "anonimo";
   try {
     localStorage.setItem(`aulaEstado_${uid}`,    JSON.stringify(estadoAulas));
@@ -16,14 +10,11 @@ function _salvarCron() {
     localStorage.setItem(`aulaEventuais_${uid}`, JSON.stringify(linhasEventuais));
     localStorage.setItem(`RT_CONTEUDOS_${uid}`,  JSON.stringify(RT_CONTEUDOS));
     localStorage.setItem(`RT_TURMAS_${uid}`,     JSON.stringify(RT_TURMAS));
-  } catch(e) { console.warn("localStorage cheio:", e); }
-  // 2. Firestore com debounce de 30 s
+  } catch(e) {}
   clearTimeout(_cronSaveTimer);
   _cronSaveTimer = setTimeout(() => _salvarFirestore(), 30000);
   _mostrarIndicadorSync("💾 Gravado localmente");
 }
-
-// Flush imediato ao fechar/navegar
 window.addEventListener("beforeunload", () => {
   if (_cronSaveTimer) { clearTimeout(_cronSaveTimer); _salvarFirestore(); }
 });
@@ -151,8 +142,6 @@ function renderizarConteudo() {
         : `<table class="tabela-aulas" id="tabela-aulas">
             <thead><tr>
               <th class="th-numero"   data-tip="${TOOLTIPS_COLUNAS['th-numero']}">#</th>
-              <th class="th-conteudo" data-tip="${TOOLTIPS_COLUNAS['th-conteudo']}">Conteúdos / Atividades</th>
-              <th class="th-data"     data-tip="${TOOLTIPS_COLUNAS['th-data']}">Data prevista</th>
               <th class="th-dada" data-tip="${TOOLTIPS_COLUNAS['th-dada']}">
                 AD
                 <div class="th-lote">
@@ -160,7 +149,9 @@ function renderizarConteudo() {
                   <button type="button" class="btn-lote btn-lote-off" title="Desmarcar todas" onclick="marcarColuna('feita',false)">✗</button>
                 </div>
               </th>
-              <th class="th-registro" data-tip="${TOOLTIPS_COLUNAS['th-registro']}">Data</th>
+              <th class="th-conteudo" data-tip="${TOOLTIPS_COLUNAS['th-conteudo']}">Conteúdos / Atividades</th>
+              <th class="th-data"     data-tip="${TOOLTIPS_COLUNAS['th-data']}">Data prevista</th>
+              <th class="th-registro" data-tip="${TOOLTIPS_COLUNAS['th-registro']}">DATA AD</th>
               <th class="th-chamada" data-tip="${TOOLTIPS_COLUNAS['th-chamada']}">
                 Chamada
                 <div class="th-lote">
@@ -286,61 +277,12 @@ function alternarVisao() {
   renderizarConteudo();
 }
 
-// Salva detalhe — detalhes agora é um array (suporta múltiplos)
-function salvarDetalhe(slotId, idx, valor) {
+// Salva detalhe selecionado no dropdown de uma linha
+function salvarDetalhe(slotId, valor) {
   const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
   if (!estadoAulas[ch]) estadoAulas[ch] = {};
-  // Migração: string → array
-  if (!Array.isArray(estadoAulas[ch].detalhes)) {
-    const old = estadoAulas[ch].detalhe || "";
-    estadoAulas[ch].detalhes = old ? [old] : [""];
-    delete estadoAulas[ch].detalhe;
-  }
-  estadoAulas[ch].detalhes[idx] = valor;
+  estadoAulas[ch].detalhe = valor;
   _salvarCron();
-}
-
-function adicionarDetalhe(slotId) {
-  const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
-  if (!estadoAulas[ch]) estadoAulas[ch] = {};
-  if (!Array.isArray(estadoAulas[ch].detalhes)) {
-    const old = estadoAulas[ch].detalhe || "";
-    estadoAulas[ch].detalhes = old ? [old] : [""];
-    delete estadoAulas[ch].detalhe;
-  }
-  estadoAulas[ch].detalhes.push("");
-  _salvarCron();
-  // Re-render only this cell
-  const tdC = document.querySelector(`td.td-conteudo[data-slot="${slotId}"]`);
-  if (tdC) _renderizarBlocoAD(slotId, tdC, estadoAulas[ch].detalhes);
-}
-
-function _renderizarBlocoAD(slotId, tdC, detalhes) {
-  const chaveBase = `${turmaAtiva.serie}_${turmaAtiva.disciplina}_b${bimestreAtivo}`;
-  const lista = RT_CONTEUDOS[chaveBase] || RT_CONTEUDOS[`${turmaAtiva.serie}_${turmaAtiva.disciplina}`] || [];
-  const wrap = tdC.querySelector(".ad-blocos-wrap");
-  if (!wrap) return;
-  wrap.innerHTML = detalhes.map((val, idx) => _mkADRow(slotId, lista, val, idx)).join("");
-}
-
-function _mkADRow(slotId, lista, val, idx) {
-  const opts = lista.map(c =>
-    `<option value="${c.replace(/"/g,'&quot;')}" ${val===c?"selected":""}>${c}</option>`
-  ).join("");
-  return `<div class="conteudo-ad-row">
-    <span class="cont-label-ad">AD</span>
-    <datalist id="dl-${slotId}-${idx}">
-      ${lista.map(c=>`<option value="${c.replace(/"/g,'&quot;')}">`).join("")}
-    </datalist>
-    <input type="text" class="detalhe-input gi"
-      list="dl-${slotId}-${idx}"
-      value="${(val||'').replace(/"/g,'&quot;')}"
-      placeholder="— aula desenvolvida —"
-      onchange="salvarDetalhe('${slotId}',${idx},this.value)"
-      title="Aula desenvolvida — selecione ou digite" />
-    <button type="button" class="btn-add-detalhe" title="Adicionar outra linha AD"
-      onclick="adicionarDetalhe('${slotId}')">+</button>
-  </div>`;
 }
 
 // ── Modal de horários da turma ativa ─────────────────────────
@@ -444,8 +386,9 @@ function renderizarLinhas(slots) {
     }
     const selecionado = selConteudos.has(slotId);
     const passada     = slot.data < hoje();
+    const _ehHoje     = slot.data === hoje();
     const rowBase     = slot.eventual ? "row-eventual" : (feita ? "row-feita" : (passada ? "row-pendente" : "row-futura"));
-    const rowClass    = `${rowBase}${selecionado ? " row-sel-cont" : ""}`;
+    const rowClass    = `${rowBase}${selecionado ? " row-sel-cont" : ""}${_ehHoje ? " row-hoje" : ""}`;
     const tr = document.createElement("tr");
     tr.className    = rowClass;
     tr.dataset.slot = slotId;
@@ -460,22 +403,16 @@ function renderizarLinhas(slots) {
         <span class="checkmark ${campo==='feita'?'':'checkmark-alt'}"></span>
       </label>`;
 
-    // Migração: detalhe (string) → detalhes (array)
+    const ehHoje = slot.data === hoje();
     const detalhes = Array.isArray(est.detalhes)
       ? est.detalhes
       : (est.detalhe ? [est.detalhe] : [""]);
-
     const chaveBaseAD = `${t.serie}_${t.disciplina}_b${bimestreAtivo}`;
     const listaAD = RT_CONTEUDOS[chaveBaseAD] || RT_CONTEUDOS[`${t.serie}_${t.disciplina}`] || [];
 
-    const blocoAD = visaoDetalhada
-      ? `<div class="ad-blocos-wrap">
-          ${detalhes.map((val, idx) => _mkADRow(slotId, listaAD, val, idx)).join("")}
-        </div>`
-      : "";
-
     tr.innerHTML = `
       <td class="td-numero">${slot.eventual ? `<span class="tag-eventual" title="Aula eventual">E</span>` : lineNum}</td>
+      <td class="td-check td-ad-check">${mkChk("feita", feita, "Aula dada?")}</td>
       <td class="td-conteudo" data-slot="${slotId}">
         <div class="conteudo-cell">
           <span class="drag-handle-cont ${selecionado?"handle-sel":""}"
@@ -489,7 +426,9 @@ function renderizarLinhas(slots) {
           ${editado?'<span class="badge-editado">✎</span>':""}
           ${slot.eventual?`<button class="btn-del-eventual" onclick="removerEventual('${slotId}')" title="Remover esta aula eventual">×</button>`:""}
         </div>
-        ${blocoAD}
+        ${visaoDetalhada ? `<div class="ad-blocos-wrap">${
+          detalhes.map((val, idx) => _mkADRow(slotId, listaAD, val, idx)).join("")
+        }</div>` : ""}
         <input type="text" class="anotacao-input"
           placeholder="Anotação…"
           value="${(est.anotacao||'').replace(/"/g,'&quot;')}"
@@ -498,7 +437,6 @@ function renderizarLinhas(slots) {
         />
       </td>
       <td class="td-data">${fmtSlotData(slot)}</td>
-      <td class="td-check">${mkChk("feita",   feita, "Aula dada?")}</td>
       <td class="td-registro" id="reg-${slotId}">${feita?fmtData(est.dataFeita):"—"}</td>
       <td class="td-check">${mkChk("chamada", !!est.chamada,   "Chamada realizada?")}</td>
       <td class="td-check">${mkChk("conteudoEntregue", !!est.conteudoEntregue, "Material entregue?")}</td>`;
@@ -679,8 +617,8 @@ function toggleCampo(slotId, campo, val, inputEl) {
       const slot  = getSlotsCompletos(turmaAtiva.id, bimestreAtivo).find(s => s.slotId===slotId);
       const pass  = slot && slot.data < hoje();
       const ev    = slot?.eventual;
-      const ehHoje = slot && slot.data === hoje();
-      tr.className = `${ev?"row-eventual":(val?"row-feita":(pass?"row-pendente":"row-futura"))}${selConteudos.has(slotId)?" row-sel-cont":""}${ehHoje?" row-hoje":""}`;
+      const _eH = slot && slot.data === hoje();
+      tr.className = `${ev?"row-eventual":(val?"row-feita":(pass?"row-pendente":"row-futura"))}${selConteudos.has(slotId)?" row-sel-cont":""}${_eH?" row-hoje":""}`;
     }
     if (reg) reg.textContent = val ? fmtData(hoje()) : "—";
     atualizarStats();

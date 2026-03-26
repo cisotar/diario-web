@@ -396,17 +396,6 @@ body {
   user-select: none;
   position: relative;
 }
-.tabela-aulas th.th-data-chamada {
-  width: 36px;
-  min-width: 36px;
-  max-width: 36px;
-  padding: 4px 0;
-  font-size: .75rem;
-  letter-spacing: 0;
-  text-transform: none;
-  cursor: default;
-  text-align: center;
-}
 
 .tabela-aulas th:hover { color: var(--amber-light); }
 
@@ -820,14 +809,17 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 }
 
 /* Tabela de gestão */
-.tabela-gestao { width: 100%; border-collapse: collapse; font-size: .845rem; }
+.tabela-gestao { width: 100%; border-collapse: collapse; font-size: .845rem; border: 1px solid var(--border); }
 .tabela-gestao thead { background: #1e2530; color: #e2e8f0; }
 .tabela-gestao th {
   padding: 10px 12px; text-align: left;
   font-size: .63rem; text-transform: uppercase;
   letter-spacing: .1em; font-weight: 600;
+  border-right: 1px solid rgba(255,255,255,.08);
 }
-.tabela-gestao td { padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.tabela-gestao th:last-child { border-right: none; }
+.tabela-gestao td { padding: 8px 10px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); vertical-align: middle; }
+.tabela-gestao td:last-child { border-right: none; }
 .tabela-gestao tbody tr:last-child td { border-bottom: none; }
 .tabela-gestao tbody tr:hover { background: var(--blue-pale); }
 
@@ -1493,6 +1485,28 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   color: var(--text);
 }
 
+/* ── Seleção em lote nos cabeçalhos ─────────────────────────── */
+.th-lote {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  margin-top: 4px;
+}
+.btn-lote {
+  background: var(--green, #2d7a4f);
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: .68rem;
+  cursor: pointer;
+  line-height: 1.4;
+}
+.btn-lote:hover { opacity: .85; }
+.btn-lote-off {
+  background: var(--text-muted, #718096);
+}
+
 /* ── Visão detalhada ─────────────────────────────────────────── */
 .btn-visao-det {
   background: var(--bg-paper);
@@ -1525,7 +1539,207 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   font-style: italic;
 }
 
+/* ── Abas cronograma / chamada ───────────────────────────────── */
+.tabs-cronograma-aba {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.tab-aba {
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: 6px 6px 0 0;
+  padding: 6px 16px;
+  font-size: .85rem;
+  color: var(--text-mid);
+  cursor: pointer;
+  border-bottom-color: transparent;
+}
+.tab-aba.ativo {
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 600;
+  border-bottom-color: var(--bg);
+}
+
+/* ── Badges de situação do aluno ────────────────────────────── */
+.badge-situacao {
+  display: inline-block;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: .75rem;
+  font-weight: 700;
+}
+.badge-sit-ok  { background: #e6f4ea; color: #2d7a4f; }
+.badge-sit-ab  { background: #fce8e8; color: #c0392b; }
+.badge-sit-nc  { background: #fff3cd; color: #856404; }
+.badge-sit-tr  { background: #e8f0fe; color: #1a73e8; }
+.badge-sit-rm  { background: #f3e8fd; color: #7b1fa2; }
+.badge-sit-rc  { background: #fce8f3; color: #c2185b; }
+.badge-sit-ee  { background: #e0f2fe; color: #0369a1; }
+
+.aluno-inativo td { opacity: .55; }
+
+/* ── Chamada: botões C/F ─────────────────────────────────────── */
+.btn-cf {
+  width: 28px;
+  height: 22px;
+  border: none;
+  border-radius: 4px;
+  font-size: .75rem;
+  font-weight: 700;
+  cursor: pointer;
+  line-height: 1;
+}
+.chk-comp { background: #e6f4ea; color: #2d7a4f; }
+.chk-comp:hover { background: #c8e6c9; }
+.chk-falta { background: #fce8e8; color: #c0392b; }
+.chk-falta:hover { background: #ffcdd2; }
+.th-data-sel { background: var(--amber-light, #f0a84a33) !important; }
+/* Cabeçalho de dia da chamada — largura fixa igual em todos os bimestres */
+.th-data-chamada {
+  width: 28px;
+  min-width: 28px;
+  max-width: 28px;
+  text-align: center;
+  font-size: .75rem;
+  font-weight: 600;
+  padding: 5px 0;
+  position: relative;
+  vertical-align: middle;
+}
+/* Popover C/F — flutua ACIMA, botões lado a lado horizontalmente */
+.th-dia-popover {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  background: var(--surface2, #1e2530);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 6px;
+  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  box-shadow: 0 -4px 12px rgba(0,0,0,.4);
+  white-space: nowrap;
+}
+.th-dia-popover::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom: none;
+  border-top-color: var(--border);
+}
+.th-data-chamada:hover .th-dia-popover { display: flex; }
+/* Tabela de chamada — layout fixo para colunas uniformes */
+.tabela-chamada {
+  table-layout: fixed;
+  width: 100%;
+}
+.tabela-chamada .col-num  { width: 36px; }
+.tabela-chamada .col-nome { min-width: 160px; white-space: nowrap; }
+.tabela-chamada .col-sit  { width: 48px; }
+.tabela-chamada .col-freq { width: 36px; }
+/* Células das colunas de dia: padding zero para alinhar com o th */
+.tabela-chamada td:not(.td-numero):not(.td-nome):not(.td-freq-total):not(.td-freq-pct) {
+  padding: 4px 0;
+  text-align: center;
+  vertical-align: middle;
+}
+.th-mes-chamada {
+  text-align: center;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  padding: 2px 0;
+  background: #1a2235;
+  color: #7dd3fc;
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+/* Botão de mês no cabeçalho da tabela */
+.btn-mes-chamada {
+  background: transparent;
+  border: none;
+  color: #7dd3fc;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: background .15s, color .15s;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: block;
+  width: 100%;
+}
+.btn-mes-chamada:hover { background: rgba(125,211,252,.15); }
+.btn-mes-chamada.ativo { background: #0d9488; color: #fff; }
+/* Barra de filtro de mês acima da tabela */
+.filtro-meses-chamada {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+  padding: 4px 2px;
+}
+.btn-mes-filtro {
+  background: var(--surface2, #1e2530);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: .75rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+  white-space: nowrap;
+}
+.btn-mes-filtro:hover { border-color: #7dd3fc; color: #7dd3fc; }
+.btn-mes-filtro.ativo { background: #0d9488; border-color: #0d9488; color: #fff; }
+/* Colunas de frequência TF / %F */
+.th-freq {
+  text-align: center;
+  font-size: .72rem;
+  font-weight: 700;
+  padding: 4px 6px;
+  background: #1a2235;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+.td-freq-total, .td-freq-pct {
+  text-align: center;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 4px 6px;
+  white-space: nowrap;
+}
+.freq-critica {
+  color: #f87171;
+  font-weight: 700;
+}
+/* Linha destacada: aluno com mais de 20% de faltas */
+.row-alta-falta td {
+  background: rgba(239, 68, 68, 0.08) !important;
+}
+.row-alta-falta:hover td {
+  background: rgba(239, 68, 68, 0.15) !important;
+}
+
+
 /* ── Tabela de Notas ──────────────────────────────────────── */
+.tabela-notas { border: 1px solid var(--border); }
 .tabela-notas .th-nota {
   text-align: center;
   font-size: .78rem;
@@ -1534,7 +1748,9 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   white-space: nowrap;
   min-width: 58px;
   vertical-align: middle;
+  border-right: 1px solid rgba(255,255,255,.07);
 }
+.tabela-notas .th-nota:last-child { border-right: none; }
 .tabela-notas .th-mt  { background: #1a2a40; color: #93c5fd; }
 .tabela-notas .th-rec { background: #2a1f10; color: #fbbf24; }
 .tabela-notas .th-mb  { background: #0f2a1e; color: #4ade80; }
@@ -1549,8 +1765,15 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   color: #7dd3fc;
   padding: 4px 6px;
   border-bottom: 1px solid var(--border);
+  border-right: 2px solid rgba(255,255,255,.1);
 }
-.tabela-notas .tr-pesos td { background: #141c27; }
+.th-bim-grupo:last-child { border-right: none; }
+/* Grade vertical nas células de nota */
+.tabela-notas .td-nota { border-right: 1px solid var(--border); }
+.tabela-notas td:last-child { border-right: none; }
+/* Separação mais forte entre bimestres: última coluna de cada grupo */
+.tabela-notas .td-bim-sep { border-right: 2px solid #c0b9ac; }
+.tabela-notas .tr-pesos td { background: #141c27; border-right: 1px solid rgba(255,255,255,.06); }
 
 /* Notas: cores por valor */
 .nota-input-ok  { background: #eff6ff !important; border-color: #93c5fd !important; color: #1d4ed8 !important; }
@@ -1561,7 +1784,11 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .bim-prog-frac { font-size: .75rem; color: var(--text-muted); }
 .bim-prog-bar-bg { height: 5px; background: var(--surface2,#1e2530); border-radius: 4px; overflow: hidden; }
 .bim-prog-bar-fill { height: 100%; border-radius: 4px; transition: width .4s ease; }
-
+/* Chamada Mobile */
+.chamada-mobile-wrap { padding: 4px 0; }
+.chamada-mobile-header { margin-bottom: 12px; }
+.chamada-mob-tabela td, .chamada-mob-tabela th { padding: 10px 8px; }
+.btn-cf-mob { width: 48px; height: 36px; border: none; border-radius: 6px; font-size: .9rem; font-weight: 700; cursor: pointer; }
 /* Inputs de nota — fundo claro, texto escuro */
 .input-peso {
   width: 52px;
@@ -1700,101 +1927,6 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 }
 .notas-legenda strong { color: #94a3b8; }
 
-/* ── Grade de Horários (Painel Professor e ADM) ──────────────────── */
-.grade-wrap   { margin-bottom: 24px; }
-.grade-titulo {
-  font-size: .88rem; font-weight: 700;
-  color: var(--text); margin-bottom: 8px;
-  display: flex; align-items: center; gap: 6px;
-}
-.grade-tabela {
-  border-collapse: collapse;
-  width: 100%;
-  font-size: .8rem;
-  table-layout: fixed;
-}
-.grade-tabela th {
-  background: #1e2530;
-  color: #94a3b8;
-  font-size: .72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: .06em;
-  padding: 8px 6px;
-  text-align: center;
-  border: 1px solid var(--border);
-  white-space: nowrap;
-}
-.grade-th-hora { width: 58px; }
-.grade-periodo {
-  background: #141c27;
-  text-align: center;
-  padding: 6px 4px;
-  border: 1px solid var(--border);
-  vertical-align: middle;
-  white-space: nowrap;
-}
-.grade-aula-num {
-  font-size: .82rem; font-weight: 700; color: #e2e8f0; line-height: 1.2;
-}
-.grade-aula-hr { font-size: .65rem; color: var(--text-muted); }
-.grade-cell {
-  border: 1px solid var(--border);
-  text-align: center;
-  vertical-align: middle;
-  padding: 4px 4px;
-  height: 52px;
-  position: relative;
-  min-width: 70px;
-}
-.grade-vazia {
-  cursor: pointer;
-  transition: background .15s;
-  color: #334155;
-}
-.grade-vazia:hover { background: rgba(13,148,136,.12); }
-.grade-vazio-txt { font-size: .8rem; }
-.grade-ocupada {
-  background: rgba(201,125,32,.1);
-  border-color: rgba(201,125,32,.3);
-}
-.grade-ocupada-outro {
-  background: rgba(100,116,139,.1);
-  cursor: not-allowed;
-}
-.grade-ocupada-outro .grade-disc  { color: #64748b; }
-.grade-ocupada-outro .grade-turma { color: #475569; }
-.grade-disc  { font-size: .78rem; font-weight: 700; color: var(--amber); line-height: 1.2; }
-.grade-turma { font-size: .68rem; color: var(--text-muted); line-height: 1.2; }
-.grade-del-btn {
-  display: none;
-  position: absolute;
-  top: 2px; right: 3px;
-  background: transparent;
-  border: none;
-  color: #ef4444;
-  font-size: .85rem;
-  cursor: pointer;
-  line-height: 1;
-  opacity: .7;
-  padding: 0;
-}
-.grade-del-btn:hover { opacity: 1; }
-.grade-ocupada:hover .grade-del-btn { display: block; }
-.grade-intervalo td {
-  background: #0f1620 !important;
-  height: 6px !important;
-  padding: 0 !important;
-  border-color: #0f1620 !important;
-}
-.grade-hint {
-  font-size: .78rem;
-  color: var(--text-muted);
-  margin-bottom: 12px;
-}
-.grade-hint strong { color: var(--amber); }
-.grade-hint .cinza { color: #64748b; font-weight: 600; }
-
 /* ── Linha do dia presente ───────────────────────────────────── */
 .row-hoje td {
   background: rgba(201,125,32,.06) !important;
@@ -1805,7 +1937,6 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .row-hoje td:last-child  { border-right: 2px solid var(--amber) !important; }
 
 /* ── AP / AD no cronograma ───────────────────────────────────── */
-/* Linha AP: handle + label + texto alinhados */
 .conteudo-cell {
   display: flex;
   align-items: baseline;
@@ -1820,16 +1951,12 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   line-height: 1.45;
   min-width: 22px;
 }
-/* Bloco AD: empilhado abaixo do AP, mesma indentação */
-.ad-blocos-wrap {
-  margin-top: 3px;
-}
+.ad-blocos-wrap { margin-top: 3px; }
 .conteudo-ad-row {
   display: flex;
   align-items: baseline;
   gap: 5px;
   margin-top: 3px;
-  /* margem esquerda = drag handle + gap ≈ 18px para alinhar AD com AP */
   padding-left: 23px;
 }
 .cont-label-ad {
@@ -1841,7 +1968,6 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   line-height: 1.45;
   min-width: 22px;
 }
-/* Input AD — igual largura do texto AP */
 .detalhe-input {
   flex: 1;
   font-size: .845rem;
@@ -1853,30 +1979,18 @@ tr:hover .drag-handle-cont { color: var(--amber); }
   font-family: 'DM Sans', sans-serif;
   min-width: 0;
 }
-.detalhe-input:focus {
-  border-color: var(--teal);
-  outline: none;
-  background: #fff;
-}
-/* Botão + adicionar linha AD */
+.detalhe-input:focus { border-color: var(--teal); outline: none; background: #fff; }
 .btn-add-detalhe {
   flex-shrink: 0;
-  width: 22px;
-  height: 22px;
+  width: 22px; height: 22px;
   border: 1.5px solid var(--border);
   border-radius: 4px;
   background: transparent;
   color: var(--teal);
-  font-size: 1rem;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 1rem; font-weight: 700;
+  line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
   transition: background .12s, border-color .12s;
 }
-.btn-add-detalhe:hover {
-  background: var(--teal-pale);
-  border-color: var(--teal);
-}
+.btn-add-detalhe:hover { background: var(--teal-pale); border-color: var(--teal); }
+.td-ad-check { text-align: center; vertical-align: middle; padding: 0 6px; }
