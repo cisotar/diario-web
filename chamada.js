@@ -1,7 +1,7 @@
 // CHAMADA.JS — Sistema de chamadas e frequência
 // Dependências: globals.js, db.js, auth.js
 
-const _SITS_INATIVAS = ["AB","TR","RM","RC","NC","EV"];
+const _SITS_INATIVAS = ["AB","TR","RM","RC","NC"];  // EV removido — recebe chamada automática
 const _SITS_SEMPRE_C  = ["EE"];
 const _SITS_SEMPRE_F  = ["EV"];
 
@@ -195,10 +195,10 @@ async function _renderizarChamadaDesktop() {
   //   null → Ativos (exclui TR, AB, NC, RM, EV)
   //   ""   → TODOS (sem exceção)
   //   "AB", "TR", … → apenas essa situação
-  const _SITS_INATIVAS_FILT = ["AB","NC","TR","RM","EV"];
+  const _SITS_INAT_FILT = ["AB","NC","TR","RM","RC"];  // Ativos: exceto TR,AB,NC,RM,RC
   const contsSit = {
     total:  alunos.length,
-    ativos: alunos.filter(a => !_SITS_INATIVAS_FILT.includes(a.situacao)).length,
+    ativos: alunos.filter(a => !_SITS_INAT_FILT.includes(a.situacao)).length,
     AB: alunos.filter(a => a.situacao==="AB").length,
     NC: alunos.filter(a => a.situacao==="NC").length,
     TR: alunos.filter(a => a.situacao==="TR").length,
@@ -239,7 +239,7 @@ async function _renderizarChamadaDesktop() {
 
   const alunosFiltrados = (() => {
     if (_chamadaFiltroSit === null)
-      return alunos.filter(a => !_SITS_INATIVAS_FILT.includes(a.situacao));
+      return alunos.filter(a => !_SITS_INAT_FILT.includes(a.situacao));
     if (_chamadaFiltroSit === "")
       return alunos;
     return alunos.filter(a => a.situacao === _chamadaFiltroSit);
@@ -279,8 +279,14 @@ async function _renderizarChamadaDesktop() {
     for (const d of datasPassadas) {
       if (!_alunoAtivoNaData(a, d)) continue;
       totalAulas++;
-      if (isEV) totalFaltas++;
-      else if (!isEE && (chamadas[d] || {})[a.num] === "F") totalFaltas++;
+      // Registro explícito prevalece sobre auto-fill
+      const explicit = (chamadas[d] || {})[a.num];
+      if (explicit !== undefined) {
+        if (explicit === "F") totalFaltas++;
+      } else {
+        // Auto-fill: EV=F, EE=C, demais=C (default)
+        if (isEV) totalFaltas++;
+      }
     }
 
     const tds = slotsVisiveis.map(s => {
@@ -293,21 +299,21 @@ async function _renderizarChamadaDesktop() {
       }
 
       const slotKey = _chaveSlotChamada(d, s.aula);
+      // Registro explícito prevalece; fallback = auto-fill (EE→C, EV→F, demais→C se passado)
+      const explicit = (chamadas[slotKey]||{})[a.num] ?? (chamadas[d]||{})[a.num];
       let val;
-      if (isEE)      val = "C";
+      if (explicit !== undefined) val = explicit;
+      else if (isEE) val = "C";
       else if (isEV) val = "F";
-      else if ((chamadas[slotKey] || {})[a.num] !== undefined) val = chamadas[slotKey][a.num];
-      else val = (chamadas[d] || {})[a.num] || (isPast ? "C" : "");
+      else val = isPast ? "C" : "";
       if (!val) return `<td></td>`;
       const cls = val === "F" ? "chk-falta" : "chk-comp";
       const btnId = `cf-${turmaKey}-${a.num}-${slotKey}`;
-      const autoTitle = isEE ? "Ed. Especial — presença automática" : "Evadido — falta automática";
+      const autoHint = isEE ? " title='Ed. Especial (auto C)'" : isEV ? " title='Evadido (auto F)'" : "";
       return `<td style="text-align:center">
-        <button type="button" id="${btnId}" class="btn-cf ${cls}"
-          ${(isEE || isEV)
-            ? `disabled title="${autoTitle}" style="opacity:.7;cursor:default"`
-            : `onclick="toggleChamadaSlot('${turmaKey}','${slotKey}','${d}',${a.num},this)"`
-          }>${val}</button>
+        <button type="button" id="${btnId}" class="btn-cf ${cls}"${autoHint}
+          onclick="toggleChamadaSlot('${turmaKey}','${slotKey}','${d}',${a.num},this)"
+        >${val}</button>
       </td>`;
     }).join("");
 
@@ -453,8 +459,9 @@ function _atualizarFreqLinha(turmaKey, numAluno, chamadas, alunos) {
   for (const d of datasPassadas) {
     if (!_alunoAtivoNaData(aluno, d)) continue;
     totalAulas++;
-    if (isEV) totalFaltas++;
-    else if (!isEE && (chamadas[d] || {})[aluno.num] === "F") totalFaltas++;
+    const explicit = (chamadas[d] || {})[aluno.num];
+    if (explicit !== undefined) { if (explicit === "F") totalFaltas++; }
+    else if (isEV) totalFaltas++;
   }
   // Find TF and %F cells by searching all tds in the row
   // Rows don't have stable ids; find via the first btn-cf in the row
@@ -488,7 +495,7 @@ async function toggleChamadaSlot(turmaKey, slotKey, data, numAluno, btnEl) {
     _carregarAlunos(turmaKey),
   ]);
   const aluno = alunos.find(a => a.num === numAluno || String(a.num) === String(numAluno));
-  if (!aluno || aluno.situacao === "EE" || aluno.situacao === "EV") return;
+  if (!aluno) return;
   if (!chamadas[slotKey]) chamadas[slotKey] = {};
   const novo = (chamadas[slotKey][numAluno] === "F") ? "C" : "F";
   chamadas[slotKey][numAluno] = novo;
@@ -565,7 +572,8 @@ async function _renderizarChamadaMobile() {
   const rows = alunosAtivos.map(a => {
     const isEE  = a.situacao === "EE";
     const isEV2 = a.situacao === "EV";
-    const val   = isEE ? "C" : isEV2 ? "F" : ((chamadas[_dataChamadaSel] || {})[a.num] || "C");
+    const explicit = (chamadas[_dataChamadaSel] || {})[a.num];
+    const val = explicit !== undefined ? explicit : (isEE ? "C" : isEV2 ? "F" : "C");
     const cls   = val === "F" ? "chk-falta" : "chk-comp";
     const sitLabel = a.situacao ? a.situacao : "";
     const sitClass = a.situacao ? `badge-sit-${a.situacao.toLowerCase()}` : "";
@@ -576,7 +584,7 @@ async function _renderizarChamadaMobile() {
       </td>
       <td style="text-align:center;width:64px">
         <button type="button" class="btn-cf-mob ${cls}"
-          ${(isEE||isEV2) ? `disabled title="${isEE?'Ed. Especial — presença automática':'Evadido — falta automática'}"` : `onclick="toggleChamadaMobile('${turmaKey}','${_dataChamadaSel}',${a.num},this)"`}>
+          onclick="toggleChamadaMobile('${turmaKey}','${_dataChamadaSel}',${a.num},this)">
           ${val}
         </button>
       </td>

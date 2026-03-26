@@ -211,7 +211,7 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
       </div>
     </td>`).join("");
 
-  const _SITS_INAT_N = ["AB","NC","TR","RM","EV"];
+  const _SITS_INAT_N = ["AB","NC","TR","RM","RC"];  // Ativos: exceto TR,AB,NC,RM,RC
   const contsSitN = {
     total:  alunos.length,
     ativos: alunos.filter(a => !_SITS_INAT_N.includes(a.situacao)).length,
@@ -448,7 +448,7 @@ async function _renderizarConceitoFinal(secao, t, turmaKey, alunos, dadosNotas, 
       </div>
       <div class="tabs-bimestre" style="margin-bottom:8px">${tabsBim}</div>
       ${(() => {
-        const _si=["AB","NC","TR","RM","EV"];
+        const _si=["AB","NC","TR","RM","RC"];
         const cs={total:alunos.length,ativos:alunos.filter(a=>!_si.includes(a.situacao)).length,
           AB:alunos.filter(a=>a.situacao==="AB").length,NC:alunos.filter(a=>a.situacao==="NC").length,
           TR:alunos.filter(a=>a.situacao==="TR").length,RM:alunos.filter(a=>a.situacao==="RM").length,

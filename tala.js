@@ -15,7 +15,7 @@ async function renderizarTala() {
   const SITUACOES = ["","AB","NC","TR","RM","RC","EE","EV"];
   const SITUACAO_LABEL = { "":"Matriculado","AB":"Abandonou","NC":"Não comparecimento","TR":"Transferido","RM":"Remanejado","RC":"Reclassificado","EE":"Educação Especial","EV":"Evadido" };
 
-  const _SITS_INAT = ["AB","NC","TR","RM","EV"];
+  const _SITS_INAT = ["AB","NC","TR","RM","RC"];  // Ativos: exceto TR,AB,NC,RM,RC
   const contsSit = {
     total:  alunos.length,
     ativos: alunos.filter(a => !_SITS_INAT.includes(a.situacao)).length,
