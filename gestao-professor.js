@@ -504,9 +504,16 @@ function delHorario(ti, hi) {
   const el = document.getElementById("g-minhas-turmas");
   if (el) el.innerHTML = htmlProfTurmas();
 }
-function delTurma(i) {
+async function delTurma(i) {
   const t = RT_TURMAS[i];
-  if (!confirm("Excluir " + (t.disciplina||"esta disciplina") + " da turma " + t.serie + "ª " + t.turma + "?")) return;
+  if (!confirm("Excluir " + (t.disciplina||"esta disciplina") + " da turma " + t.serie + "ª " + t.turma + "?\nAs chamadas desta turma também serão removidas.")) return;
+  // Remove chamadas do professor para esta turma
+  const turmaKey = t.serie + t.turma;
+  const uid = _userAtual ? (_isAdmin(_userAtual.email) ? "global" : _userAtual.uid) : "anonimo";
+  const docId = `${turmaKey}_${uid}`;
+  try {
+    await firebase.firestore().collection("chamadas").doc(docId).delete();
+  } catch(e) { console.warn("Erro ao deletar chamada:", e); }
   RT_TURMAS.splice(i, 1);
   salvarTudo();
   renderizarSidebar();

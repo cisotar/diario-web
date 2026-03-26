@@ -241,7 +241,8 @@ async function _renderizarChamadaDesktop() {
     const isPast = s.data <= hoje_str;
     const dia    = s.data.split("-")[2];
     const title  = s.inicio ? `${dia} · ${s.inicio}` : dia;
-    return `<th class="th-data-chamada${isSel ? " th-data-sel" : ""}" title="${title}">
+    const _isHojeCol = s.data === hoje_str;
+    return `<th class="th-data-chamada${isSel ? " th-data-sel" : ""}${_isHojeCol ? " th-dia-hoje" : ""}" title="${title}">
       <span class="th-dia-num">${dia}</span>
       ${isPast ? `<div class="th-dia-popover">
         <button type="button" class="btn-lote"
@@ -264,11 +265,20 @@ async function _renderizarChamadaDesktop() {
     let totalAulas  = 0;
     let totalFaltas = 0;
     const isEE = a.situacao === "EE";
-    for (const d of datasPassadas) {
-      if (!_alunoAtivoNaData(a, d)) continue;
+    const isEV = a.situacao === "EV";
+    for (const s of slotsPassados) {
+      if (!_alunoAtivoNaData(a, s.data)) continue;
       totalAulas++;
-      // EE nunca tem falta
-      if (!isEE && (chamadas[d] || {})[a.num] === "F") totalFaltas++;
+      const sk = _chaveSlotChamada(s.data, s.aula);
+      const exp = (chamadas[sk] || {})[a.num] !== undefined
+        ? chamadas[sk][a.num] : (chamadas[s.data] || {})[a.num];
+      const _isHoje = s.data === hoje_str;
+      if (exp !== undefined) {
+        if (exp === "F") totalFaltas++;
+      } else if (!_isHoje) {
+        // passado sem registro: EV=F, EE=C, resto=C
+        if (isEV) totalFaltas++;
+      }
     }
 
     const tds = slotsVisiveis.map(s => {
@@ -280,26 +290,23 @@ async function _renderizarChamadaDesktop() {
         return `<td style="text-align:center;color:var(--text-muted);font-size:.7rem">—</td>`;
       }
 
-      // EE: sempre C, botão desabilitado
-      // Chave do slot atual; default = valor do slot anterior do mesmo dia (se existir)
       const slotKey = _chaveSlotChamada(d, s.aula);
+      const isHoje = d === hoje_str;
+      const explicit = (chamadas[slotKey] || {})[a.num] !== undefined
+        ? chamadas[slotKey][a.num]
+        : (chamadas[d] || {})[a.num];
       let val;
-      if (isEE) {
-        val = "C";
-      } else if ((chamadas[slotKey] || {})[a.num] !== undefined) {
-        val = chamadas[slotKey][a.num]; // registro independente
-      } else {
-        // Herda do primeiro slot do dia (ou "C" se passado)
-        val = (chamadas[d] || {})[a.num] || (isPast ? "C" : "");
-      }
-      if (!val) return `<td></td>`;
+      if (explicit !== undefined) val = explicit;
+      else if (isEE)  val = isHoje ? "" : "C";
+      else if (isEV)  val = isHoje ? "" : "F";
+      else            val = (!isHoje && isPast) ? "C" : "";
+      if (!val) return `<td class="${isHoje ? "td-chamada-hoje" : ""}"></td>`;
       const cls = val === "F" ? "chk-falta" : "chk-comp";
-      return `<td style="text-align:center">
-        <button type="button" class="btn-cf ${cls}"
-          ${isEE
-            ? `disabled title="Educação Especial — presença automática" style="opacity:.6;cursor:default"`
-            : `onclick="toggleChamadaSlot('${turmaKey}','${slotKey}','${d}',${a.num})"`
-          }>${val}</button>
+      const autoHint = isEE ? " title='Ed. Especial (auto C)'" : isEV ? " title='Evadido (auto F)'" : "";
+      return `<td style="text-align:center"${isHoje ? ' class="td-chamada-hoje"' : ""}>
+        <button type="button" class="btn-cf ${cls}"${autoHint}
+          onclick="toggleChamadaSlot('${turmaKey}','${slotKey}','${d}',${a.num})"
+        >${val}</button>
       </td>`;
     }).join("");
 

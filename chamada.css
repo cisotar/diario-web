@@ -413,3 +413,15 @@
   font-size: .75rem;
   color: var(--text-muted);
 }
+
+/* ── Coluna do dia de hoje na chamada ────────────────────────── */
+.th-dia-hoje {
+  background: rgba(201,125,32,.18) !important;
+  border-left:  2px solid var(--amber) !important;
+  border-right: 2px solid var(--amber) !important;
+}
+.td-chamada-hoje {
+  background: rgba(201,125,32,.08) !important;
+  border-left:  2px solid rgba(201,125,32,.4) !important;
+  border-right: 2px solid rgba(201,125,32,.4) !important;
+}

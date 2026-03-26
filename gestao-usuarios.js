@@ -464,30 +464,146 @@ async function _carregarDiariosCoord() {
     const turmas = dados.RT_TURMAS || [];
     const tags = turmas.length
       ? turmas.map(t => `
-          <button type="button" onclick="abrirDiarioProf('${uid}','${t.id}')"
-            style="display:inline-flex;align-items:center;gap:5px;
-              background:var(--bg);border:1px solid var(--border);
-              border-radius:4px;padding:3px 10px;margin:2px;cursor:pointer;
-              font-size:.78rem;color:var(--text-mid);">
-            <span style="font-weight:600;color:var(--amber)">${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""}</span>
-            <span>${t.disciplina}</span>
-            <span style="color:var(--text-muted)">· ${t.sigla}</span>
-            <span style="color:var(--green);font-size:.7rem">↗</span>
-          </button>`).join("")
+          <span class="assoc-tag">
+            <input type="checkbox" class="assoc-chk" data-uid="${uid}" data-tid="${t.id}"
+              title="Selecionar para remoção em lote" />
+            <button type="button" onclick="abrirDiarioProf('${uid}','${t.id}')"
+              class="assoc-btn-ver">
+              <span style="font-weight:600;color:var(--amber)">${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""}</span>
+              <span>${t.disciplina}</span>
+              <span style="color:var(--text-muted)">· ${t.sigla}</span>
+              <span style="color:var(--green);font-size:.7rem">↗</span>
+            </button>
+            <button type="button" class="assoc-btn-del"
+              onclick="removerAssociacaoUnica('${uid}','${t.id}')"
+              title="Remover associação ${t.serie}ª ${t.turma} ${t.disciplina}">🗑</button>
+          </span>`).join("")
       : `<em style="color:var(--text-muted);font-size:.8rem;">Sem turmas cadastradas</em>`;
     return `
       <div style="margin-bottom:12px;padding:14px 16px;
         background:var(--bg-paper);border:1px solid var(--border);border-radius:var(--radius);">
-        <div style="font-family:'DM Serif Display',serif;font-size:1rem;margin-bottom:2px;">
-          ${p.nome||uid}
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+          <span style="font-family:'DM Serif Display',serif;font-size:1rem;">${p.nome||uid}</span>
+          ${turmas.length ? `<button type="button" class="btn-icon-del" style="font-size:.75rem;padding:2px 8px;border:1.5px solid var(--border);border-radius:4px;"
+            onclick="selecionarTodasAssocProf('${uid}',this)" title="Selecionar todas">☐ Todas</button>` : ""}
         </div>
         <div style="font-size:.75rem;color:var(--text-muted);margin-bottom:8px;">
           ${p.email||""}${p.disciplinas?" · "+p.disciplinas:""}
         </div>
-        <div style="display:flex;flex-wrap:wrap;gap:2px">${tags}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">${tags}</div>
       </div>`;
   }).join("");
+
+  // Botão de remoção em lote (aparece quando há checkboxes marcados)
+  lista.insertAdjacentHTML("beforebegin", `
+    <div id="assoc-lote-bar" style="display:none;margin-bottom:8px;padding:8px 12px;
+      background:var(--amber-pale);border:1.5px solid var(--amber);border-radius:8px;
+      display:none;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span id="assoc-lote-count" style="font-size:.82rem;font-weight:600;color:var(--amber)">0 selecionadas</span>
+      <button type="button" class="btn-add" style="background:var(--red,#c0392b)"
+        onclick="removerAssociacaoLote()">🗑 Remover selecionadas</button>
+      <button type="button" class="btn-modal-cancel"
+        onclick="limparSelecaoAssoc()">Cancelar</button>
+    </div>`);
+
+  // Listeners para checkboxes
+  setTimeout(() => {
+    document.querySelectorAll(".assoc-chk").forEach(chk => {
+      chk.addEventListener("change", _atualizarBarraLote);
+    });
+  }, 0);
 }
+// ── Remoção de associação ────────────────────────────────────────────────────
+async function removerAssociacaoUnica(profUid, turmaId) {
+  if (!confirm("Remover esta associação? As chamadas do professor para esta turma também serão removidas.")) return;
+  await _removerAssociacoes(profUid, [turmaId]);
+}
+
+function selecionarTodasAssocProf(profUid, btn) {
+  const chks = document.querySelectorAll(`.assoc-chk[data-uid="${profUid}"]`);
+  const todas = [...chks].every(c => c.checked);
+  chks.forEach(c => { c.checked = !todas; });
+  btn.textContent = todas ? "☐ Todas" : "☑ Todas";
+  _atualizarBarraLote();
+}
+
+function _atualizarBarraLote() {
+  const selecionadas = document.querySelectorAll(".assoc-chk:checked");
+  const bar = document.getElementById("assoc-lote-bar");
+  const cnt = document.getElementById("assoc-lote-count");
+  if (!bar) return;
+  if (selecionadas.length > 0) {
+    bar.style.display = "flex";
+    cnt.textContent = `${selecionadas.length} associação(ões) selecionada(s)`;
+  } else {
+    bar.style.display = "none";
+  }
+}
+
+function limparSelecaoAssoc() {
+  document.querySelectorAll(".assoc-chk").forEach(c => c.checked = false);
+  const bar = document.getElementById("assoc-lote-bar");
+  if (bar) bar.style.display = "none";
+}
+
+async function removerAssociacaoLote() {
+  const selecionadas = [...document.querySelectorAll(".assoc-chk:checked")];
+  if (!selecionadas.length) return;
+  if (!confirm(`Remover ${selecionadas.length} associação(ões)? As chamadas correspondentes também serão removidas.`)) return;
+  // Agrupa por profUid
+  const porProf = {};
+  selecionadas.forEach(c => {
+    if (!porProf[c.dataset.uid]) porProf[c.dataset.uid] = [];
+    porProf[c.dataset.uid].push(c.dataset.tid);
+  });
+  for (const [uid, tids] of Object.entries(porProf)) {
+    await _removerAssociacoes(uid, tids);
+  }
+}
+
+async function _removerAssociacoes(profUid, turmaIds) {
+  const db = firebase.firestore();
+  try {
+    // 1. Carrega diário do professor
+    const snap = await db.collection("diario").doc(profUid).get();
+    if (!snap.exists) return;
+    const dados = snap.data();
+    let turmas = JSON.parse(dados.RT_TURMAS || "[]");
+
+    // 2. Identifica as turmas removidas para deletar chamadas
+    const turmasRemovidas = turmas.filter(t => turmaIds.includes(t.id));
+    turmas = turmas.filter(t => !turmaIds.includes(t.id));
+
+    // 3. Atualiza diário
+    await db.collection("diario").doc(profUid).update({
+      RT_TURMAS: JSON.stringify(turmas)
+    });
+
+    // 4. Remove chamadas associadas
+    for (const t of turmasRemovidas) {
+      const turmaKey = t.serie + t.turma;
+      const docId = `${turmaKey}_${profUid}`;
+      try {
+        await db.collection("chamadas").doc(docId).delete();
+      } catch(e) { console.warn("Erro ao deletar chamada:", e); }
+    }
+
+    // 5. Atualiza cache local se for o próprio professor
+    if (profUid === _userAtual?.uid || profUid === "global") {
+      RT_TURMAS = turmas;
+      renderizarSidebar();
+    }
+
+    _mostrarIndicadorSync("✓ Associação(ões) removida(s)");
+  } catch(e) {
+    console.warn("Erro ao remover associação:", e);
+    _mostrarIndicadorSync("⚠ Erro ao remover associação");
+  }
+
+  // Recarrega a lista
+  _carregarDiariosCoord();
+}
+
 let contDragIdx = null;
 function contDragStart(e, i)  { contDragIdx = i; e.dataTransfer.effectAllowed="move"; e.dataTransfer.setData("text/plain",i); }
 function contDragEnter(e, i)  { e.target.closest("tr")?.classList.add("cont-drag-over"); }
