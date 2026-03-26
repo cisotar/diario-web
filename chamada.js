@@ -450,7 +450,7 @@ async function _mostrarModalCopiarChamada(turmaKey, outrasHoje) {
     modal = document.createElement("div");
     modal.id = "modal-copiar-chamada";
     modal.className = "modal-overlay";
-    modal.style.display = "flex";
+    modal.style.cssText = "display:flex;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);align-items:center;justify-content:center;";
 
     const lista = outrasHoje.map(p => `
       <button type="button" class="btn-copiar-chamada" data-doc="${p.docId}">
