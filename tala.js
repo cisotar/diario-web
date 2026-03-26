@@ -1,8 +1,7 @@
 // TALA.JS — Lista de alunos (edição, situação, CRUD)
 // Dependências: globals.js, db.js, auth.js
 
-let _talaOcultarInativos = false;
-let _talaFiltroSit = null;
+let _talaFiltroSit = "";  // "" = TODOS por padrão
 
 async function renderizarTala() {
   const t = turmaAtiva;
@@ -16,9 +15,10 @@ async function renderizarTala() {
   const SITUACOES = ["","AB","NC","TR","RM","RC","EE","EV"];
   const SITUACAO_LABEL = { "":"Matriculado","AB":"Abandonou","NC":"Não comparecimento","TR":"Transferido","RM":"Remanejado","RC":"Reclassificado","EE":"Educação Especial","EV":"Evadido" };
 
+  const _SITS_INAT = ["AB","NC","TR","RM","EV"];
   const contsSit = {
-    total: alunos.length,
-    ativos: alunos.filter(a => !a.situacao).length,
+    total:  alunos.length,
+    ativos: alunos.filter(a => !_SITS_INAT.includes(a.situacao)).length,
     AB: alunos.filter(a => a.situacao==="AB").length,
     NC: alunos.filter(a => a.situacao==="NC").length,
     TR: alunos.filter(a => a.situacao==="TR").length,
@@ -27,41 +27,37 @@ async function renderizarTala() {
     EE: alunos.filter(a => a.situacao==="EE").length,
     EV: alunos.filter(a => a.situacao==="EV").length,
   };
-  const _mkSit = (cls, sigla, desc, n) => {
+  const _mkSitT = (cls, sigla, desc, n) => {
     if (n === 0) return "";
-    const ativo = _talaFiltroSit === (sigla || null);
-    const nextVal = sigla ? `'${sigla}'` : "null";
-    const clearOrSet = ativo ? "null" : nextVal;
+    const ativo = _talaFiltroSit === sigla;
+    const clearOrSet = sigla === null ? "null" : sigla === "" ? "''" : `'${sigla}'`;
+    const toggle = ativo ? (sigla === null ? "''" : "null") : clearOrSet;
     return `<span class="sit-item${ativo ? " sit-item-ativo" : ""}"
-      onclick="_talaFiltroSit=${clearOrSet};renderizarTala()"
-      style="cursor:pointer" title="${ativo ? "Remover filtro" : "Filtrar por " + desc}">
-      <span class="badge-situacao badge-sit-${cls}">${sigla || "✓"}</span>
+      onclick="_talaFiltroSit=${toggle};renderizarTala()"
+      style="cursor:pointer" title="${ativo ? "Remover filtro" : "Filtrar: " + desc}">
+      <span class="badge-situacao badge-sit-${cls}">${sigla ?? "✓"}</span>
       <span class="sit-desc">${desc} (${n})</span>
     </span>`;
   };
   const legendaHtml = `<div class="sit-legenda">
-      <span class="sit-legenda-titulo">Situação (${contsSit.total} alunos):</span>
-      ${_mkSit("ok","","Matriculado",contsSit.ativos)}
-      ${_mkSit("ab","AB","Abandonou",contsSit.AB)}
-      ${_mkSit("nc","NC","Não comparecimento",contsSit.NC)}
-      ${_mkSit("tr","TR","Transferido",contsSit.TR)}
-      ${_mkSit("rm","RM","Remanejado",contsSit.RM)}
-      ${_mkSit("rc","RC","Reclassificado",contsSit.RC)}
-      ${_mkSit("ee","EE","Ed. Especial",contsSit.EE)}
-      ${_mkSit("ev","EV","Evadido",contsSit.EV)}
-      ${_talaFiltroSit !== null
-        ? `<button class="btn-toggle-inativos" style="padding:2px 8px;font-size:.7rem"
-            onclick="_talaFiltroSit=null;renderizarTala()">✕ limpar</button>`
-        : ""}
+      <span class="sit-legenda-titulo">Situação:</span>
+      ${_mkSitT("ok", null,  "Ativos",             contsSit.ativos)}
+      ${_mkSitT("ok", "",    "TODOS",               contsSit.total)}
+      ${_mkSitT("ab", "AB",  "Abandonou",           contsSit.AB)}
+      ${_mkSitT("nc", "NC",  "Não comparecimento",  contsSit.NC)}
+      ${_mkSitT("tr", "TR",  "Transferido",         contsSit.TR)}
+      ${_mkSitT("rm", "RM",  "Remanejado",          contsSit.RM)}
+      ${_mkSitT("rc", "RC",  "Reclassificado",      contsSit.RC)}
+      ${_mkSitT("ee", "EE",  "Ed. Especial",        contsSit.EE)}
+      ${_mkSitT("ev", "EV",  "Evadido",             contsSit.EV)}
     </div>`;
 
   const alunosVisiveis = (() => {
-    let lista = _talaOcultarInativos
-      ? alunos.filter(a => !["AB","NC","TR","RM","RC","EV"].includes(a.situacao))
-      : alunos;
-    if (_talaFiltroSit !== null)
-      lista = lista.filter(a => (a.situacao || "") === (_talaFiltroSit || ""));
-    return lista;
+    if (_talaFiltroSit === null)
+      return alunos.filter(a => !_SITS_INAT.includes(a.situacao));
+    if (_talaFiltroSit === "")
+      return alunos;
+    return alunos.filter(a => a.situacao === _talaFiltroSit);
   })();
 
   const rows = alunosVisiveis.map((a, idx) => {
@@ -105,10 +101,7 @@ async function renderizarTala() {
       <div class="gestao-bloco-header">
         <h3>Lista de Alunos — ${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""}</h3>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <button type="button" class="btn-toggle-inativos"
-            onclick="_talaOcultarInativos=!_talaOcultarInativos;renderizarTala()">
-            ${_talaOcultarInativos ? "👁 Mostrar inativos" : "🚫 Ocultar inativos"}
-          </button>
+          <span style="font-size:.8rem;color:var(--text-muted)">${alunos.length} aluno(s)</span>
           ${btnAdd}
           <button type="button" class="btn-exportar-js" onclick="baixarTalaCSV('${turmaKey}')">⬇ tala_${turmaKey.toLowerCase()}.csv</button>
         </div>

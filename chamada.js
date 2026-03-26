@@ -211,7 +211,7 @@ async function _renderizarChamadaDesktop() {
   const _mkSit = (cls, sigla, desc, n, filtroAtual) => {
     if (n === 0) return "";
     const ativo = filtroAtual === sigla;
-    const clearOrSet = sigla === null ? "null" : sigla === "" ? '""' : `'${sigla}'`;
+    const clearOrSet = sigla === null ? "null" : sigla === "" ? "''" : `'${sigla}'`;
     const toggle = ativo ? "null" : clearOrSet;
     return `<span class="sit-item${ativo ? " sit-item-ativo" : ""}"
       onclick="_chamadaFiltroSit=${toggle};renderizarChamadaFrequencia()"

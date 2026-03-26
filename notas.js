@@ -9,8 +9,7 @@
 // }
 
 let RT_NOTAS = {};
-let _notasOcultarInativos = false;
-let _notasFiltroSit = null;
+let _notasFiltroSit = "";  // "" = TODOS por padrão
 
 const _COLUNAS_PADRAO = [
   { id: "AM", sigla: "AM", label: "Avaliação Mensal",  editavel: true, tipo: "fixo" },
@@ -212,9 +211,10 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
       </div>
     </td>`).join("");
 
+  const _SITS_INAT_N = ["AB","NC","TR","RM","EV"];
   const contsSitN = {
-    total: alunos.length,
-    ativos: alunos.filter(a => !a.situacao).length,
+    total:  alunos.length,
+    ativos: alunos.filter(a => !_SITS_INAT_N.includes(a.situacao)).length,
     AB: alunos.filter(a => a.situacao==="AB").length,
     NC: alunos.filter(a => a.situacao==="NC").length,
     TR: alunos.filter(a => a.situacao==="TR").length,
@@ -225,39 +225,35 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
   };
   const _mkSitN = (cls, sigla, desc, n) => {
     if (n === 0) return "";
-    const ativo = _notasFiltroSit === (sigla || null);
-    const nextVal = sigla ? `'${sigla}'` : "null";
-    const clearOrSet = ativo ? "null" : nextVal;
+    const ativo = _notasFiltroSit === sigla;
+    const clearOrSet = sigla === null ? "null" : sigla === "" ? "''" : `'${sigla}'`;
+    const toggle = ativo ? (sigla === null ? "''" : "null") : clearOrSet;
     return `<span class="sit-item${ativo ? " sit-item-ativo" : ""}"
-      onclick="_notasFiltroSit=${clearOrSet};renderizarNotas()"
-      style="cursor:pointer" title="${ativo ? "Remover filtro" : "Filtrar por " + desc}">
-      <span class="badge-situacao badge-sit-${cls}">${sigla || "✓"}</span>
+      onclick="_notasFiltroSit=${toggle};renderizarNotas()"
+      style="cursor:pointer" title="${ativo ? "Remover filtro" : "Filtrar: " + desc}">
+      <span class="badge-situacao badge-sit-${cls}">${sigla ?? "✓"}</span>
       <span class="sit-desc">${desc} (${n})</span>
     </span>`;
   };
   const legendaHtmlNotas = `<div class="sit-legenda">
-      <span class="sit-legenda-titulo">Situação (${contsSitN.total} alunos):</span>
-      ${_mkSitN("ok","","Matriculado",contsSitN.ativos)}
-      ${_mkSitN("ab","AB","Abandonou",contsSitN.AB)}
-      ${_mkSitN("nc","NC","Não comparecimento",contsSitN.NC)}
-      ${_mkSitN("tr","TR","Transferido",contsSitN.TR)}
-      ${_mkSitN("rm","RM","Remanejado",contsSitN.RM)}
-      ${_mkSitN("rc","RC","Reclassificado",contsSitN.RC)}
-      ${_mkSitN("ee","EE","Ed. Especial",contsSitN.EE)}
-      ${_mkSitN("ev","EV","Evadido",contsSitN.EV)}
-      ${_notasFiltroSit !== null
-        ? `<button class="btn-toggle-inativos" style="padding:2px 8px;font-size:.7rem"
-            onclick="_notasFiltroSit=null;renderizarNotas()">✕ limpar</button>`
-        : ""}
+      <span class="sit-legenda-titulo">Situação:</span>
+      ${_mkSitN("ok", null,  "Ativos",             contsSitN.ativos)}
+      ${_mkSitN("ok", "",    "TODOS",               contsSitN.total)}
+      ${_mkSitN("ab", "AB",  "Abandonou",           contsSitN.AB)}
+      ${_mkSitN("nc", "NC",  "Não comparecimento",  contsSitN.NC)}
+      ${_mkSitN("tr", "TR",  "Transferido",         contsSitN.TR)}
+      ${_mkSitN("rm", "RM",  "Remanejado",          contsSitN.RM)}
+      ${_mkSitN("rc", "RC",  "Reclassificado",      contsSitN.RC)}
+      ${_mkSitN("ee", "EE",  "Ed. Especial",        contsSitN.EE)}
+      ${_mkSitN("ev", "EV",  "Evadido",             contsSitN.EV)}
     </div>`;
 
   const alunosVisiveis = (() => {
-    let lista = _notasOcultarInativos
-      ? alunos.filter(a => !["AB","NC","TR","RM","RC","EV"].includes(a.situacao))
-      : alunos;
-    if (_notasFiltroSit !== null)
-      lista = lista.filter(a => (a.situacao || "") === (_notasFiltroSit || ""));
-    return lista;
+    if (_notasFiltroSit === null)
+      return alunos.filter(a => !_SITS_INAT_N.includes(a.situacao));
+    if (_notasFiltroSit === "")
+      return alunos;
+    return alunos.filter(a => a.situacao === _notasFiltroSit);
   })();
 
   // Linhas de alunos
@@ -329,10 +325,6 @@ function _renderizarBimestre(secao, t, turmaKey, alunos, dadosNotas, tabsBim) {
         <h3>Notas — ${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""} · ${t.disciplina}</h3>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button type="button" class="btn-add" onclick="adicionarColunaNotas('${turmaKey}')">+ Coluna</button>
-          <button type="button" class="btn-toggle-inativos"
-            onclick="_notasOcultarInativos=!_notasOcultarInativos;renderizarNotas()">
-            ${_notasOcultarInativos ? "👁 Mostrar inativos" : "🚫 Ocultar inativos"}
-          </button>
           <button type="button" class="btn-exportar-js" onclick="baixarNotasCSV('${turmaKey}','${bimStr}')">⬇ notas_${turmaKey.toLowerCase()}_b${bimStr}.csv</button>
         </div>
       </div>
@@ -456,17 +448,19 @@ async function _renderizarConceitoFinal(secao, t, turmaKey, alunos, dadosNotas, 
       </div>
       <div class="tabs-bimestre" style="margin-bottom:8px">${tabsBim}</div>
       ${(() => {
-        const cs={total:alunos.length,ativos:alunos.filter(a=>!a.situacao).length,
+        const _si=["AB","NC","TR","RM","EV"];
+        const cs={total:alunos.length,ativos:alunos.filter(a=>!_si.includes(a.situacao)).length,
           AB:alunos.filter(a=>a.situacao==="AB").length,NC:alunos.filter(a=>a.situacao==="NC").length,
           TR:alunos.filter(a=>a.situacao==="TR").length,RM:alunos.filter(a=>a.situacao==="RM").length,
           RC:alunos.filter(a=>a.situacao==="RC").length,EE:alunos.filter(a=>a.situacao==="EE").length,
           EV:alunos.filter(a=>a.situacao==="EV").length};
-        const _m=(cls,s,d,n)=>n>0?`<span class="sit-item"><span class="badge-situacao badge-sit-${cls}">${s||"✓"}</span><span class="sit-desc">${d} (${n})</span></span>`:"";
-        return `<div class="sit-legenda"><span class="sit-legenda-titulo">Situação (${cs.total} alunos):</span>
-          ${_m("ok","","Matriculado",cs.ativos)}${_m("ab","AB","Abandonou",cs.AB)}
-          ${_m("nc","NC","Não comparecimento",cs.NC)}${_m("tr","TR","Transferido",cs.TR)}
-          ${_m("rm","RM","Remanejado",cs.RM)}${_m("rc","RC","Reclassificado",cs.RC)}
-          ${_m("ee","EE","Ed. Especial",cs.EE)}${_m("ev","EV","Evadido",cs.EV)}</div>`;
+        const _m=(cls,s,d,n)=>n>0?`<span class="sit-item"><span class="badge-situacao badge-sit-${cls}">${s??'✓'}</span><span class="sit-desc">${d} (${n})</span></span>`:"";
+        return `<div class="sit-legenda"><span class="sit-legenda-titulo">Situação:</span>
+          ${_m("ok",null,"Ativos",cs.ativos)}${_m("ok","","TODOS",cs.total)}
+          ${_m("ab","AB","Abandonou",cs.AB)}${_m("nc","NC","Não comparecimento",cs.NC)}
+          ${_m("tr","TR","Transferido",cs.TR)}${_m("rm","RM","Remanejado",cs.RM)}
+          ${_m("rc","RC","Reclassificado",cs.RC)}${_m("ee","EE","Ed. Especial",cs.EE)}
+          ${_m("ev","EV","Evadido",cs.EV)}</div>`;
       })()}
       <div class="notas-legenda">
         <span><strong>MB</strong> Média Bimestral</span>
