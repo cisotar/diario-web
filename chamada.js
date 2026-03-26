@@ -4,6 +4,11 @@
 const _SITS_INATIVAS = ["AB","TR","RM","RC","NC"];
 const _SITS_SEMPRE_C  = ["EE"];  // Educação Especial — presença sempre C, nunca F
 
+// ── Oferta de cópia de chamada ────────────────────────────────────────────────
+// true  = modal aparece SEMPRE que a chamada for aberta
+// false = modal aparece apenas quando a chamada do professor estiver vazia para hoje
+const _CHAMADA_OFERTA_SEMPRE = false;
+
 let RT_CHAMADAS = {};
 
 // ── Chamada por professor — doc: chamadas/{turmaKey}_{uid} ────────────────────
@@ -148,12 +153,13 @@ async function _renderizarChamadaDesktop() {
   const turmaKey = t.serie + t.turma;
   const hoje_str = hoje();
 
-  // Se a chamada do professor atual estiver vazia para hoje, oferece cópia
+  // Oferece cópia de chamada de outros professores:
+  // _CHAMADA_OFERTA_SEMPRE=true → sempre; false → só quando vazia para hoje
   const chamadaAtualCheck = await _carregarChamadas(turmaKey);
   const temHoje = Object.keys(chamadaAtualCheck).some(
     k => k === hoje_str || k.startsWith(hoje_str + "_")
   );
-  if (!temHoje && !_DEV) {
+  if ((_CHAMADA_OFERTA_SEMPRE || !temHoje) && !_DEV) {
     const outrasHoje = await _buscarChamadasHoje(turmaKey);
     if (outrasHoje.length > 0) {
       const copiou = await _mostrarModalCopiarChamada(turmaKey, outrasHoje);
