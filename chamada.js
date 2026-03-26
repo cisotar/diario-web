@@ -7,7 +7,7 @@ const _SITS_SEMPRE_C  = ["EE"];  // Educação Especial — presença sempre C, 
 // ── Oferta de cópia de chamada ────────────────────────────────────────────────
 // true  = modal aparece SEMPRE que a chamada for aberta
 // false = modal aparece apenas quando a chamada do professor estiver vazia para hoje
-const _CHAMADA_OFERTA_SEMPRE = false;
+const _CHAMADA_OFERTA_SEMPRE = true;
 
 let RT_CHAMADAS = {};
 
