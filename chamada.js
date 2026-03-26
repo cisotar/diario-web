@@ -5,6 +5,31 @@ const _SITS_INATIVAS = ["AB","TR","RM","RC","NC","EV"];
 const _SITS_SEMPRE_C  = ["EE"];
 const _SITS_SEMPRE_F  = ["EV"];
 
+// ── Filtro de situação ─────────────────────────────────────────────────────
+// null = Ativos (matriculados ativos: exceto TR,AB,NC,RM,EV)
+// ""   = TODOS (sem exceção)
+// "AB","TR",… = apenas essa situação
+let _chamadaFiltroSit   = null;
+let _chamadaOcultarInativos = false; // legado — substituído pelo filtro
+
+// ── Debounce Firestore ─────────────────────────────────────────────────────
+// Cada C/F atualiza RT_CHAMADAS em memória e o DOM imediatamente.
+// O Firestore recebe um único write depois de 3 s de inatividade.
+const _chamadaSaveTimers = {};  // por turmaKey
+
+function _agendarSaveChamadas(turmaKey) {
+  clearTimeout(_chamadaSaveTimers[turmaKey]);
+  _chamadaSaveTimers[turmaKey] = setTimeout(() => _salvarChamadas(turmaKey), 3000);
+  _mostrarIndicadorSync("💾 Chamada gravada localmente");
+}
+
+window.addEventListener("beforeunload", () => {
+  for (const key of Object.keys(_chamadaSaveTimers)) {
+    clearTimeout(_chamadaSaveTimers[key]);
+    _salvarChamadas(key);
+  }
+});
+
 let RT_CHAMADAS = {};
 
 async function _carregarChamadas(turmaKey) {
@@ -42,8 +67,6 @@ let _dataChamadaSel     = null;
 let _bimestreChamadaSel = null;
 // Mês filtrado na chamada ("YYYY-MM" ou null = todos)
 let _mesChamadaSel      = null;
-let _chamadaOcultarInativos = false;
-let _chamadaFiltroSit = null;
 
 function _diasDeAulaNoBimestre(turmaId, bim) {
   // Retorna datas únicas (para seletor de data e cálculo de TF)
@@ -161,17 +184,21 @@ async function _renderizarChamadaDesktop() {
     </th>`;
   }).join("");
 
-  // ── Linhas de alunos ──
+  // ── Contagem e legenda de situações ──
   const SITUACAO_LABEL = {
     "":"Matriculado","AB":"Abandonou","NC":"Não comparecimento",
     "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado",
     "EE":"Educação Especial","EV":"Evadido"
   };
 
-  // ── Contagem por situação ──
+  // Filtro:
+  //   null → Ativos (exclui TR, AB, NC, RM, EV)
+  //   ""   → TODOS (sem exceção)
+  //   "AB", "TR", … → apenas essa situação
+  const _SITS_INATIVAS_FILT = ["AB","NC","TR","RM","EV"];
   const contsSit = {
-    total: alunos.length,
-    ativos: alunos.filter(a => !a.situacao).length,
+    total:  alunos.length,
+    ativos: alunos.filter(a => !_SITS_INATIVAS_FILT.includes(a.situacao)).length,
     AB: alunos.filter(a => a.situacao==="AB").length,
     NC: alunos.filter(a => a.situacao==="NC").length,
     TR: alunos.filter(a => a.situacao==="TR").length,
@@ -181,71 +208,66 @@ async function _renderizarChamadaDesktop() {
     EV: alunos.filter(a => a.situacao==="EV").length,
   };
 
-  // _mkSit usa aspas simples no onclick para não quebrar o atributo HTML
-  const _mkSit = (cls, sigla, desc, n) => {
+  const _mkSit = (cls, sigla, desc, n, filtroAtual) => {
     if (n === 0) return "";
-    const ativo = _chamadaFiltroSit === (sigla || null);
-    // valor para o onclick — null literal ou string com aspas simples
-    const nextVal = sigla ? `'${sigla}'` : "null";
-    const clearOrSet = ativo ? "null" : nextVal;
+    const ativo = filtroAtual === sigla;
+    const clearOrSet = sigla === null ? "null" : sigla === "" ? '""' : `'${sigla}'`;
+    const toggle = ativo ? "null" : clearOrSet;
     return `<span class="sit-item${ativo ? " sit-item-ativo" : ""}"
-      onclick="_chamadaFiltroSit=${clearOrSet};renderizarChamadaFrequencia()"
-      style="cursor:pointer" title="${ativo ? "Remover filtro" : "Filtrar por " + desc}">
-      <span class="badge-situacao badge-sit-${cls}">${sigla || "✓"}</span>
+      onclick="_chamadaFiltroSit=${toggle};renderizarChamadaFrequencia()"
+      style="cursor:pointer" title="${ativo ? "Remover filtro" : "Filtrar: " + desc}">
+      <span class="badge-situacao badge-sit-${cls}">${sigla ?? "✓"}</span>
       <span class="sit-desc">${desc} (${n})</span>
     </span>`;
   };
 
+  const f = _chamadaFiltroSit;
   const legendaHtmlCham = `<div class="sit-legenda">
-      <span class="sit-legenda-titulo">Situação (${contsSit.total} alunos):</span>
-      ${_mkSit("ok","","Matriculado",contsSit.ativos)}
-      ${_mkSit("ab","AB","Abandonou",contsSit.AB)}
-      ${_mkSit("nc","NC","Não comparecimento",contsSit.NC)}
-      ${_mkSit("tr","TR","Transferido",contsSit.TR)}
-      ${_mkSit("rm","RM","Remanejado",contsSit.RM)}
-      ${_mkSit("rc","RC","Reclassificado",contsSit.RC)}
-      ${_mkSit("ee","EE","Ed. Especial",contsSit.EE)}
-      ${_mkSit("ev","EV","Evadido",contsSit.EV)}
-      ${_chamadaFiltroSit !== null
-        ? `<button class="btn-toggle-inativos" style="padding:2px 8px;font-size:.7rem"
-            onclick="_chamadaFiltroSit=null;renderizarChamadaFrequencia()">✕ limpar</button>`
-        : ""}
+      <span class="sit-legenda-titulo">Situação:</span>
+      ${_mkSit("ok", null,  "Ativos",          contsSit.ativos, f)}
+      ${_mkSit("ok", "",    "TODOS",            contsSit.total,  f)}
+      ${_mkSit("ab", "AB",  "Abandonou",        contsSit.AB,     f)}
+      ${_mkSit("nc", "NC",  "Não comparecimento",contsSit.NC,    f)}
+      ${_mkSit("tr", "TR",  "Transferido",      contsSit.TR,     f)}
+      ${_mkSit("rm", "RM",  "Remanejado",       contsSit.RM,     f)}
+      ${_mkSit("rc", "RC",  "Reclassificado",   contsSit.RC,     f)}
+      ${_mkSit("ee", "EE",  "Ed. Especial",     contsSit.EE,     f)}
+      ${_mkSit("ev", "EV",  "Evadido",          contsSit.EV,     f)}
+      ${f !== null ? `<button class="btn-toggle-inativos" style="padding:2px 8px;font-size:.7rem"
+          onclick="_chamadaFiltroSit=null;renderizarChamadaFrequencia()">✕ limpar</button>` : ""}
     </div>`;
 
-  // ── Filtros ──
   const alunosFiltrados = (() => {
-    let lista = _chamadaOcultarInativos
-      ? alunos.filter(a => !["AB","NC","TR","RM","RC","EV"].includes(a.situacao))
-      : alunos;
-    if (_chamadaFiltroSit !== null)
-      lista = lista.filter(a => (a.situacao || "") === (_chamadaFiltroSit || ""));
-    return lista;
+    if (_chamadaFiltroSit === null)
+      return alunos.filter(a => !_SITS_INATIVAS_FILT.includes(a.situacao));
+    if (_chamadaFiltroSit === "")
+      return alunos;
+    return alunos.filter(a => a.situacao === _chamadaFiltroSit);
   })();
 
-  // ── Resumo TF / TC / %F por coluna de dia ──
+  // ── Resumo TF / TC / %F por coluna ──
   const _resumo = slotsVisiveis.map(s => {
     if (s.data > hoje_str) return { tf: null, tc: null };
-    const slotKey = _chaveSlotChamada(s.data, s.aula);
+    const sk = _chaveSlotChamada(s.data, s.aula);
     let tf = 0, tc = 0;
     for (const a of alunosFiltrados) {
       if (!_alunoAtivoNaData(a, s.data)) continue;
-      const _isEE = a.situacao === "EE", _isEV = a.situacao === "EV";
+      const _ee = a.situacao === "EE", _ev = a.situacao === "EV";
       let v;
-      if (_isEE) v = "C";
-      else if (_isEV) v = "F";
-      else v = (chamadas[slotKey]||{})[a.num] ?? (chamadas[s.data]||{})[a.num] ?? "C";
+      if (_ee) v = "C";
+      else if (_ev) v = "F";
+      else v = (chamadas[sk]||{})[a.num] ?? (chamadas[s.data]||{})[a.num] ?? "C";
       if (v === "F") tf++; else tc++;
     }
     return { tf, tc };
   });
-
   const _tdR = (v, cor) => `<td style="text-align:center;font-size:.7rem;font-weight:700;color:${cor};padding:2px 0">${v}</td>`;
-  const trTF  = `<tr class="tr-resumo-chamada"><td colspan="3" class="td-resumo-label">TF</td>${_resumo.map(r => r.tf===null?`<td></td>`:_tdR(r.tf, r.tf>0?"#f87171":"#475569")).join("")}<td colspan="2"></td></tr>`;
-  const trTC  = `<tr class="tr-resumo-chamada"><td colspan="3" class="td-resumo-label">TC</td>${_resumo.map(r => r.tc===null?`<td></td>`:_tdR(r.tc, r.tc>0?"#4ade80":"#475569")).join("")}<td colspan="2"></td></tr>`;
-  const trPct = `<tr class="tr-resumo-chamada"><td colspan="3" class="td-resumo-label">%F</td>${_resumo.map(r => {
-    if (r.tf===null) return `<td></td>`;
-    const tot=r.tf+r.tc, pct=tot>0?Math.round(r.tf/tot*100):0;
-    return _tdR(pct+"%", pct>20?"#f87171":"#475569");
+  const trTF  = `<tr class="tr-resumo-chamada"><td colspan="3" class="td-resumo-label">TF</td>${_resumo.map(r=>r.tf===null?`<td></td>`:_tdR(r.tf,r.tf>0?"#f87171":"#475569")).join("")}<td colspan="2"></td></tr>`;
+  const trTC  = `<tr class="tr-resumo-chamada"><td colspan="3" class="td-resumo-label">TC</td>${_resumo.map(r=>r.tc===null?`<td></td>`:_tdR(r.tc,r.tc>0?"#4ade80":"#475569")).join("")}<td colspan="2"></td></tr>`;
+  const trPct = `<tr class="tr-resumo-chamada"><td colspan="3" class="td-resumo-label">%F</td>${_resumo.map(r=>{
+    if(r.tf===null)return`<td></td>`;
+    const tot=r.tf+r.tc,pct=tot>0?Math.round(r.tf/tot*100):0;
+    return _tdR(pct+"%",pct>20?"#f87171":"#475569");
   }).join("")}<td colspan="2"></td></tr>`;
 
   const rows = alunosFiltrados.map(a => {
@@ -272,18 +294,19 @@ async function _renderizarChamadaDesktop() {
 
       const slotKey = _chaveSlotChamada(d, s.aula);
       let val;
-      if (isEE)       val = "C";
-      else if (isEV)  val = "F";
+      if (isEE)      val = "C";
+      else if (isEV) val = "F";
       else if ((chamadas[slotKey] || {})[a.num] !== undefined) val = chamadas[slotKey][a.num];
       else val = (chamadas[d] || {})[a.num] || (isPast ? "C" : "");
       if (!val) return `<td></td>`;
       const cls = val === "F" ? "chk-falta" : "chk-comp";
+      const btnId = `cf-${turmaKey}-${a.num}-${slotKey}`;
       const autoTitle = isEE ? "Ed. Especial — presença automática" : "Evadido — falta automática";
       return `<td style="text-align:center">
-        <button type="button" class="btn-cf ${cls}"
+        <button type="button" id="${btnId}" class="btn-cf ${cls}"
           ${(isEE || isEV)
             ? `disabled title="${autoTitle}" style="opacity:.7;cursor:default"`
-            : `onclick="toggleChamadaSlot('${turmaKey}','${slotKey}','${d}',${a.num})"`
+            : `onclick="toggleChamadaSlot('${turmaKey}','${slotKey}','${d}',${a.num},this)"`
           }>${val}</button>
       </td>`;
     }).join("");
@@ -374,8 +397,8 @@ async function _renderizarChamadaDesktop() {
           <button type="button" class="btn-add" style="background:var(--text-muted)"
             onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','F')">✗ Todos F</button>
           <button type="button" class="btn-toggle-inativos"
-            onclick="_chamadaOcultarInativos=!_chamadaOcultarInativos;renderizarChamadaFrequencia()">
-            ${_chamadaOcultarInativos ? "👁 Mostrar inativos" : "🚫 Ocultar inativos"}
+            onclick="_chamadaFiltroSit=_chamadaFiltroSit===null?'':null;renderizarChamadaFrequencia()">
+            ${_chamadaFiltroSit === "" ? "👁 Ocultar inativos" : "👁 Ver todos"}
           </button>
         </div>
       </div>
@@ -394,7 +417,7 @@ async function _renderizarChamadaDesktop() {
             <col class="col-freq">
           </colgroup>
           <thead>
-            <tr class="thead-chamada-row">
+            <tr>
               <th style="width:36px" rowspan="2">Nº</th>
               <th rowspan="2">Nome</th>
               <th rowspan="2" style="width:48px;text-align:center" title="Situação">Sit.</th>
@@ -413,22 +436,71 @@ async function _renderizarChamadaDesktop() {
     </div>`;
 }
 
+// Atualiza TF e %F de uma linha no DOM sem re-renderizar a tabela
+function _atualizarFreqLinha(turmaKey, numAluno, chamadas, alunos) {
+  const t = turmaAtiva;
+  if (!t) return;
+  const bim = _bimestreChamadaSel || bimestreAtivo;
+  const bimObj = RT_BIMESTRES.find(b => b.bimestre === bim) || RT_BIMESTRES[0];
+  const hoje_str = hoje();
+  const datasPassadas = _diasDeAulaNoBimestre(t.id, bim)
+    .filter(d => d >= bimObj.inicio && d <= bimObj.fim && d <= hoje_str);
+  const aluno = alunos.find(a => String(a.num) === String(numAluno));
+  if (!aluno) return;
+  const isEE = aluno.situacao === "EE";
+  const isEV = aluno.situacao === "EV";
+  let totalAulas = 0, totalFaltas = 0;
+  for (const d of datasPassadas) {
+    if (!_alunoAtivoNaData(aluno, d)) continue;
+    totalAulas++;
+    if (isEV) totalFaltas++;
+    else if (!isEE && (chamadas[d] || {})[aluno.num] === "F") totalFaltas++;
+  }
+  // Find TF and %F cells by searching all tds in the row
+  // Rows don't have stable ids; find via the first btn-cf in the row
+  const anyBtn = document.querySelector(`[id^="cf-${turmaKey}-${numAluno}-"]`);
+  if (!anyBtn) return;
+  const row = anyBtn.closest("tr");
+  if (!row) return;
+  const tds = row.querySelectorAll("td");
+  const lastTds = [...tds].slice(-2);
+  const pct = totalAulas > 0 ? (totalFaltas / totalAulas * 100) : 0;
+  if (lastTds[0]) {
+    lastTds[0].textContent = totalFaltas;
+    lastTds[0].title = `${totalFaltas} falta(s) em ${totalAulas} aula(s)`;
+  }
+  if (lastTds[1]) {
+    lastTds[1].textContent = totalAulas > 0 ? pct.toFixed(0) + "%" : "—";
+    lastTds[1].className = `td-freq-pct${pct > 20 ? " freq-critica" : ""}`;
+    lastTds[1].title = pct.toFixed(1) + "%";
+  }
+  row.className = pct > 20 ? "row-alta-falta" : "";
+}
+
 async function toggleChamada(turmaKey, data, numAluno) {
   // Compatibilidade — usa slotKey = data (sem aula)
   return toggleChamadaSlot(turmaKey, data, data, numAluno);
 }
 
-async function toggleChamadaSlot(turmaKey, slotKey, data, numAluno) {
+async function toggleChamadaSlot(turmaKey, slotKey, data, numAluno, btnEl) {
   const [chamadas, alunos] = await Promise.all([
     _carregarChamadas(turmaKey),
     _carregarAlunos(turmaKey),
   ]);
   const aluno = alunos.find(a => a.num === numAluno || String(a.num) === String(numAluno));
-  if (aluno?.situacao === "EE") return;
+  if (!aluno || aluno.situacao === "EE" || aluno.situacao === "EV") return;
   if (!chamadas[slotKey]) chamadas[slotKey] = {};
-  chamadas[slotKey][numAluno] = (chamadas[slotKey][numAluno] === "F") ? "C" : "F";
-  await _salvarChamadas(turmaKey);
-  renderizarChamadaFrequencia();
+  const novo = (chamadas[slotKey][numAluno] === "F") ? "C" : "F";
+  chamadas[slotKey][numAluno] = novo;
+  // Atualiza DOM imediatamente — sem re-render
+  if (btnEl) {
+    btnEl.textContent = novo;
+    btnEl.className = `btn-cf ${novo === "F" ? "chk-falta" : "chk-comp"}`;
+  }
+  // Atualiza totais TF/%F da linha (se existirem no DOM)
+  _atualizarFreqLinha(turmaKey, numAluno, chamadas, alunos);
+  // Firestore com debounce 3 s
+  _agendarSaveChamadas(turmaKey);
 }
 
 async function chamadaTodosData(turmaKey, data, valor) {
@@ -439,12 +511,12 @@ async function chamadaTodosData(turmaKey, data, valor) {
   if (!chamadas[data]) chamadas[data] = {};
   for (const a of alunos) {
     if (_alunoAtivoNaData(a, data)) {
-      // EE nunca recebe F
-      chamadas[data][a.num] = (a.situacao === "EE") ? "C" : valor;
+      chamadas[data][a.num] = (a.situacao === "EE") ? "C" : (a.situacao === "EV") ? "F" : valor;
     }
   }
-  await _salvarChamadas(turmaKey);
+  // Re-render uma única vez após aplicar lote
   renderizarChamadaFrequencia();
+  _agendarSaveChamadas(turmaKey);
 }
 
 
@@ -531,8 +603,8 @@ async function _renderizarChamadaMobile() {
           <button type="button" class="btn-add" style="background:var(--text-muted)"
             onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','F')">✗ Todos F</button>
           <button type="button" class="btn-toggle-inativos"
-            onclick="_chamadaOcultarInativos=!_chamadaOcultarInativos;renderizarChamadaFrequencia()">
-            ${_chamadaOcultarInativos ? "👁 Mostrar inativos" : "🚫 Ocultar inativos"}
+            onclick="_chamadaFiltroSit=_chamadaFiltroSit===null?'':null;renderizarChamadaFrequencia()">
+            ${_chamadaFiltroSit === "" ? "👁 Ocultar inativos" : "👁 Ver todos"}
           </button>
         </div>
       </div>

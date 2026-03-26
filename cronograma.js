@@ -1,6 +1,33 @@
 // CRONOGRAMA.JS — Cronograma, edição, drag&drop, checkboxes, modais, exportação
 // Dependências: globals.js, db.js, auth.js
 
+// ── Salvar com debounce longo — evita re-renders do onSnapshot ───────────────
+// Cada alteração grava no localStorage imediatamente (via salvarTudo interno)
+// e agenda o Firestore para 30 s. O onSnapshot só dispara após esse envio,
+// portanto a página não re-renderiza durante a edição.
+let _cronSaveTimer = null;
+
+function _salvarCron() {
+  // 1. localStorage imediato (cache local)
+  const uid = _userAtual ? (_isAdmin(_userAtual.email) ? "global" : _userAtual.uid) : "anonimo";
+  try {
+    localStorage.setItem(`aulaEstado_${uid}`,    JSON.stringify(estadoAulas));
+    localStorage.setItem(`aulaOrdem_${uid}`,     JSON.stringify(ordemConteudos));
+    localStorage.setItem(`aulaEventuais_${uid}`, JSON.stringify(linhasEventuais));
+    localStorage.setItem(`RT_CONTEUDOS_${uid}`,  JSON.stringify(RT_CONTEUDOS));
+    localStorage.setItem(`RT_TURMAS_${uid}`,     JSON.stringify(RT_TURMAS));
+  } catch(e) { console.warn("localStorage cheio:", e); }
+  // 2. Firestore com debounce de 30 s
+  clearTimeout(_cronSaveTimer);
+  _cronSaveTimer = setTimeout(() => _salvarFirestore(), 30000);
+  _mostrarIndicadorSync("💾 Gravado localmente");
+}
+
+// Flush imediato ao fechar/navegar
+window.addEventListener("beforeunload", () => {
+  if (_cronSaveTimer) { clearTimeout(_cronSaveTimer); _salvarFirestore(); }
+});
+
 function renderizarBemVindo() {
   document.getElementById("conteudo-principal").innerHTML = `
     <div class="bem-vindo">
@@ -124,6 +151,8 @@ function renderizarConteudo() {
         : `<table class="tabela-aulas" id="tabela-aulas">
             <thead><tr>
               <th class="th-numero"   data-tip="${TOOLTIPS_COLUNAS['th-numero']}">#</th>
+              <th class="th-conteudo" data-tip="${TOOLTIPS_COLUNAS['th-conteudo']}">Conteúdos / Atividades</th>
+              <th class="th-data"     data-tip="${TOOLTIPS_COLUNAS['th-data']}">Data prevista</th>
               <th class="th-dada" data-tip="${TOOLTIPS_COLUNAS['th-dada']}">
                 AD
                 <div class="th-lote">
@@ -131,9 +160,7 @@ function renderizarConteudo() {
                   <button type="button" class="btn-lote btn-lote-off" title="Desmarcar todas" onclick="marcarColuna('feita',false)">✗</button>
                 </div>
               </th>
-              <th class="th-conteudo" data-tip="${TOOLTIPS_COLUNAS['th-conteudo']}">Conteúdos / Atividades</th>
-              <th class="th-data"     data-tip="${TOOLTIPS_COLUNAS['th-data']}">Data prevista</th>
-              <th class="th-registro" data-tip="${TOOLTIPS_COLUNAS['th-registro']}">DATA AD</th>
+              <th class="th-registro" data-tip="${TOOLTIPS_COLUNAS['th-registro']}">Data</th>
               <th class="th-chamada" data-tip="${TOOLTIPS_COLUNAS['th-chamada']}">
                 Chamada
                 <div class="th-lote">
@@ -264,7 +291,7 @@ function salvarDetalhe(slotId, valor) {
   const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
   if (!estadoAulas[ch]) estadoAulas[ch] = {};
   estadoAulas[ch].detalhe = valor;
-  salvarTudo();
+  _salvarCron();
 }
 
 // ── Modal de horários da turma ativa ─────────────────────────
@@ -386,13 +413,11 @@ function renderizarLinhas(slots) {
 
     tr.innerHTML = `
       <td class="td-numero">${slot.eventual ? `<span class="tag-eventual" title="Aula eventual">E</span>` : lineNum}</td>
-      <td class="td-check td-ad-check">${mkChk("feita", feita, "Aula dada?")}</td>
       <td class="td-conteudo" data-slot="${slotId}">
         <div class="conteudo-cell">
           <span class="drag-handle-cont ${selecionado?"handle-sel":""}"
             data-slot="${slotId}" draggable="true"
             title="Clique para selecionar · Shift+clique para intervalo · Arrastar para reorganizar">⠿</span>
-          <span class="cont-label-ap">AP</span>
           <span class="conteudo-texto ${editado?"editado":""}"
             data-slot="${slotId}"
             title="${editado?"Editado · clique para editar":"Clique para editar"}"
@@ -407,15 +432,13 @@ function renderizarLinhas(slots) {
           const opts = lista.map(c =>
             `<option value="${c.replace(/"/g,'&quot;')}" ${detalheAtual===c?"selected":""}>${c}</option>`
           ).join("");
-          return `<div class="conteudo-ad-row">
-            <span class="cont-label-ad">AD</span>
-            <select class="detalhe-select"
-              onchange="salvarDetalhe('${slotId}',this.value)"
-              title="Aula desenvolvida — o que foi efetivamente trabalhado">
-              <option value="">— selecione —</option>
-              ${opts}
-            </select>
-          </div>`;
+          return `<select class="detalhe-select"
+            onchange="salvarDetalhe('${slotId}',this.value)"
+            title="Detalhe / sub-item desta aula">
+            <option value="">— detalhe —</option>
+            ${opts}
+          </select>
+          ${detalheAtual ? `<span class="detalhe-exibido">${detalheAtual}</span>` : ""}`;
         })() : ""}
         <input type="text" class="anotacao-input"
           placeholder="Anotação…"
@@ -425,6 +448,7 @@ function renderizarLinhas(slots) {
         />
       </td>
       <td class="td-data">${fmtSlotData(slot)}</td>
+      <td class="td-check">${mkChk("feita",   feita, "Aula dada?")}</td>
       <td class="td-registro" id="reg-${slotId}">${feita?fmtData(est.dataFeita):"—"}</td>
       <td class="td-check">${mkChk("chamada", !!est.chamada,   "Chamada realizada?")}</td>
       <td class="td-check">${mkChk("conteudoEntregue", !!est.conteudoEntregue, "Material entregue?")}</td>`;
@@ -467,7 +491,7 @@ function iniciarEdicao(spanEl, slotId, base) {
       RT_CONTEUDOS[chaveC][ordem[regIdx]] = novo || base;
     }
     delete estadoAulas[ch].conteudoEditado;
-    salvarTudo();
+    _salvarCron();
     const editado = false;
     const exibido = novo || base || "";
     spanEl.classList.remove("editando");
@@ -494,7 +518,7 @@ function salvarAnotacao(slotId, valor) {
   if (!estadoAulas[ch]) estadoAulas[ch] = {};
   if (valor.trim() === "") delete estadoAulas[ch].anotacao;
   else estadoAulas[ch].anotacao = valor.trim();
-  salvarTudo();
+  _salvarCron();
 }
 
 // FIX: recebe o elemento <input> (inputEl) para reverter o checkbox
@@ -542,7 +566,7 @@ function onChkClick(e, slotId, campo, inputEl) {
 
     // Registra nova âncora antes do setTimeout
     ultimoChkSlot = slotId;
-    salvarTudo();
+    _salvarCron();
 
     // setTimeout: deixa o browser terminar o evento antes de atualizar o DOM
     setTimeout(() => {
@@ -605,12 +629,13 @@ function toggleCampo(slotId, campo, val, inputEl) {
       const slot  = getSlotsCompletos(turmaAtiva.id, bimestreAtivo).find(s => s.slotId===slotId);
       const pass  = slot && slot.data < hoje();
       const ev    = slot?.eventual;
-      tr.className = `${ev?"row-eventual":(val?"row-feita":(pass?"row-pendente":"row-futura"))}${selConteudos.has(slotId)?" row-sel-cont":""}`;
+      const ehHoje = slot && slot.data === hoje();
+      tr.className = `${ev?"row-eventual":(val?"row-feita":(pass?"row-pendente":"row-futura"))}${selConteudos.has(slotId)?" row-sel-cont":""}${ehHoje?" row-hoje":""}`;
     }
     if (reg) reg.textContent = val ? fmtData(hoje()) : "—";
     atualizarStats();
   }
-  salvarTudo();
+  _salvarCron();
 }
 
 function atualizarStats() {
@@ -759,7 +784,7 @@ function onDrop(e, destSlotId) {
     const ch = chaveSlot(t.id, bimestreAtivo, s.slotId);
     if (estadoAulas[ch]) delete estadoAulas[ch].conteudoEditado;
   });
-  salvarTudo();
+  _salvarCron();
   selConteudos.clear();
   renderizarLinhas(getSlotsCompletos(t.id, bimestreAtivo));
 }
