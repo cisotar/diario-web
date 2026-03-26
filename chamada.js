@@ -253,10 +253,13 @@ async function _renderizarChamadaDesktop() {
     for (const a of alunosFiltrados) {
       if (!_alunoAtivoNaData(a, s.data)) continue;
       const _ee = a.situacao === "EE", _ev = a.situacao === "EV";
+      // Explicit record (slot-level) takes priority over day-level, then auto-fill
+      const explicit = (chamadas[sk] !== undefined ? chamadas[sk] : chamadas[s.data] || {})[a.num];
       let v;
-      if (_ee) v = "C";
+      if (explicit !== undefined) v = explicit;
+      else if (_ee) v = "C";
       else if (_ev) v = "F";
-      else v = (chamadas[sk]||{})[a.num] ?? (chamadas[s.data]||{})[a.num] ?? "C";
+      else v = "C";  // default passado = C
       if (v === "F") tf++; else tc++;
     }
     return { tf, tc };
@@ -276,16 +279,17 @@ async function _renderizarChamadaDesktop() {
     let totalFaltas = 0;
     const isEE = a.situacao === "EE";
     const isEV = a.situacao === "EV";
-    for (const d of datasPassadas) {
-      if (!_alunoAtivoNaData(a, d)) continue;
+    for (const s of slotsPassados) {
+      if (!_alunoAtivoNaData(a, s.data)) continue;
       totalAulas++;
-      // Registro explícito prevalece sobre auto-fill
-      const explicit = (chamadas[d] || {})[a.num];
+      const slotKey = _chaveSlotChamada(s.data, s.aula);
+      // Registro explícito: slot-level tem prioridade, depois day-level
+      const explicit = (chamadas[slotKey] !== undefined ? chamadas[slotKey] : chamadas[s.data] || {})[a.num];
       if (explicit !== undefined) {
         if (explicit === "F") totalFaltas++;
       } else {
-        // Auto-fill: EV=F, EE=C, demais=C (default)
         if (isEV) totalFaltas++;
+        // EE = C (não conta falta)
       }
     }
 
@@ -406,6 +410,8 @@ async function _renderizarChamadaDesktop() {
             onclick="_chamadaFiltroSit=_chamadaFiltroSit===null?'':null;renderizarChamadaFrequencia()">
             ${_chamadaFiltroSit === "" ? "👁 Ocultar inativos" : "👁 Ver todos"}
           </button>
+          <button type="button" class="btn-add" style="background:var(--purple,#7c3aed)"
+            onclick="abrirRelatorioFrequencia('${turmaKey}')">📊 Relatório</button>
         </div>
       </div>
       <div class="tabs-bimestre" style="margin-bottom:4px">${tabsBimChamada}</div>
@@ -456,10 +462,13 @@ function _atualizarFreqLinha(turmaKey, numAluno, chamadas, alunos) {
   const isEE = aluno.situacao === "EE";
   const isEV = aluno.situacao === "EV";
   let totalAulas = 0, totalFaltas = 0;
-  for (const d of datasPassadas) {
-    if (!_alunoAtivoNaData(aluno, d)) continue;
+  const slotsP = _slotsDeAulaNoBimestre(t.id, bim)
+    .filter(s => s.data >= bimObj.inicio && s.data <= bimObj.fim && s.data <= hoje_str);
+  for (const s of slotsP) {
+    if (!_alunoAtivoNaData(aluno, s.data)) continue;
     totalAulas++;
-    const explicit = (chamadas[d] || {})[aluno.num];
+    const sk2 = _chaveSlotChamada(s.data, s.aula);
+    const explicit = (chamadas[sk2] !== undefined ? chamadas[sk2] : chamadas[s.data] || {})[aluno.num];
     if (explicit !== undefined) { if (explicit === "F") totalFaltas++; }
     else if (isEV) totalFaltas++;
   }
@@ -482,6 +491,133 @@ function _atualizarFreqLinha(turmaKey, numAluno, chamadas, alunos) {
     lastTds[1].title = pct.toFixed(1) + "%";
   }
   row.className = pct > 20 ? "row-alta-falta" : "";
+}
+
+async function abrirRelatorioFrequencia(turmaKey) {
+  const [alunos, chamadas] = await Promise.all([
+    _carregarAlunos(turmaKey),
+    _carregarChamadas(turmaKey),
+  ]);
+  const t = turmaAtiva;
+  if (!t) return;
+  const bim = _bimestreChamadaSel || bimestreAtivo;
+  const bimObj = RT_BIMESTRES.find(b => b.bimestre === bim) || RT_BIMESTRES[0];
+  const hoje_str = hoje();
+
+  const todosSlots = _slotsDeAulaNoBimestre(t.id, bim)
+    .filter(s => s.data >= bimObj.inicio && s.data <= bimObj.fim && s.data <= hoje_str);
+
+  // Agrupa slots por data para o gráfico (eixo X = datas únicas)
+  const datasUnicas = [...new Set(todosSlots.map(s => s.data))].sort();
+
+  // Para cada data, soma C e F de todos os alunos ativos
+  const dadosC = [], dadosF = [];
+  for (const d of datasUnicas) {
+    const slotsDodia = todosSlots.filter(s => s.data === d);
+    let c = 0, f = 0;
+    for (const a of alunos) {
+      if (!_alunoAtivoNaData(a, d)) continue;
+      const isEE = a.situacao === "EE", isEV = a.situacao === "EV";
+      // Pega o valor do primeiro slot do dia (simplificação para o gráfico)
+      const s = slotsDodia[0];
+      const sk = _chaveSlotChamada(s.data, s.aula);
+      const explicit = (chamadas[sk] !== undefined ? chamadas[sk] : chamadas[d] || {})[a.num];
+      let v;
+      if (explicit !== undefined) v = explicit;
+      else if (isEE) v = "C";
+      else if (isEV) v = "F";
+      else v = "C";
+      if (v === "F") f++; else c++;
+    }
+    dadosC.push(c);
+    dadosF.push(f);
+  }
+
+  const labels = datasUnicas.map(d => {
+    const [, m, dia] = d.split("-");
+    return `${dia}/${m}`;
+  });
+
+  // Monta o modal
+  let modal = document.getElementById("modal-relatorio-freq");
+  // Garante que Chart.js está carregado
+  if (!window.Chart) {
+    await new Promise((res, rej) => {
+      const s = document.createElement("script");
+      s.src = "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js";
+      s.onload = res; s.onerror = rej;
+      document.head.appendChild(s);
+    });
+  }
+
+  if (!modal) {
+    modal = document.createElement("div");
+    modal.id = "modal-relatorio-freq";
+    modal.className = "modal-overlay";
+    modal.innerHTML = `
+      <div class="modal-box" style="max-width:760px;width:96vw">
+        <h3 class="modal-titulo">📊 Frequência — ${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""} · ${bimObj.label}</h3>
+        <div style="position:relative;height:320px">
+          <canvas id="canvas-relatorio-freq"></canvas>
+        </div>
+        <div class="modal-actions" style="margin-top:12px">
+          <button class="btn-modal-cancel" onclick="document.getElementById('modal-relatorio-freq').style.display='none'">Fechar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+  modal.style.display = "flex";
+
+  // Renderiza gráfico com Chart.js (já disponível no projeto)
+  setTimeout(() => {
+    const ctx = document.getElementById("canvas-relatorio-freq");
+    if (!ctx) return;
+    if (ctx._chartInstance) ctx._chartInstance.destroy();
+    ctx._chartInstance = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels,
+        datasets: [
+          {
+            label: "Presença (C)",
+            data: dadosC,
+            backgroundColor: "rgba(59,130,246,.7)",
+            borderColor: "rgba(59,130,246,1)",
+            borderWidth: 1,
+            borderRadius: 3,
+          },
+          {
+            label: "Falta (F)",
+            data: dadosF,
+            backgroundColor: "rgba(239,68,68,.7)",
+            borderColor: "rgba(239,68,68,1)",
+            borderWidth: 1,
+            borderRadius: 3,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "top", labels: { color: "#e2e8f0", font: { size: 12 } } },
+          tooltip: { mode: "index", intersect: false },
+        },
+        scales: {
+          x: {
+            stacked: false,
+            ticks: { color: "#94a3b8", font: { size: 11 } },
+            grid: { color: "rgba(255,255,255,.05)" },
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { color: "#94a3b8", stepSize: 1 },
+            grid: { color: "rgba(255,255,255,.08)" },
+          },
+        },
+      },
+    });
+  }, 50);
 }
 
 async function toggleChamada(turmaKey, data, numAluno) {
@@ -614,6 +750,8 @@ async function _renderizarChamadaMobile() {
             onclick="_chamadaFiltroSit=_chamadaFiltroSit===null?'':null;renderizarChamadaFrequencia()">
             ${_chamadaFiltroSit === "" ? "👁 Ocultar inativos" : "👁 Ver todos"}
           </button>
+          <button type="button" class="btn-add" style="background:var(--purple,#7c3aed)"
+            onclick="abrirRelatorioFrequencia('${turmaKey}')">📊 Relatório</button>
         </div>
       </div>
       <table class="tabela-gestao chamada-mob-tabela">

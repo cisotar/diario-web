@@ -250,10 +250,10 @@
 .th-freq {
   text-align: center !important;
   font-size: .72rem;
-  font-weight: 700;
+  font-weight: 800;
   padding: 4px 6px;
   background: #1a2235;
-  color: #94a3b8;
+  color: #ffffff;
   white-space: nowrap;
 }
 .td-freq-total, .td-freq-pct {
@@ -283,32 +283,6 @@
 }
 
 
-
-/* ── Itens da legenda com descrição ────────────────────────── */
-.sit-legenda {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px 12px;
-  margin-bottom: 10px;
-  font-size: .75rem;
-}
-.sit-legenda-titulo {
-  font-size: .72rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
-.sit-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-.sit-desc {
-  font-size: .72rem;
-  color: var(--text-mid);
-  white-space: nowrap;
-}
 
 /* ── Badge EV — evadido ──────────────────────────────────────── */
 .badge-sit-ev { background: #fef3c7; color: #92400e; }
@@ -367,12 +341,13 @@
 .tr-resumo-chamada td {
   background: #0d1520 !important;
   border-color: #1e2d40 !important;
+  color: #e2e8f0 !important;
 }
 .td-resumo-label {
   text-align: right !important;
   font-size: .7rem !important;
   font-weight: 700 !important;
-  color: #64748b !important;
+  color: #e2e8f0 !important;
   padding: 3px 6px !important;
   white-space: nowrap;
   letter-spacing: .04em;
