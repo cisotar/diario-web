@@ -275,6 +275,44 @@ function _atualizarBimProgBar() {
 }
 
 
+function _atualizarBimInfoCronograma() {
+  const t = turmaAtiva;
+  if (!t) return;
+  const bimObj = RT_BIMESTRES.find(b => b.bimestre === bimestreAtivo) || RT_BIMESTRES[0];
+  const slots = getSlotsCompletos(t.id, bimestreAtivo);
+  let feitas = 0, totalReg = 0;
+  for (const s of slots) {
+    if (!s.eventual) {
+      totalReg++;
+      if (estadoAulas[chaveSlot(t.id, bimestreAtivo, s.slotId)]?.feita) feitas++;
+    }
+  }
+  const pct = totalReg > 0 ? Math.round(feitas / totalReg * 100) : 0;
+  const cor = pct === 100 ? "#4ade80" : pct > 50 ? "var(--amber)" : "var(--teal,#0d9488)";
+
+  // Atualiza bimestre-info
+  const infoEl = document.getElementById("bimestre-info-cron");
+  if (infoEl) {
+    infoEl.querySelector("span:first-child").textContent =
+      `📅 ${bimObj.label}: ${fmtData(bimObj.inicio)} → ${fmtData(bimObj.fim)}`;
+    const badge = infoEl.querySelector(".pct-badge");
+    if (badge) badge.textContent = `${pct}% concluído`;
+  }
+
+  // Atualiza barra de progresso
+  const wrap = document.getElementById("bim-prog-wrap");
+  if (wrap) {
+    wrap.innerHTML = `
+      <div class="bim-prog-info">
+        <span>📅 ${bimObj.label}: ${fmtData(bimObj.inicio)} → ${fmtData(bimObj.fim)}</span>
+        <span class="bim-prog-frac">${feitas}/${totalReg} aulas · ${pct}%</span>
+      </div>
+      <div class="bim-prog-bar-bg">
+        <div class="bim-prog-bar-fill" style="width:${pct}%;background:${cor}"></div>
+      </div>`;
+  }
+}
+
 function alternarVisao() {
   visaoDetalhada = !visaoDetalhada;
   renderizarConteudo();
@@ -832,6 +870,8 @@ function mudarBimestre(num) {
   if (aba === "cronograma") {
     const slots = getSlotsCompletos(turmaAtiva.id, bimestreAtivo);
     renderizarLinhas(slots);
+    // Atualiza bimestre-info e barra de progresso sem re-render total
+    _atualizarBimInfoCronograma();
   } else if (aba === "chamada" || aba === "chamada_mobile") {
     _bimestreChamadaSel = num;
     renderizarChamadaFrequencia();

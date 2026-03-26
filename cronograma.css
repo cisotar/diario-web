@@ -1,0 +1,706 @@
+/* ============================================================
+   CRONOGRAMA.CSS — Tabela de cronograma e aulas
+   Depende das variáveis CSS definidas em style.css (:root)
+   ============================================================ */
+
+/* ── Header turma ───────────────────────────────────────── */
+.header-turma {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px; gap: 16px; flex-wrap: wrap;
+}
+
+.header-turma-info { display: flex; align-items: center; gap: 14px; }
+
+.header-turma-badge {
+  background: var(--amber); color: #fff;
+  font-size: .72rem; font-weight: 700;
+  letter-spacing: .1em; text-transform: uppercase;
+  padding: 5px 12px; border-radius: 6px;
+}
+
+.header-turma-nome {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.75rem; line-height: 1.1;
+}
+
+.header-turma-disc { font-size: .92rem; color: var(--text-mid); margin-top: 3px; font-weight: 500; }
+
+/* ── Stats ──────────────────────────────────────────────── */
+.stat-circulo { display: flex; align-items: center; gap: 10px; }
+
+.stat-svg { width: 64px; height: 64px; transform: rotate(-90deg); }
+
+.stat-bg  { fill: none; stroke: #e2ddd5; stroke-width: 3.5; }
+
+.stat-prog {
+  fill: none; stroke: var(--amber);
+  stroke-width: 3.5; stroke-linecap: round;
+  transition: stroke-dasharray .4s ease;
+}
+
+.stat-texto { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+.stat-num {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.4rem; line-height: 1; color: var(--text);
+}
+
+.stat-label {
+  font-size: .68rem; color: var(--text-muted);
+  margin-top: 2px; text-transform: uppercase; letter-spacing: .07em; font-weight: 500; text-align: center;
+}
+
+/* ── Tabs bimestre ──────────────────────────────────────── */
+
+.tabs-bimestre { display: flex; gap: 5px; margin-bottom: 12px; flex-wrap: wrap; }
+
+.tab-bim {
+  padding: 6px 16px;
+  border: 1.5px solid var(--border);
+  border-radius: 18px;
+  background: transparent;
+  color: var(--text-mid);
+  font-family: 'DM Sans', sans-serif;
+  font-size: .8rem; font-weight: 500;
+  cursor: pointer; transition: all .14s;
+}
+
+.tab-bim:hover { border-color: var(--amber); color: var(--amber); }
+
+.tab-bim.ativo {
+  background: var(--amber); border-color: var(--amber);
+  color: #fff; font-weight: 600;
+}
+
+/* Aba de bimestre com mini-indicador de progresso */
+.tab-bim-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px 5px 8px;
+}
+.tab-bim-svg {
+  width: 14px; height: 14px;
+  flex-shrink: 0;
+  transform: rotate(-90deg);
+}
+.tab-bim-bg {
+  fill: none;
+  stroke: rgba(255,255,255,.2);
+  stroke-width: 2;
+}
+.tab-bim-prog {
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 2;
+  stroke-linecap: round;
+  transition: stroke-dasharray .3s;
+}
+.tab-bim.ativo .tab-bim-bg   { stroke: rgba(255,255,255,.25); }
+.tab-bim.ativo .tab-bim-prog { stroke: #fff; }
+.tab-bim-done { stroke: #4ade80 !important; }
+.tab-bim.ativo .tab-bim-done { stroke: #bbf7d0 !important; }
+.tab-bim-frac {
+  font-size: .68rem;
+  opacity: .75;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* ── Info bimestre ──────────────────────────────────────── */
+.bimestre-info {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  font-size: .79rem; color: var(--text-muted);
+  margin-bottom: 16px; padding: 9px 14px;
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  flex-wrap: wrap; gap: 6px;
+}
+
+.bimestre-info-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.bimestre-info-simples { justify-content: flex-start; }
+
+.hint-drag { font-size: .72rem; color: var(--text-muted); font-style: italic; font-weight: 500; }
+
+.pct-badge {
+  background: var(--amber-pale); color: var(--amber);
+  font-weight: 600; padding: 2px 9px;
+  border-radius: 10px; font-size: .76rem;
+}
+
+/* ── Tabela ─────────────────────────────────────────────── */
+
+.tabela-wrapper {
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.tabela-aulas {
+  width: 100%; border-collapse: collapse; font-size: .845rem;
+}
+
+.tabela-aulas thead { background: #1e2530; color: #e2e8f0; }
+
+.tabela-aulas th {
+  padding: 12px 12px;
+  text-align: center;
+  font-size: .63rem; text-transform: uppercase;
+  letter-spacing: .1em; font-weight: 600;
+  white-space: nowrap;
+  cursor: help;
+  user-select: none;
+  position: relative;
+}
+
+.tabela-aulas th:hover { color: var(--amber-light); }
+
+.th-numero   { width: 38px; text-align: center; }
+.th-data     { width: 160px; text-align: left; }
+.th-sel      { width: 40px; text-align: center; cursor: default; }
+.th-conteudo { text-align: left; }
+.th-chamada, .th-dada, .th-registro, .th-entregue { width: 68px; text-align: center; }
+.th-dada-em  { width: 110px; }
+
+/* Tooltip das colunas */
+.col-tooltip {
+  position: absolute;
+  z-index: 9999;
+  background: #1e2530;
+  color: #e2e8f0;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .78rem;
+  font-weight: 400;
+  line-height: 1.5;
+  padding: 8px 12px;
+  border-radius: 7px;
+  max-width: 280px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.3);
+  pointer-events: none;
+  animation: fadeUp .15s ease;
+}
+
+/* ── Estados das linhas ──────────────────────────────────── */
+.tabela-aulas tbody tr { border-bottom: 1px solid var(--border); transition: background .1s; }
+.tabela-aulas tbody tr:last-child { border-bottom: none; }
+
+.row-futura   { background: #fff; }
+.row-futura:hover  { background: var(--blue-pale); }
+.row-pendente { background: #fffbf5; }
+.row-pendente:hover { background: #fff5e5; }
+.row-feita    { background: var(--green-pale); }
+.row-feita:hover  { background: #d8f0e2; }
+.row-eventual { background: #f8f0ff; }
+.row-eventual:hover { background: #ede0ff; }
+
+/* Seleção e drag de linhas */
+.row-sel-cont {
+  background: var(--amber-pale) !important;
+  outline: 2px solid var(--amber);
+  outline-offset: -2px;
+}
+.row-dragging { opacity: .38; }
+.row-drag-over {
+  outline: 2px dashed var(--amber);
+  outline-offset: -2px;
+  background: #fff8ec !important;
+}
+
+/* ── Células ────────────────────────────────────────────── */
+.tabela-aulas td { padding: 9px 12px; vertical-align: middle; }
+
+.td-numero {
+  text-align: center; font-weight: 700;
+  color: #2d3748; font-size: .78rem;
+}
+
+.row-pendente .td-numero { color: var(--red); }
+
+.td-data { font-size: .79rem; color: var(--text-mid); white-space: nowrap; font-weight: 500; vertical-align: middle; }
+
+/* ── Célula de data — duas linhas ───────────────────────── */
+.data-linha1 {
+  display: block;
+  font-weight: 600;
+  color: var(--text);
+  font-size: .81rem;
+  line-height: 1.35;
+}
+
+.data-linha2 {
+  display: block;
+  font-size: .72rem;
+  color: var(--text-mid);
+  font-weight: 500;
+  line-height: 1.3;
+  margin-top: 1px;
+}
+
+/* ── Campo de anotação inline ───────────────────────────── */
+.anotacao-input {
+  display: block;
+  width: 100%;
+  margin-top: 5px;
+  padding: 3px 7px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .845rem;
+  color: var(--text-mid);
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed var(--border);
+  border-radius: 0;
+  outline: none;
+  transition: border-color .13s, background .13s, color .13s;
+}
+
+.anotacao-input::placeholder { color: #bbc4ce; font-style: italic; }
+
+.anotacao-input:focus {
+  background: rgba(37,99,235,.03);
+  border-bottom-color: var(--blue);
+  color: var(--text);
+}
+
+.anotacao-input:not(:placeholder-shown) {
+  color: var(--blue);
+  border-bottom-color: rgba(37,99,235,.3);
+}
+
+/* ── Coluna de seleção / drag ────────────────────────────── */
+.td-sel { text-align: center; padding: 0 4px !important; vertical-align: middle; }
+
+.sel-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px;
+  background: transparent;
+  border: 1.5px solid transparent;
+  border-radius: 6px;
+  color: #c0cad6;
+  font-size: 1rem;
+  cursor: grab;
+  user-select: none;
+  transition: background .12s, border-color .12s, color .12s;
+}
+.sel-btn:active { cursor: grabbing; }
+.sel-btn:hover { background: var(--amber-pale); border-color: var(--amber); color: var(--amber); }
+.sel-btn.sel-btn-ativo { background: var(--amber); border-color: var(--amber); color: #fff; }
+.sel-btn.sel-btn-ativo:active { cursor: grabbing; }
+tr:hover .sel-btn:not(.sel-btn-ativo) { color: var(--text-mid); border-color: var(--border); }
+
+.tag-eventual {
+  display: inline-block;
+  background: var(--purple);
+  color: #fff;
+  font-size: .6rem; font-weight: 700;
+  padding: 1px 5px; border-radius: 3px;
+  letter-spacing: .06em;
+}
+
+/* ── Coluna conteúdo ────────────────────────────────────── */
+.td-conteudo { position: relative; transition: background .13s; }
+
+.conteudo-cell { display: flex; align-items: flex-start; gap: 5px; }
+
+/* Usado apenas no painel de gestão de conteúdos */
+.drag-handle-cont {
+  flex-shrink: 0; font-size: .95rem; color: #94a3b2;
+  cursor: pointer; user-select: none; padding: 2px 5px;
+  line-height: 1.45; border-radius: 4px; transition: color .13s, background .13s;
+  border: 1.5px solid transparent;
+}
+.drag-handle-cont:active { cursor: grabbing; }
+tr:hover .drag-handle-cont { color: var(--amber); }
+.drag-handle-cont.handle-sel {
+  color: #fff !important;
+  background: var(--amber);
+  border-color: var(--amber);
+}
+
+.conteudo-texto {
+  flex: 1; line-height: 1.45; color: var(--text);
+  cursor: text; border-radius: 4px;
+  padding: 2px 5px;
+  outline: 1.5px dashed transparent;
+  transition: background .12s, outline .12s;
+}
+
+.conteudo-texto:hover {
+  background: rgba(201,125,32,.07);
+  outline-color: var(--amber);
+}
+
+.conteudo-texto.editado  { color: var(--blue); }
+.conteudo-texto.editando { outline-color: var(--blue); background: rgba(37,99,235,.04); }
+
+.sem-conteudo { color: var(--text-muted); font-style: italic; font-size: .85em; }
+
+.badge-editado {
+  flex-shrink: 0;
+  font-size: .7rem; color: var(--blue);
+  background: var(--blue-pale); padding: 1px 5px;
+  border-radius: 4px; font-weight: 600;
+  align-self: center;
+}
+
+.btn-del-eventual {
+  flex-shrink: 0; align-self: center;
+  background: none; border: none;
+  color: #b0bec9; font-size: 1rem;
+  cursor: pointer; padding: 0 4px;
+  line-height: 1; border-radius: 3px;
+  transition: color .13s;
+}
+
+.btn-del-eventual:hover { color: var(--red); }
+
+.input-edicao {
+  width: 100%; padding: 5px 7px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .845rem; line-height: 1.45;
+  color: var(--text); background: #fff;
+  border: 1.5px solid var(--blue); border-radius: 5px;
+  outline: none; resize: vertical;
+  box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+}
+
+/* ── Checkboxes ─────────────────────────────────────────── */
+.td-check, .td-chamada, .td-entregue { text-align: center; }
+
+.td-registro { font-size: .79rem; color: var(--text-mid); white-space: nowrap; }
+.row-feita .td-registro { color: var(--green); font-weight: 600; }
+
+.checkbox-wrapper {
+  display: inline-flex; align-items: center;
+  cursor: pointer; position: relative;
+}
+
+.checkbox-wrapper input[type="checkbox"] {
+  position: absolute; opacity: 0; width: 0; height: 0;
+}
+
+.checkmark {
+  width: 19px; height: 19px;
+  border: 2px solid var(--border);
+  border-radius: 5px; background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .13s; flex-shrink: 0;
+}
+
+.checkmark::after {
+  content: ''; width: 5px; height: 9px;
+  border: 2px solid transparent;
+  border-top: none; border-left: none;
+  transform: rotate(45deg) translateY(-1px);
+  transition: border-color .13s;
+}
+
+.checkbox-wrapper input:checked + .checkmark {
+  background: var(--green); border-color: var(--green);
+}
+
+.checkbox-wrapper input:checked + .checkmark::after { border-color: #fff; }
+
+/* Checkmarks alternativos (chamada=teal, entregue=blue) */
+.checkmark-alt { border-radius: 50%; }
+
+.checkbox-wrapper input:checked + .checkmark-alt {
+  background: var(--teal); border-color: var(--teal);
+}
+
+.checkbox-wrapper:hover .checkmark  { border-color: var(--amber); }
+.checkbox-wrapper:hover .checkmark-alt { border-color: var(--teal); }
+
+/* ── Rodapé tabela ──────────────────────────────────────── */
+.rodape-tabela {
+  display: flex; gap: 10px; margin-top: 16px;
+  flex-wrap: wrap; justify-content: space-between;
+}
+
+.rodape-grupo { display: flex; gap: 7px; flex-wrap: wrap; }
+
+.btn-eventual, .btn-exportar-csv, .btn-exportar-js,
+.btn-resetar-ordem, .btn-limpar {
+  padding: 8px 16px; border-radius: 7px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .8rem; font-weight: 600;
+  cursor: pointer; border: 1.5px solid transparent;
+  transition: all .13s;
+}
+
+.btn-eventual      { background: var(--purple); color:#fff; border-color: var(--purple); }
+.btn-eventual:hover{ background: #6d28d9; border-color:#6d28d9; }
+
+.btn-exportar-csv  { background: var(--amber); color:#fff; border-color: var(--amber); }
+.btn-exportar-csv:hover { background: #b56e18; }
+
+.btn-exportar-js   { background: var(--teal); color:#fff; border-color: var(--teal); }
+.btn-exportar-js:hover { background: #0a5c60; }
+
+.btn-resetar-ordem { background: transparent; color: var(--text-mid); border-color: var(--border); }
+.btn-resetar-ordem:hover { border-color: var(--amber); color: var(--amber); }
+
+.btn-limpar { background: transparent; color: var(--text-muted); border-color: var(--border); }
+.btn-limpar:hover { border-color: var(--red); color: var(--red); }
+
+.sem-aulas { padding: 40px; text-align: center; color: var(--text-muted); font-size: .9rem; }
+
+/* ── Modal eventual ─────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(0,0,0,.45);
+  display: flex; align-items: center; justify-content: center;
+  animation: fadeBg .2s ease;
+}
+
+.modal-box {
+  background: #fff; border-radius: 14px;
+  padding: 28px 32px;
+  min-width: min(360px, 92vw); max-width: 480px; width: 100%;
+  box-shadow: 0 12px 40px rgba(0,0,0,.25);
+  animation: fadeUp .2s ease;
+}
+
+.modal-titulo {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.35rem; margin-bottom: 20px; color: var(--text);
+}
+
+.modal-form { display: flex; flex-direction: column; gap: 12px; margin-bottom: 22px; }
+
+.modal-form label {
+  display: flex; flex-direction: column;
+  font-size: .8rem; font-weight: 600;
+  color: var(--text-mid); gap: 4px;
+}
+
+.modal-form input, .modal-form textarea {
+  padding: 8px 10px; border: 1.5px solid var(--border);
+  border-radius: 6px; font-family: 'DM Sans', sans-serif;
+  font-size: .875rem; color: var(--text);
+  outline: none; transition: border-color .13s;
+}
+
+.modal-form input:focus, .modal-form textarea:focus { border-color: var(--blue); }
+.modal-form textarea { resize: vertical; }
+
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+.btn-modal-cancel {
+  padding: 8px 18px; border-radius: 7px;
+  border: 1.5px solid var(--border);
+  background: transparent; color: var(--text-mid);
+  font-family: 'DM Sans', sans-serif; font-size: .82rem;
+  font-weight: 600; cursor: pointer;
+}
+
+.btn-modal-ok {
+  padding: 8px 20px; border-radius: 7px;
+  background: var(--amber); color: #fff;
+  border: none; font-family: 'DM Sans', sans-serif;
+  font-size: .82rem; font-weight: 600; cursor: pointer;
+  transition: background .13s;
+}
+
+.btn-modal-ok:hover { background: #b56e18; }
+
+/* ══════════════════════════════════════════════════════════
+
+/* ── Animações ──────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeBg {
+  from { opacity: 0; } to { opacity: 1; }
+}
+
+.header-turma   { animation: fadeUp .22s ease both; }
+.tabs-bimestre  { animation: fadeUp .22s .04s ease both; }
+.bimestre-info  { animation: fadeUp .22s .07s ease both; }
+.tabela-wrapper { animation: fadeUp .22s .10s ease both; }
+.rodape-tabela  { animation: fadeUp .22s .14s ease both; }
+
+/* ── Responsivo ─────────────────────────────────────────── */
+
+/* ── Botão horários no cabeçalho do cronograma ──────────────── */
+.btn-editar-horarios {
+  background: var(--bg-paper);
+  border: 1px solid var(--border, #dde3ec);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: .8rem;
+  color: var(--text-mid);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-editar-horarios:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ── Seleção em lote nos cabeçalhos ─────────────────────────── */
+.th-lote {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  margin-top: 4px;
+}
+.btn-lote {
+  background: var(--green, #2d7a4f);
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: .68rem;
+  cursor: pointer;
+  line-height: 1.4;
+}
+.btn-lote:hover { opacity: .85; }
+.btn-lote-off {
+  background: var(--text-muted, #718096);
+}
+
+/* ── Visão detalhada ─────────────────────────────────────────── */
+.btn-visao-det {
+  background: var(--bg-paper);
+  border: 1px solid var(--border, #dde3ec);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: .8rem;
+  color: var(--text-mid);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-visao-det:hover { background: var(--bg); color: var(--text); }
+
+.detalhe-select {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  font-size: .78rem;
+  color: var(--text-mid);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+.detalhe-exibido {
+  display: block;
+  margin-top: 3px;
+  font-size: .75rem;
+  color: var(--teal, #0d7478);
+  font-style: italic;
+}
+
+/* ── Abas cronograma / chamada ───────────────────────────────── */
+
+/* ── Abas cronograma / chamada ───────────────────────────────── */
+.tabs-cronograma-aba {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.tab-aba {
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: 6px 6px 0 0;
+  padding: 6px 16px;
+  font-size: .85rem;
+  color: var(--text-mid);
+  cursor: pointer;
+  border-bottom-color: transparent;
+}
+.tab-aba.ativo {
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 600;
+  border-bottom-color: var(--bg);
+}
+
+/* ── Badges de situação do aluno ────────────────────────────── */
+
+/* ── Barra de progresso do bimestre ─────────────────────────── */
+.bim-prog-wrap { padding: 8px 0 4px; margin-bottom: 4px; }
+.bim-prog-info { display: flex; justify-content: space-between; align-items: center; font-size: .8rem; color: var(--text-mid); margin-bottom: 5px; }
+.bim-prog-frac { font-size: .75rem; color: var(--text-muted); }
+.bim-prog-bar-bg { height: 5px; background: var(--surface2,#1e2530); border-radius: 4px; overflow: hidden; }
+.bim-prog-bar-fill { height: 100%; border-radius: 4px; transition: width .4s ease; }
+/* Chamada Mobile */
+.chamada-mobile-wrap { padding: 4px 0; }
+.chamada-mobile-header { margin-bottom: 12px; }
+.chamada-mob-tabela td, .chamada-mob-tabela th { padding: 10px 8px; }
+
+/* ── Linha do dia presente ───────────────────────────────────── */
+.row-hoje td {
+  background: rgba(201,125,32,.06) !important;
+  border-top: 2px solid var(--amber) !important;
+  border-bottom: 2px solid var(--amber) !important;
+}
+.row-hoje td:first-child { border-left: 3px solid var(--amber) !important; }
+.row-hoje td:last-child  { border-right: 2px solid var(--amber) !important; }
+
+/* ── AP / AD no cronograma ───────────────────────────────────── */
+.conteudo-cell {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+.cont-label-ap {
+  flex-shrink: 0;
+  font-size: .845rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  color: var(--amber);
+  line-height: 1.45;
+  min-width: 22px;
+}
+.ad-blocos-wrap { margin-top: 3px; }
+.conteudo-ad-row {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-top: 3px;
+  padding-left: 23px;
+}
+.cont-label-ad {
+  flex-shrink: 0;
+  font-size: .845rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  color: var(--teal);
+  line-height: 1.45;
+  min-width: 22px;
+}
+.detalhe-input {
+  flex: 1;
+  font-size: .845rem;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--blue, #2563eb);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 500;
+  min-width: 0;
+}
+.detalhe-input:focus { border-color: var(--teal); outline: none; background: #fff; }
+.btn-add-detalhe {
+  flex-shrink: 0;
+  width: 22px; height: 22px;
+  border: 1.5px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--teal);
+  font-size: 1rem; font-weight: 700;
+  line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .12s, border-color .12s;
+}
+.btn-add-detalhe:hover { background: var(--teal-pale); border-color: var(--teal); }
+.td-ad-check { text-align: center; vertical-align: middle; padding: 0 6px; }
