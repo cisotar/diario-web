@@ -60,29 +60,42 @@ async function _carregarChamadaDeOutro(docId) {
 }
 
 // Busca professores que já fizeram chamada hoje nesta turma (exceto o atual)
+// Estratégia: busca todos os professores aprovados, constrói os docIds e lê cada um
 async function _buscarChamadasHoje(turmaKey) {
   const hoje_str = hoje();
   const uid_atual = _userAtual ? (_isAdmin(_userAtual.email) ? "global" : _userAtual.uid) : "anonimo";
   const resultado = [];
   try {
-    const snaps = await firebase.firestore()
-      .collection("chamadas")
-      .where("turmaKey", "==", turmaKey)
+    // Busca lista de professores aprovados
+    const profsSnap = await firebase.firestore()
+      .collection("professores")
+      .where("status", "==", "aprovado")
       .get();
-    for (const doc of snaps.docs) {
-      const data = doc.data();
-      if (data.profUid === uid_atual) continue;
-      const temHoje = Object.keys(data.registros || {}).some(
-        k => k === hoje_str || k.startsWith(hoje_str + "_")
-      );
-      if (temHoje) resultado.push({
-        docId:    doc.id,
-        profUid:  data.profUid,
-        profNome: data.profNome || data.profUid,
-        registros: data.registros
+
+    const leituras = profsSnap.docs
+      .filter(d => d.id !== uid_atual)
+      .map(async d => {
+        const docId = `${turmaKey}_${d.id}`;
+        try {
+          const snap = await firebase.firestore().collection("chamadas").doc(docId).get();
+          if (!snap.exists) return null;
+          const data = snap.data();
+          const temHoje = Object.keys(data.registros || {}).some(
+            k => k === hoje_str || k.startsWith(hoje_str + "_")
+          );
+          if (!temHoje) return null;
+          return {
+            docId,
+            profUid:  d.id,
+            profNome: d.data().nome || d.data().email || d.id,
+            registros: data.registros
+          };
+        } catch(e) { return null; }
       });
-    }
-  } catch(e) { console.warn("Erro ao buscar chamadas de hoje:", e); }
+
+    const resultados = await Promise.all(leituras);
+    resultado.push(...resultados.filter(Boolean));
+  } catch(e) { console.warn("Erro ao buscar professores:", e); }
   return resultado;
 }
 
@@ -481,9 +494,16 @@ async function _mostrarModalCopiarChamada(turmaKey, outrasHoje) {
     modal.querySelectorAll(".btn-copiar-chamada").forEach(btn => {
       btn.addEventListener("click", async () => {
         const docId = btn.dataset.doc;
+        btn.disabled = true;
+        btn.querySelector(".btn-copiar-hint").textContent = "Carregando…";
         const registros = await _carregarChamadaDeOutro(docId);
-        if (registros) await _copiarChamada(turmaKey, registros);
-        modal.remove(); resolve(true);
+        if (registros && Object.keys(registros).length > 0) {
+          await _copiarChamada(turmaKey, registros);
+          modal.remove(); resolve(true);
+        } else {
+          btn.querySelector(".btn-copiar-hint").textContent = "⚠ Não foi possível carregar (verifique permissões)";
+          btn.disabled = false;
+        }
       });
     });
   });
