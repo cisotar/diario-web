@@ -19,6 +19,9 @@ window.addEventListener("beforeunload", () => {
   if (_cronSaveTimer) { clearTimeout(_cronSaveTimer); _salvarFirestore(); }
 });
 
+// Visão detalhada é o padrão
+if (typeof visaoDetalhada !== "undefined") visaoDetalhada = true;
+
 function renderizarBemVindo() {
   document.getElementById("conteudo-principal").innerHTML = `
     <div class="bem-vindo">
@@ -277,12 +280,52 @@ function alternarVisao() {
   renderizarConteudo();
 }
 
-// Salva detalhe selecionado no dropdown de uma linha
-function salvarDetalhe(slotId, valor) {
+// ── Helpers visão detalhada (AP/AD) ─────────────────────────────────────────
+function _mkADRow(slotId, lista, val, idx) {
+  return `<div class="conteudo-ad-row">
+    <span class="cont-label-ad">AD</span>
+    <datalist id="dl-${slotId}-${idx}">
+      ${lista.map(c => `<option value="${c.replace(/"/g,'&quot;')}">`).join("")}
+    </datalist>
+    <input type="text" class="detalhe-input gi"
+      list="dl-${slotId}-${idx}"
+      value="${(val||'').replace(/"/g,'&quot;')}"
+      placeholder="— aula desenvolvida —"
+      onchange="salvarDetalhe('${slotId}',${idx},this.value)"
+      title="Selecione ou digite" />
+    <button type="button" class="btn-add-detalhe" title="Adicionar linha AD"
+      onclick="adicionarDetalhe('${slotId}')">+</button>
+  </div>`;
+}
+
+function salvarDetalhe(slotId, idx, valor) {
   const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
   if (!estadoAulas[ch]) estadoAulas[ch] = {};
-  estadoAulas[ch].detalhe = valor;
+  if (!Array.isArray(estadoAulas[ch].detalhes)) {
+    const legado = estadoAulas[ch].detalhe || "";
+    estadoAulas[ch].detalhes = legado ? [legado] : [""];
+    delete estadoAulas[ch].detalhe;
+  }
+  estadoAulas[ch].detalhes[idx] = valor;
   _salvarCron();
+}
+
+function adicionarDetalhe(slotId) {
+  const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
+  if (!estadoAulas[ch]) estadoAulas[ch] = {};
+  if (!Array.isArray(estadoAulas[ch].detalhes)) {
+    const legado = estadoAulas[ch].detalhe || "";
+    estadoAulas[ch].detalhes = legado ? [legado] : [""];
+    delete estadoAulas[ch].detalhe;
+  }
+  estadoAulas[ch].detalhes.push("");
+  _salvarCron();
+  const tdC = document.querySelector(`td.td-conteudo[data-slot="${slotId}"]`);
+  if (!tdC) return;
+  const chaveBase = `${turmaAtiva.serie}_${turmaAtiva.disciplina}_b${bimestreAtivo}`;
+  const lista = RT_CONTEUDOS[chaveBase] || RT_CONTEUDOS[`${turmaAtiva.serie}_${turmaAtiva.disciplina}`] || [];
+  const wrap = tdC.querySelector(".ad-blocos-wrap");
+  if (wrap) wrap.innerHTML = estadoAulas[ch].detalhes.map((v, i) => _mkADRow(slotId, lista, v, i)).join("");
 }
 
 // ── Modal de horários da turma ativa ─────────────────────────
