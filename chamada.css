@@ -250,10 +250,10 @@
 .th-freq {
   text-align: center !important;
   font-size: .72rem;
-  font-weight: 800;
+  font-weight: 700;
   padding: 4px 6px;
   background: #1a2235;
-  color: #ffffff;
+  color: #94a3b8;
   white-space: nowrap;
 }
 .td-freq-total, .td-freq-pct {
@@ -283,6 +283,32 @@
 }
 
 
+
+/* ── Itens da legenda com descrição ────────────────────────── */
+.sit-legenda {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-bottom: 10px;
+  font-size: .75rem;
+}
+.sit-legenda-titulo {
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.sit-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.sit-desc {
+  font-size: .72rem;
+  color: var(--text-mid);
+  white-space: nowrap;
+}
 
 /* ── Badge EV — evadido ──────────────────────────────────────── */
 .badge-sit-ev { background: #fef3c7; color: #92400e; }
@@ -341,14 +367,49 @@
 .tr-resumo-chamada td {
   background: #0d1520 !important;
   border-color: #1e2d40 !important;
-  color: #e2e8f0 !important;
 }
 .td-resumo-label {
   text-align: right !important;
   font-size: .7rem !important;
   font-weight: 700 !important;
-  color: #e2e8f0 !important;
+  color: #64748b !important;
   padding: 3px 6px !important;
   white-space: nowrap;
   letter-spacing: .04em;
+}
+
+/* ── Modal de cópia de chamada ───────────────────────────────── */
+.modal-copiar-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.btn-copiar-chamada {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  width: 100%;
+  padding: 12px 16px;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  text-align: left;
+  transition: border-color .13s, background .13s;
+}
+.btn-copiar-chamada:hover {
+  border-color: var(--teal);
+  background: var(--teal-pale);
+}
+.btn-copiar-nome {
+  font-size: .9rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.btn-copiar-hint {
+  font-size: .75rem;
+  color: var(--text-muted);
 }

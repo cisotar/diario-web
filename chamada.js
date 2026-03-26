@@ -1,64 +1,99 @@
 // CHAMADA.JS — Sistema de chamadas e frequência
 // Dependências: globals.js, db.js, auth.js
 
-const _SITS_INATIVAS = ["AB","TR","RM","RC","NC"];  // EV removido — recebe chamada automática
-const _SITS_SEMPRE_C  = ["EE"];
-const _SITS_SEMPRE_F  = ["EV"];
-
-// ── Filtro de situação ─────────────────────────────────────────────────────
-// null = Ativos (matriculados ativos: exceto TR,AB,NC,RM,EV)
-// ""   = TODOS (sem exceção)
-// "AB","TR",… = apenas essa situação
-let _chamadaFiltroSit   = "";  // "" = TODOS por padrão
-let _chamadaOcultarInativos = false; // legado — substituído pelo filtro
-
-// ── Debounce Firestore ─────────────────────────────────────────────────────
-// Cada C/F atualiza RT_CHAMADAS em memória e o DOM imediatamente.
-// O Firestore recebe um único write depois de 3 s de inatividade.
-const _chamadaSaveTimers = {};  // por turmaKey
-
-function _agendarSaveChamadas(turmaKey) {
-  clearTimeout(_chamadaSaveTimers[turmaKey]);
-  _chamadaSaveTimers[turmaKey] = setTimeout(() => _salvarChamadas(turmaKey), 3000);
-  _mostrarIndicadorSync("💾 Chamada gravada localmente");
-}
-
-window.addEventListener("beforeunload", () => {
-  for (const key of Object.keys(_chamadaSaveTimers)) {
-    clearTimeout(_chamadaSaveTimers[key]);
-    _salvarChamadas(key);
-  }
-});
+const _SITS_INATIVAS = ["AB","TR","RM","RC","NC"];
+const _SITS_SEMPRE_C  = ["EE"];  // Educação Especial — presença sempre C, nunca F
 
 let RT_CHAMADAS = {};
 
+// ── Chamada por professor — doc: chamadas/{turmaKey}_{uid} ────────────────────
+function _chamadaDocId(turmaKey) {
+  const uid = _userAtual ? (_isAdmin(_userAtual.email) ? "global" : _userAtual.uid) : "anonimo";
+  return `${turmaKey}_${uid}`;
+}
+
 async function _carregarChamadas(turmaKey) {
-  if (RT_CHAMADAS[turmaKey]) return RT_CHAMADAS[turmaKey];
+  const docId = _chamadaDocId(turmaKey);
+  if (RT_CHAMADAS[docId]) return RT_CHAMADAS[docId];
   if (!_DEV) {
     try {
       const snap = await firebase.firestore()
-        .collection("chamadas").doc(turmaKey).get();
+        .collection("chamadas").doc(docId).get();
       if (snap.exists) {
-        RT_CHAMADAS[turmaKey] = snap.data().registros || {};
-        return RT_CHAMADAS[turmaKey];
+        RT_CHAMADAS[docId] = snap.data().registros || {};
+        return RT_CHAMADAS[docId];
       }
     } catch(e) { console.warn("Erro ao carregar chamadas:", e); }
   }
-  RT_CHAMADAS[turmaKey] = {};
-  return RT_CHAMADAS[turmaKey];
+  RT_CHAMADAS[docId] = {};
+  return RT_CHAMADAS[docId];
 }
 
 async function _salvarChamadas(turmaKey) {
+  const docId = _chamadaDocId(turmaKey);
   if (_DEV) { console.log("[DEV] _salvarChamadas — apenas memória"); return; }
   try {
-    await firebase.firestore().collection("chamadas").doc(turmaKey)
-      .set({ registros: RT_CHAMADAS[turmaKey], _atualizado: new Date().toISOString() },
-           { merge: true });
+    const uid  = _userAtual ? (_isAdmin(_userAtual.email) ? "global" : _userAtual.uid) : "anonimo";
+    const nome = _userAtual?.displayName || _userAtual?.email || uid;
+    await firebase.firestore().collection("chamadas").doc(docId)
+      .set({
+        registros: RT_CHAMADAS[docId],
+        turmaKey,
+        profUid:  uid,
+        profNome: nome,
+        _atualizado: new Date().toISOString()
+      }, { merge: true });
     _mostrarIndicadorSync("✓ Chamada salva");
   } catch(e) {
     console.warn("Erro ao salvar chamadas:", e);
     _mostrarIndicadorSync("⚠ Erro ao salvar chamada");
   }
+}
+
+// Carrega chamada de outro professor pelo docId
+async function _carregarChamadaDeOutro(docId) {
+  try {
+    const snap = await firebase.firestore().collection("chamadas").doc(docId).get();
+    if (snap.exists) return snap.data().registros || {};
+  } catch(e) { console.warn("Erro ao carregar chamada de outro prof:", e); }
+  return null;
+}
+
+// Busca professores que já fizeram chamada hoje nesta turma (exceto o atual)
+async function _buscarChamadasHoje(turmaKey) {
+  const hoje_str = hoje();
+  const uid_atual = _userAtual ? (_isAdmin(_userAtual.email) ? "global" : _userAtual.uid) : "anonimo";
+  const resultado = [];
+  try {
+    const snaps = await firebase.firestore()
+      .collection("chamadas")
+      .where("turmaKey", "==", turmaKey)
+      .get();
+    for (const doc of snaps.docs) {
+      const data = doc.data();
+      if (data.profUid === uid_atual) continue;
+      const temHoje = Object.keys(data.registros || {}).some(
+        k => k === hoje_str || k.startsWith(hoje_str + "_")
+      );
+      if (temHoje) resultado.push({
+        docId:    doc.id,
+        profUid:  data.profUid,
+        profNome: data.profNome || data.profUid,
+        registros: data.registros
+      });
+    }
+  } catch(e) { console.warn("Erro ao buscar chamadas de hoje:", e); }
+  return resultado;
+}
+
+// Copia chamada de outro professor como base para a chamada atual
+async function _copiarChamada(turmaKey, registrosOrigem) {
+  const chamadaAtual = await _carregarChamadas(turmaKey);
+  for (const [chave, vals] of Object.entries(registrosOrigem)) {
+    if (!chamadaAtual[chave]) chamadaAtual[chave] = { ...vals };
+  }
+  await _salvarChamadas(turmaKey);
+  _mostrarIndicadorSync("✓ Chamada copiada como base");
 }
 
 // Data selecionada para chamada (padrão: hoje se for dia de aula, senão último passado)
@@ -98,9 +133,23 @@ async function _renderizarChamadaDesktop() {
   if (!secao) return;
 
   const turmaKey = t.serie + t.turma;
+  const hoje_str = hoje();
+
+  // Se a chamada do professor atual estiver vazia para hoje, oferece cópia
+  const chamadaAtualCheck = await _carregarChamadas(turmaKey);
+  const temHoje = Object.keys(chamadaAtualCheck).some(
+    k => k === hoje_str || k.startsWith(hoje_str + "_")
+  );
+  if (!temHoje && !_DEV) {
+    const outrasHoje = await _buscarChamadasHoje(turmaKey);
+    if (outrasHoje.length > 0) {
+      const copiou = await _mostrarModalCopiarChamada(turmaKey, outrasHoje);
+      if (copiou) { renderizarChamadaFrequencia(); return; }
+    }
+  }
+
   const alunos   = await _carregarAlunos(turmaKey);
   const chamadas = await _carregarChamadas(turmaKey);
-  const hoje_str = hoje();
 
   if (!_bimestreChamadaSel) _bimestreChamadaSel = bimestreAtivo;
   const bimObj = RT_BIMESTRES.find(b => b.bimestre === _bimestreChamadaSel) || RT_BIMESTRES[0];
@@ -184,113 +233,23 @@ async function _renderizarChamadaDesktop() {
     </th>`;
   }).join("");
 
-  // ── Contagem e legenda de situações ──
+  // ── Linhas de alunos ──
   const SITUACAO_LABEL = {
-    "":"Matriculado","AB":"Abandonou","NC":"Não comparecimento",
+    "":"Matriculado","AB":"Abandonou","NC":"Não compareceu",
     "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado",
-    "EE":"Educação Especial","EV":"Evadido"
+    "EE":"Educação Especial"
   };
 
-  // Filtro:
-  //   null → Ativos (exclui TR, AB, NC, RM, EV)
-  //   ""   → TODOS (sem exceção)
-  //   "AB", "TR", … → apenas essa situação
-  const _SITS_INAT_FILT = ["AB","NC","TR","RM","RC"];  // Ativos: exceto TR,AB,NC,RM,RC
-  const contsSit = {
-    total:  alunos.length,
-    ativos: alunos.filter(a => !_SITS_INAT_FILT.includes(a.situacao)).length,
-    AB: alunos.filter(a => a.situacao==="AB").length,
-    NC: alunos.filter(a => a.situacao==="NC").length,
-    TR: alunos.filter(a => a.situacao==="TR").length,
-    RM: alunos.filter(a => a.situacao==="RM").length,
-    RC: alunos.filter(a => a.situacao==="RC").length,
-    EE: alunos.filter(a => a.situacao==="EE").length,
-    EV: alunos.filter(a => a.situacao==="EV").length,
-  };
-
-  const _mkSit = (cls, sigla, desc, n, filtroAtual) => {
-    if (n === 0) return "";
-    const ativo = filtroAtual === sigla;
-    const clearOrSet = sigla === null ? "null" : sigla === "" ? "''" : `'${sigla}'`;
-    const toggle = ativo ? "null" : clearOrSet;
-    return `<span class="sit-item${ativo ? " sit-item-ativo" : ""}"
-      onclick="_chamadaFiltroSit=${toggle};renderizarChamadaFrequencia()"
-      style="cursor:pointer" title="${ativo ? "Remover filtro" : "Filtrar: " + desc}">
-      <span class="badge-situacao badge-sit-${cls}">${sigla ?? "✓"}</span>
-      <span class="sit-desc">${desc} (${n})</span>
-    </span>`;
-  };
-
-  const f = _chamadaFiltroSit;
-  const legendaHtmlCham = `<div class="sit-legenda">
-      <span class="sit-legenda-titulo">Situação:</span>
-      ${_mkSit("ok", null,  "Ativos",          contsSit.ativos, f)}
-      ${_mkSit("ok", "",    "TODOS",            contsSit.total,  f)}
-      ${_mkSit("ab", "AB",  "Abandonou",        contsSit.AB,     f)}
-      ${_mkSit("nc", "NC",  "Não comparecimento",contsSit.NC,    f)}
-      ${_mkSit("tr", "TR",  "Transferido",      contsSit.TR,     f)}
-      ${_mkSit("rm", "RM",  "Remanejado",       contsSit.RM,     f)}
-      ${_mkSit("rc", "RC",  "Reclassificado",   contsSit.RC,     f)}
-      ${_mkSit("ee", "EE",  "Ed. Especial",     contsSit.EE,     f)}
-      ${_mkSit("ev", "EV",  "Evadido",          contsSit.EV,     f)}
-      ${f !== null ? `<button class="btn-toggle-inativos" style="padding:2px 8px;font-size:.7rem"
-          onclick="_chamadaFiltroSit=null;renderizarChamadaFrequencia()">✕ limpar</button>` : ""}
-    </div>`;
-
-  const alunosFiltrados = (() => {
-    if (_chamadaFiltroSit === null)
-      return alunos.filter(a => !_SITS_INAT_FILT.includes(a.situacao));
-    if (_chamadaFiltroSit === "")
-      return alunos;
-    return alunos.filter(a => a.situacao === _chamadaFiltroSit);
-  })();
-
-  // ── Resumo TF / TC / %F por coluna ──
-  const _resumo = slotsVisiveis.map(s => {
-    if (s.data > hoje_str) return { tf: null, tc: null };
-    const sk = _chaveSlotChamada(s.data, s.aula);
-    let tf = 0, tc = 0;
-    for (const a of alunosFiltrados) {
-      if (!_alunoAtivoNaData(a, s.data)) continue;
-      const _ee = a.situacao === "EE", _ev = a.situacao === "EV";
-      // Explicit record (slot-level) takes priority over day-level, then auto-fill
-      const explicit = (chamadas[sk] !== undefined ? chamadas[sk] : chamadas[s.data] || {})[a.num];
-      let v;
-      if (explicit !== undefined) v = explicit;
-      else if (_ee) v = "C";
-      else if (_ev) v = "F";
-      else v = "C";  // default passado = C
-      if (v === "F") tf++; else tc++;
-    }
-    return { tf, tc };
-  });
-  const _tdR = (v, cor) => `<td style="text-align:center;font-size:.7rem;font-weight:700;color:${cor};padding:2px 0">${v}</td>`;
-  const trTF  = `<tr class="tr-resumo-chamada"><td colspan="3" class="td-resumo-label">TF</td>${_resumo.map(r=>r.tf===null?`<td></td>`:_tdR(r.tf,r.tf>0?"#f87171":"#475569")).join("")}<td colspan="2"></td></tr>`;
-  const trTC  = `<tr class="tr-resumo-chamada"><td colspan="3" class="td-resumo-label">TC</td>${_resumo.map(r=>r.tc===null?`<td></td>`:_tdR(r.tc,r.tc>0?"#4ade80":"#475569")).join("")}<td colspan="2"></td></tr>`;
-  const trPct = `<tr class="tr-resumo-chamada"><td colspan="3" class="td-resumo-label">%F</td>${_resumo.map(r=>{
-    if(r.tf===null)return`<td></td>`;
-    const tot=r.tf+r.tc,pct=tot>0?Math.round(r.tf/tot*100):0;
-    return _tdR(pct+"%",pct>20?"#f87171":"#475569");
-  }).join("")}<td colspan="2"></td></tr>`;
-
-  const rows = alunosFiltrados.map(a => {
+  const rows = alunos.map(a => {
     // TF e %F calculados sobre todas as datas passadas do bimestre
     let totalAulas  = 0;
     let totalFaltas = 0;
     const isEE = a.situacao === "EE";
-    const isEV = a.situacao === "EV";
-    for (const s of slotsPassados) {
-      if (!_alunoAtivoNaData(a, s.data)) continue;
+    for (const d of datasPassadas) {
+      if (!_alunoAtivoNaData(a, d)) continue;
       totalAulas++;
-      const slotKey = _chaveSlotChamada(s.data, s.aula);
-      // Registro explícito: slot-level tem prioridade, depois day-level
-      const explicit = (chamadas[slotKey] !== undefined ? chamadas[slotKey] : chamadas[s.data] || {})[a.num];
-      if (explicit !== undefined) {
-        if (explicit === "F") totalFaltas++;
-      } else {
-        if (isEV) totalFaltas++;
-        // EE = C (não conta falta)
-      }
+      // EE nunca tem falta
+      if (!isEE && (chamadas[d] || {})[a.num] === "F") totalFaltas++;
     }
 
     const tds = slotsVisiveis.map(s => {
@@ -302,22 +261,26 @@ async function _renderizarChamadaDesktop() {
         return `<td style="text-align:center;color:var(--text-muted);font-size:.7rem">—</td>`;
       }
 
+      // EE: sempre C, botão desabilitado
+      // Chave do slot atual; default = valor do slot anterior do mesmo dia (se existir)
       const slotKey = _chaveSlotChamada(d, s.aula);
-      // Registro explícito prevalece; fallback = auto-fill (EE→C, EV→F, demais→C se passado)
-      const explicit = (chamadas[slotKey]||{})[a.num] ?? (chamadas[d]||{})[a.num];
       let val;
-      if (explicit !== undefined) val = explicit;
-      else if (isEE) val = "C";
-      else if (isEV) val = "F";
-      else val = isPast ? "C" : "";
+      if (isEE) {
+        val = "C";
+      } else if ((chamadas[slotKey] || {})[a.num] !== undefined) {
+        val = chamadas[slotKey][a.num]; // registro independente
+      } else {
+        // Herda do primeiro slot do dia (ou "C" se passado)
+        val = (chamadas[d] || {})[a.num] || (isPast ? "C" : "");
+      }
       if (!val) return `<td></td>`;
       const cls = val === "F" ? "chk-falta" : "chk-comp";
-      const btnId = `cf-${turmaKey}-${a.num}-${slotKey}`;
-      const autoHint = isEE ? " title='Ed. Especial (auto C)'" : isEV ? " title='Evadido (auto F)'" : "";
       return `<td style="text-align:center">
-        <button type="button" id="${btnId}" class="btn-cf ${cls}"${autoHint}
-          onclick="toggleChamadaSlot('${turmaKey}','${slotKey}','${d}',${a.num},this)"
-        >${val}</button>
+        <button type="button" class="btn-cf ${cls}"
+          ${isEE
+            ? `disabled title="Educação Especial — presença automática" style="opacity:.6;cursor:default"`
+            : `onclick="toggleChamadaSlot('${turmaKey}','${slotKey}','${d}',${a.num})"`
+          }>${val}</button>
       </td>`;
     }).join("");
 
@@ -406,25 +369,18 @@ async function _renderizarChamadaDesktop() {
             onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','C')">✓ Todos C</button>
           <button type="button" class="btn-add" style="background:var(--text-muted)"
             onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','F')">✗ Todos F</button>
-          <button type="button" class="btn-toggle-inativos"
-            onclick="_chamadaFiltroSit=_chamadaFiltroSit===null?'':null;renderizarChamadaFrequencia()">
-            ${_chamadaFiltroSit === "" ? "👁 Ocultar inativos" : "👁 Ver todos"}
-          </button>
-          <button type="button" class="btn-add" style="background:var(--purple,#7c3aed)"
-            onclick="abrirRelatorioFrequencia('${turmaKey}')">📊 Relatório</button>
         </div>
       </div>
       <div class="tabs-bimestre" style="margin-bottom:4px">${tabsBimChamada}</div>
       ${_bimProgBarChamada(_feitasCham, _totalRegCham, bimObj)}
       ${filtroMeses}
-      ${legendaHtmlCham}
       <div style="overflow-x:auto">
         <table class="tabela-gestao tabela-chamada" style="min-width:0">
           <colgroup>
             <col class="col-num">
-            <col class="col-nome" style="width:180px">
+            <col class="col-nome">
             <col class="col-sit">
-            ${slotsVisiveis.map(() => `<col style="width:36px">`).join("")}
+            ${slotsVisiveis.map(() => `<col style="width:28px;min-width:28px;max-width:28px">`).join("")}
             <col class="col-freq">
             <col class="col-freq">
           </colgroup>
@@ -442,182 +398,9 @@ async function _renderizarChamadaDesktop() {
             </tr>
           </thead>
           <tbody>${rows || '<tr><td colspan="10" class="td-vazio">Nenhum aluno cadastrado.</td></tr>'}</tbody>
-          <tfoot>${trTF}${trTC}${trPct}</tfoot>
         </table>
       </div>
     </div>`;
-}
-
-// Atualiza TF e %F de uma linha no DOM sem re-renderizar a tabela
-function _atualizarFreqLinha(turmaKey, numAluno, chamadas, alunos) {
-  const t = turmaAtiva;
-  if (!t) return;
-  const bim = _bimestreChamadaSel || bimestreAtivo;
-  const bimObj = RT_BIMESTRES.find(b => b.bimestre === bim) || RT_BIMESTRES[0];
-  const hoje_str = hoje();
-  const datasPassadas = _diasDeAulaNoBimestre(t.id, bim)
-    .filter(d => d >= bimObj.inicio && d <= bimObj.fim && d <= hoje_str);
-  const aluno = alunos.find(a => String(a.num) === String(numAluno));
-  if (!aluno) return;
-  const isEE = aluno.situacao === "EE";
-  const isEV = aluno.situacao === "EV";
-  let totalAulas = 0, totalFaltas = 0;
-  const slotsP = _slotsDeAulaNoBimestre(t.id, bim)
-    .filter(s => s.data >= bimObj.inicio && s.data <= bimObj.fim && s.data <= hoje_str);
-  for (const s of slotsP) {
-    if (!_alunoAtivoNaData(aluno, s.data)) continue;
-    totalAulas++;
-    const sk2 = _chaveSlotChamada(s.data, s.aula);
-    const explicit = (chamadas[sk2] !== undefined ? chamadas[sk2] : chamadas[s.data] || {})[aluno.num];
-    if (explicit !== undefined) { if (explicit === "F") totalFaltas++; }
-    else if (isEV) totalFaltas++;
-  }
-  // Find TF and %F cells by searching all tds in the row
-  // Rows don't have stable ids; find via the first btn-cf in the row
-  const anyBtn = document.querySelector(`[id^="cf-${turmaKey}-${numAluno}-"]`);
-  if (!anyBtn) return;
-  const row = anyBtn.closest("tr");
-  if (!row) return;
-  const tds = row.querySelectorAll("td");
-  const lastTds = [...tds].slice(-2);
-  const pct = totalAulas > 0 ? (totalFaltas / totalAulas * 100) : 0;
-  if (lastTds[0]) {
-    lastTds[0].textContent = totalFaltas;
-    lastTds[0].title = `${totalFaltas} falta(s) em ${totalAulas} aula(s)`;
-  }
-  if (lastTds[1]) {
-    lastTds[1].textContent = totalAulas > 0 ? pct.toFixed(0) + "%" : "—";
-    lastTds[1].className = `td-freq-pct${pct > 20 ? " freq-critica" : ""}`;
-    lastTds[1].title = pct.toFixed(1) + "%";
-  }
-  row.className = pct > 20 ? "row-alta-falta" : "";
-}
-
-async function abrirRelatorioFrequencia(turmaKey) {
-  const [alunos, chamadas] = await Promise.all([
-    _carregarAlunos(turmaKey),
-    _carregarChamadas(turmaKey),
-  ]);
-  const t = turmaAtiva;
-  if (!t) return;
-  const bim = _bimestreChamadaSel || bimestreAtivo;
-  const bimObj = RT_BIMESTRES.find(b => b.bimestre === bim) || RT_BIMESTRES[0];
-  const hoje_str = hoje();
-
-  const todosSlots = _slotsDeAulaNoBimestre(t.id, bim)
-    .filter(s => s.data >= bimObj.inicio && s.data <= bimObj.fim && s.data <= hoje_str);
-
-  // Agrupa slots por data para o gráfico (eixo X = datas únicas)
-  const datasUnicas = [...new Set(todosSlots.map(s => s.data))].sort();
-
-  // Para cada data, soma C e F de todos os alunos ativos
-  const dadosC = [], dadosF = [];
-  for (const d of datasUnicas) {
-    const slotsDodia = todosSlots.filter(s => s.data === d);
-    let c = 0, f = 0;
-    for (const a of alunos) {
-      if (!_alunoAtivoNaData(a, d)) continue;
-      const isEE = a.situacao === "EE", isEV = a.situacao === "EV";
-      // Pega o valor do primeiro slot do dia (simplificação para o gráfico)
-      const s = slotsDodia[0];
-      const sk = _chaveSlotChamada(s.data, s.aula);
-      const explicit = (chamadas[sk] !== undefined ? chamadas[sk] : chamadas[d] || {})[a.num];
-      let v;
-      if (explicit !== undefined) v = explicit;
-      else if (isEE) v = "C";
-      else if (isEV) v = "F";
-      else v = "C";
-      if (v === "F") f++; else c++;
-    }
-    dadosC.push(c);
-    dadosF.push(f);
-  }
-
-  const labels = datasUnicas.map(d => {
-    const [, m, dia] = d.split("-");
-    return `${dia}/${m}`;
-  });
-
-  // Monta o modal
-  let modal = document.getElementById("modal-relatorio-freq");
-  // Garante que Chart.js está carregado
-  if (!window.Chart) {
-    await new Promise((res, rej) => {
-      const s = document.createElement("script");
-      s.src = "https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js";
-      s.onload = res; s.onerror = rej;
-      document.head.appendChild(s);
-    });
-  }
-
-  if (!modal) {
-    modal = document.createElement("div");
-    modal.id = "modal-relatorio-freq";
-    modal.className = "modal-overlay";
-    modal.innerHTML = `
-      <div class="modal-box" style="max-width:760px;width:96vw">
-        <h3 class="modal-titulo">📊 Frequência — ${t.serie}ª ${t.turma}${t.subtitulo?" "+t.subtitulo:""} · ${bimObj.label}</h3>
-        <div style="position:relative;height:320px">
-          <canvas id="canvas-relatorio-freq"></canvas>
-        </div>
-        <div class="modal-actions" style="margin-top:12px">
-          <button class="btn-modal-cancel" onclick="document.getElementById('modal-relatorio-freq').style.display='none'">Fechar</button>
-        </div>
-      </div>`;
-    document.body.appendChild(modal);
-  }
-  modal.style.display = "flex";
-
-  // Renderiza gráfico com Chart.js (já disponível no projeto)
-  setTimeout(() => {
-    const ctx = document.getElementById("canvas-relatorio-freq");
-    if (!ctx) return;
-    if (ctx._chartInstance) ctx._chartInstance.destroy();
-    ctx._chartInstance = new Chart(ctx, {
-      type: "bar",
-      data: {
-        labels,
-        datasets: [
-          {
-            label: "Presença (C)",
-            data: dadosC,
-            backgroundColor: "rgba(59,130,246,.7)",
-            borderColor: "rgba(59,130,246,1)",
-            borderWidth: 1,
-            borderRadius: 3,
-          },
-          {
-            label: "Falta (F)",
-            data: dadosF,
-            backgroundColor: "rgba(239,68,68,.7)",
-            borderColor: "rgba(239,68,68,1)",
-            borderWidth: 1,
-            borderRadius: 3,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { position: "top", labels: { color: "#e2e8f0", font: { size: 12 } } },
-          tooltip: { mode: "index", intersect: false },
-        },
-        scales: {
-          x: {
-            stacked: false,
-            ticks: { color: "#94a3b8", font: { size: 11 } },
-            grid: { color: "rgba(255,255,255,.05)" },
-          },
-          y: {
-            beginAtZero: true,
-            ticks: { color: "#94a3b8", stepSize: 1 },
-            grid: { color: "rgba(255,255,255,.08)" },
-          },
-        },
-      },
-    });
-  }, 50);
 }
 
 async function toggleChamada(turmaKey, data, numAluno) {
@@ -625,7 +408,7 @@ async function toggleChamada(turmaKey, data, numAluno) {
   return toggleChamadaSlot(turmaKey, data, data, numAluno);
 }
 
-async function toggleChamadaSlot(turmaKey, slotKey, data, numAluno, btnEl) {
+async function toggleChamadaSlot(turmaKey, slotKey, data, numAluno) {
   const [chamadas, alunos] = await Promise.all([
     _carregarChamadas(turmaKey),
     _carregarAlunos(turmaKey),
@@ -633,17 +416,9 @@ async function toggleChamadaSlot(turmaKey, slotKey, data, numAluno, btnEl) {
   const aluno = alunos.find(a => a.num === numAluno || String(a.num) === String(numAluno));
   if (!aluno) return;
   if (!chamadas[slotKey]) chamadas[slotKey] = {};
-  const novo = (chamadas[slotKey][numAluno] === "F") ? "C" : "F";
-  chamadas[slotKey][numAluno] = novo;
-  // Atualiza DOM imediatamente — sem re-render
-  if (btnEl) {
-    btnEl.textContent = novo;
-    btnEl.className = `btn-cf ${novo === "F" ? "chk-falta" : "chk-comp"}`;
-  }
-  // Atualiza totais TF/%F da linha (se existirem no DOM)
-  _atualizarFreqLinha(turmaKey, numAluno, chamadas, alunos);
-  // Firestore com debounce 3 s
-  _agendarSaveChamadas(turmaKey);
+  chamadas[slotKey][numAluno] = (chamadas[slotKey][numAluno] === "F") ? "C" : "F";
+  await _salvarChamadas(turmaKey);
+  renderizarChamadaFrequencia();
 }
 
 async function chamadaTodosData(turmaKey, data, valor) {
@@ -654,18 +429,65 @@ async function chamadaTodosData(turmaKey, data, valor) {
   if (!chamadas[data]) chamadas[data] = {};
   for (const a of alunos) {
     if (_alunoAtivoNaData(a, data)) {
-      chamadas[data][a.num] = (a.situacao === "EE") ? "C" : (a.situacao === "EV") ? "F" : valor;
+      // EE nunca recebe F
+      chamadas[data][a.num] = (a.situacao === "EE") ? "C" : valor;
     }
   }
-  // Re-render uma única vez após aplicar lote
+  await _salvarChamadas(turmaKey);
   renderizarChamadaFrequencia();
-  _agendarSaveChamadas(turmaKey);
 }
 
 
 // ── Visão detalhada ──────────────────────────────────────────
 
 // ── Chamada Mobile — exibe apenas o dia atual ─────────────────
+
+// Modal de oferta de cópia — resolve(true) se copiou, resolve(false) se recusou
+async function _mostrarModalCopiarChamada(turmaKey, outrasHoje) {
+  return new Promise(resolve => {
+    let modal = document.getElementById("modal-copiar-chamada");
+    if (modal) modal.remove();
+    modal = document.createElement("div");
+    modal.id = "modal-copiar-chamada";
+    modal.className = "modal-overlay";
+    modal.style.display = "flex";
+
+    const lista = outrasHoje.map(p => `
+      <button type="button" class="btn-copiar-chamada" data-doc="${p.docId}">
+        <span class="btn-copiar-nome">${p.profNome}</span>
+        <span class="btn-copiar-hint">Usar como base (editável)</span>
+      </button>`).join("");
+
+    modal.innerHTML = `
+      <div class="modal-box" style="max-width:460px">
+        <h3 class="modal-titulo">📋 Chamada já realizada hoje</h3>
+        <p style="font-size:.88rem;color:var(--text-mid);margin-bottom:16px;line-height:1.6">
+          Os professores abaixo já fizeram chamada nesta turma hoje.<br>
+          Quer usar uma como ponto de partida? Você ainda poderá editá-la livremente.
+        </p>
+        <div class="modal-copiar-lista">${lista}</div>
+        <div class="modal-actions" style="margin-top:16px">
+          <button type="button" class="btn-modal-cancel" id="btn-copiar-nao">
+            Não, fazer nova chamada
+          </button>
+        </div>
+      </div>`;
+
+    document.body.appendChild(modal);
+
+    modal.querySelector("#btn-copiar-nao").addEventListener("click", () => {
+      modal.remove(); resolve(false);
+    });
+    modal.querySelectorAll(".btn-copiar-chamada").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const docId = btn.dataset.doc;
+        const registros = await _carregarChamadaDeOutro(docId);
+        if (registros) await _copiarChamada(turmaKey, registros);
+        modal.remove(); resolve(true);
+      });
+    });
+  });
+}
 
 async function renderizarChamadaFrequencia() {
   // Redireciona para mobile se tela estreita e aba mobile ativa
@@ -700,16 +522,14 @@ async function _renderizarChamadaMobile() {
   const alunosAtivos = alunos.filter(a => _alunoAtivoNaData(a, _dataChamadaSel));
 
   const SITUACAO_LABEL = {
-    "":"Matriculado","AB":"Abandonou","NC":"Não comparecimento",
+    "":"Matriculado","AB":"Abandonou","NC":"Não compareceu",
     "TR":"Transferido","RM":"Remanejado","RC":"Reclassificado",
-    "EE":"Educação Especial","EV":"Evadido"
+    "EE":"Educação Especial"
   };
 
   const rows = alunosAtivos.map(a => {
     const isEE  = a.situacao === "EE";
-    const isEV2 = a.situacao === "EV";
-    const explicit = (chamadas[_dataChamadaSel] || {})[a.num];
-    const val = explicit !== undefined ? explicit : (isEE ? "C" : isEV2 ? "F" : "C");
+    const val   = isEE ? "C" : ((chamadas[_dataChamadaSel] || {})[a.num] || "C");
     const cls   = val === "F" ? "chk-falta" : "chk-comp";
     const sitLabel = a.situacao ? a.situacao : "";
     const sitClass = a.situacao ? `badge-sit-${a.situacao.toLowerCase()}` : "";
@@ -720,7 +540,7 @@ async function _renderizarChamadaMobile() {
       </td>
       <td style="text-align:center;width:64px">
         <button type="button" class="btn-cf-mob ${cls}"
-          onclick="toggleChamadaMobile('${turmaKey}','${_dataChamadaSel}',${a.num},this)">
+          ${isEE ? 'disabled title="Educação Especial — presença automática"' : `onclick="toggleChamadaMobile('${turmaKey}','${_dataChamadaSel}',${a.num},this)"`}>
           ${val}
         </button>
       </td>
@@ -746,12 +566,6 @@ async function _renderizarChamadaMobile() {
             onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','C')">✓ Todos C</button>
           <button type="button" class="btn-add" style="background:var(--text-muted)"
             onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','F')">✗ Todos F</button>
-          <button type="button" class="btn-toggle-inativos"
-            onclick="_chamadaFiltroSit=_chamadaFiltroSit===null?'':null;renderizarChamadaFrequencia()">
-            ${_chamadaFiltroSit === "" ? "👁 Ocultar inativos" : "👁 Ver todos"}
-          </button>
-          <button type="button" class="btn-add" style="background:var(--purple,#7c3aed)"
-            onclick="abrirRelatorioFrequencia('${turmaKey}')">📊 Relatório</button>
         </div>
       </div>
       <table class="tabela-gestao chamada-mob-tabela">
