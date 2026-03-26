@@ -319,7 +319,8 @@ function alternarVisao() {
 }
 
 // ── Helpers visão detalhada (AP/AD) ─────────────────────────────────────────
-function _mkADRow(slotId, lista, val, idx) {
+function _mkADRow(slotId, lista, val, idx, total) {
+  const showRemove = total > 1;
   return `<div class="conteudo-ad-row">
     <span class="cont-label-ad">AD</span>
     <datalist id="dl-${slotId}-${idx}">
@@ -329,10 +330,12 @@ function _mkADRow(slotId, lista, val, idx) {
       list="dl-${slotId}-${idx}"
       value="${(val||'').replace(/"/g,'&quot;')}"
       placeholder="— aula desenvolvida —"
-      onchange="salvarDetalhe('${slotId}',${idx},this.value)"
+      oninput="salvarDetalhe('${slotId}',${idx},this.value)"
       title="Selecione ou digite" />
     <button type="button" class="btn-add-detalhe" title="Adicionar linha AD"
       onclick="adicionarDetalhe('${slotId}')">+</button>
+    ${showRemove ? `<button type="button" class="btn-del-detalhe" title="Remover esta linha AD"
+      onclick="removerDetalhe('${slotId}',${idx})">×</button>` : ""}
   </div>`;
 }
 
@@ -363,7 +366,22 @@ function adicionarDetalhe(slotId) {
   const chaveBase = `${turmaAtiva.serie}_${turmaAtiva.disciplina}_b${bimestreAtivo}`;
   const lista = RT_CONTEUDOS[chaveBase] || RT_CONTEUDOS[`${turmaAtiva.serie}_${turmaAtiva.disciplina}`] || [];
   const wrap = tdC.querySelector(".ad-blocos-wrap");
-  if (wrap) wrap.innerHTML = estadoAulas[ch].detalhes.map((v, i) => _mkADRow(slotId, lista, v, i)).join("");
+  if (wrap) wrap.innerHTML = estadoAulas[ch].detalhes.map((v, i) => _mkADRow(slotId, lista, v, i, estadoAulas[ch].detalhes.length)).join("");
+}
+
+function removerDetalhe(slotId, idx) {
+  const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
+  if (!estadoAulas[ch]) return;
+  if (!Array.isArray(estadoAulas[ch].detalhes) || estadoAulas[ch].detalhes.length <= 1) return;
+  estadoAulas[ch].detalhes.splice(idx, 1);
+  _salvarCron();
+  const tdC = document.querySelector(`td.td-conteudo[data-slot="${slotId}"]`);
+  if (!tdC) return;
+  const chaveBase = `${turmaAtiva.serie}_${turmaAtiva.disciplina}_b${bimestreAtivo}`;
+  const lista = RT_CONTEUDOS[chaveBase] || RT_CONTEUDOS[`${turmaAtiva.serie}_${turmaAtiva.disciplina}`] || [];
+  const wrap = tdC.querySelector(".ad-blocos-wrap");
+  if (wrap) wrap.innerHTML = estadoAulas[ch].detalhes
+    .map((v, i) => _mkADRow(slotId, lista, v, i, estadoAulas[ch].detalhes.length)).join("");
 }
 
 // ── Modal de horários da turma ativa ─────────────────────────
@@ -508,7 +526,7 @@ function renderizarLinhas(slots) {
           ${slot.eventual?`<button class="btn-del-eventual" onclick="removerEventual('${slotId}')" title="Remover esta aula eventual">×</button>`:""}
         </div>
         ${visaoDetalhada ? `<div class="ad-blocos-wrap">${
-          detalhes.map((val, idx) => _mkADRow(slotId, listaAD, val, idx)).join("")
+          detalhes.map((val, idx) => _mkADRow(slotId, listaAD, val, idx, detalhes.length)).join("")
         }</div>` : ""}
         <input type="text" class="anotacao-input"
           placeholder="Anotação…"

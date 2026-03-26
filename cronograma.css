@@ -704,3 +704,21 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 }
 .btn-add-detalhe:hover { background: var(--teal-pale); border-color: var(--teal); }
 .td-ad-check { text-align: center; vertical-align: middle; padding: 0 6px; }
+
+/* ── Botão remover linha AD ──────────────────────────────────── */
+.btn-del-detalhe {
+  flex-shrink: 0;
+  width: 20px; height: 20px;
+  border: 1.5px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #b0bec9;
+  font-size: .95rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: color .12s, border-color .12s;
+  padding: 0;
+}
+.btn-del-detalhe:hover { color: var(--red, #c0392b); border-color: var(--red, #c0392b); }

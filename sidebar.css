@@ -1,0 +1,432 @@
+/* ============================================================
+   SIDEBAR.CSS — Navegação lateral e mobile
+   Depende das variáveis CSS definidas em style.css (:root)
+   ============================================================ */
+
+/* ── Layout ─────────────────────────────────────────────── */
+.app-layout {
+  display: flex;
+  margin-top: var(--header-h);
+  min-height: calc(100vh - var(--header-h));
+}
+
+/* ── Sidebar ────────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-w);
+  background: var(--bg-sidebar);
+  position: fixed;
+  top: var(--header-h);
+  left: 0; bottom: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 10px 24px;
+  scrollbar-width: thin;
+  scrollbar-color: #3a4555 transparent;
+}
+
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-thumb { background: #3a4555; border-radius: 4px; }
+
+.sidebar-titulo {
+  font-size: .66rem;
+  text-transform: uppercase;
+  letter-spacing: .14em;
+  color: #94a3b8;
+  font-weight: 600;
+  padding: 0 8px 10px;
+  border-bottom: 1px solid #2d3748;
+  margin-bottom: 14px;
+}
+
+.sidebar-grupo { margin-bottom: 18px; }
+
+.sidebar-grupo-titulo {
+  font-size: .64rem;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: #94a3b8;
+  font-weight: 600;
+  padding: 0 8px 5px;
+}
+
+.sidebar-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #e2e8f0;
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .83rem;
+  transition: background .14s, color .14s;
+  margin-bottom: 2px;
+  text-align: left;
+}
+
+.sidebar-btn:hover { background: #2d3748; color: #fff; }
+
+.sidebar-btn.ativo { background: var(--amber); color: #fff; font-weight: 600; }
+
+.sidebar-btn.ativo .sidebar-btn-disc { background: rgba(255,255,255,.2); color: #fff; }
+
+.sidebar-btn-label { flex: 1; }
+
+.sidebar-btn-disc {
+  font-size: .62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  background: #0d9488;
+  color: #fff;
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+/* Botão Gestão */
+.btn-cal-sidebar {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  background: var(--teal);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .85rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: left;
+  transition: background .14s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.btn-cal-sidebar:hover { background: #0d9488; }
+.btn-cal-sidebar.ativo { background: #0d9488; outline: 2px solid #5eead4; }
+
+.btn-gestao-sidebar {
+  padding: 10px 14px;
+  background: #2d3748;
+  border: none;
+  border-radius: 8px;
+  color: #e2e8f0;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .82rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  transition: background .14s, color .14s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-gestao-sidebar:hover { background: var(--amber); color: #fff; }
+
+
+   HAMBÚRGUER — oculto no desktop, visível no mobile
+   ───────────────────────────────────────────────────────────── */
+.btn-hamburger {
+  display: none;
+  flex-shrink: 0;
+  flex-direction: column; align-items: center; justify-content: center;
+  gap: 5px; width: 38px; height: 38px;
+  background: transparent; border: none; border-radius: 7px;
+  cursor: pointer; padding: 6px;
+  transition: background .13s;
+}
+.btn-hamburger:hover { background: rgba(255,255,255,.08); }
+.btn-hamburger span {
+  display: block; width: 20px; height: 2px;
+  background: #e2e8f0; border-radius: 2px;
+  transition: transform .22s ease, opacity .22s ease;
+}
+/* animação X quando aberto */
+.btn-hamburger.aberto span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.btn-hamburger.aberto span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.btn-hamburger.aberto span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* ─────────────────────────────────────────────────────────────
+   MOBILE NAV — dropdown que desce do topo (oculto no desktop)
+   ───────────────────────────────────────────────────────────── */
+.mob-nav {
+  display: none;                       /* ativado pelo @media abaixo */
+  position: fixed;
+  top: var(--header-h); left: 0; right: 0;
+  z-index: 120;
+  background: #1a2030;
+  border-bottom: 2px solid #2d3748;
+  max-height: 0; overflow: hidden;
+  transition: max-height .3s cubic-bezier(.4,0,.2,1);
+  box-shadow: 0 10px 30px rgba(0,0,0,.4);
+}
+.mob-nav.aberta { max-height: calc(100dvh - var(--header-h)); overflow-y: auto; }
+
+.mob-nav-overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 110;
+  background: rgba(0,0,0,.5);
+  opacity: 0; pointer-events: none;
+  transition: opacity .2s;
+}
+.mob-nav-overlay.visivel { opacity: 1; pointer-events: all; }
+
+/* Botões de ação rápida (Calendário, Gestão) */
+.mob-nav-acao {
+  width: 100%; padding: 15px 20px;
+  background: transparent; border: none; border-bottom: 1px solid #2d3748;
+  color: #e2e8f0; font-family: 'DM Sans', sans-serif;
+  font-size: .9rem; font-weight: 600; text-align: left;
+  cursor: pointer; display: flex; align-items: center; gap: 10px;
+  transition: background .13s, color .13s;
+}
+.mob-nav-acao:hover       { background: #2d3748; color: #fff; }
+.mob-nav-acao.ativo       { background: #2d3748; color: #fff; }
+.mob-nav-cal              { color: #5eead4; }
+.mob-nav-gestao           { border-top: 1px solid #2d3748; color: #e2e8f0; }
+
+/* Grupos recolhíveis por série */
+.mob-grp { border-bottom: 1px solid #1e2835; }
+
+.mob-grp-header {
+  width: 100%; padding: 12px 20px;
+  background: transparent; border: none;
+  color: #94a3b8; font-family: 'DM Sans', sans-serif;
+  font-size: .7rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .12em; text-align: left; cursor: pointer;
+  display: flex; justify-content: space-between; align-items: center;
+  transition: color .13s, background .13s;
+}
+.mob-grp-header:hover { color: #e2e8f0; background: #1e2530; }
+.mob-grp-arrow        { font-size: .75rem; transition: transform .18s; }
+.mob-grp.aberto .mob-grp-arrow { transform: rotate(180deg); }
+
+.mob-grp-lista { display: none; padding-bottom: 6px; }
+.mob-grp.aberto .mob-grp-lista { display: block; }
+
+.mob-turma-btn {
+  width: 100%; padding: 10px 20px 10px 32px;
+  background: transparent; border: none;
+  color: #e2e8f0; font-family: 'DM Sans', sans-serif; font-size: .88rem;
+  text-align: left; cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between;
+  transition: background .13s, color .13s;
+}
+.mob-turma-btn:hover { background: #252f3f; color: #fff; }
+.mob-turma-btn.ativo { background: var(--amber); color: #fff; font-weight: 600; }
+
+.mob-turma-sigla {
+  font-size: .62rem; font-weight: 700; letter-spacing: .07em;
+  background: #0d9488; color: #fff;
+  padding: 2px 6px; border-radius: 4px; flex-shrink: 0;
+}
+.mob-turma-btn.ativo .mob-turma-sigla { background: rgba(255,255,255,.2); color: #fff; }
+
+/* ─────────────────────────────────────────────────────────────
+   RESPONSIVE — abaixo de 860px
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 860px) {
+  :root { --sidebar-w: 0px; }
+
+  .sidebar { display: none; }
+
+  .btn-hamburger { display: flex; }
+  .mob-nav        { display: block; }
+  .mob-nav-overlay { display: block; }
+
+  /* ── Header mobile: hambúrguer | logo centralizado | login ── */
+  .app-header {
+    padding: 0 10px;
+    justify-content: space-between;
+    gap: 0;
+  }
+  .header-logo {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.1rem;
+    pointer-events: none; /* não bloqueia cliques nos botões laterais */
+  }
+  .header-tagline { display: none; }
+
+  .app-layout   { overflow-x: hidden; }
+  .main-content { margin-left: 0; padding: 14px 12px 60px; width: 100%; overflow-x: hidden; }
+
+  .header-turma { margin-bottom: 16px; }
+  .header-turma-nome { font-size: 1.2rem; }
+  .header-turma-badge { font-size: .68rem; padding: 4px 9px; }
+
+  .stat-svg { width: 52px; height: 52px; }
+  .stat-num { font-size: 1.1rem; }
+
+  .tabs-bimestre { gap: 4px; }
+  .tab-bim { padding: 5px 11px; font-size: .75rem; }
+
+  .tabela-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tabela-aulas { font-size: .76rem; min-width: 460px; }
+  .tabela-aulas th, .tabela-aulas td { padding: 6px 6px; }
+  .th-data, .td-data { display: none; }
+  .th-chamada, .th-dada, .th-registro, .th-entregue { width: 52px; }
+  .th-numero { width: 30px; }
+
+  .rodape-tabela { gap: 8px; }
+  .btn-eventual, .btn-exportar-csv, .btn-exportar-js,
+  .btn-resetar-ordem, .btn-limpar { padding: 7px 12px; font-size: .76rem; }
+
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal-box {
+    border-radius: 14px 14px 0 0;
+    padding: 22px 18px 32px;
+    min-width: 0; max-width: 100%; width: 100%;
+  }
+
+  .gestao-titulo { font-size: 1.35rem; }
+  .gtab { padding: 6px 13px; font-size: .78rem; }
+
+  .anotacao-input { display: none; }
+}
+
+/* ── Tela inicial mobile (lista de turmas) ──────────────── */
+.mob-home { padding: 8px 0 20px; }
+
+.mob-home-titulo {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.4rem;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.mob-home-sub {
+  font-size: .8rem;
+  color: var(--text-muted);
+  margin-bottom: 22px;
+  line-height: 1.5;
+}
+
+.mob-home-serie { margin-bottom: 20px; }
+
+.mob-home-serie-label {
+  font-size: .62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .13em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  padding-left: 2px;
+}
+
+.mob-home-lista { display: flex; flex-direction: column; gap: 7px; }
+
+.mob-home-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  border-left: 4px solid var(--amber);
+  cursor: pointer;
+  font-family: 'DM Sans', sans-serif;
+  text-align: left;
+  width: 100%;
+  transition: background .13s, transform .1s;
+  box-shadow: var(--shadow);
+}
+
+.mob-home-card:active { transform: scale(.98); background: var(--amber-pale); }
+
+.mob-home-card-sigla {
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: var(--amber);
+  color: #fff;
+  padding: 3px 8px;
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+
+.mob-home-card[data-disc="Sociologia"] { border-left-color: var(--teal); }
+.mob-home-card[data-disc="Sociologia"] .mob-home-card-sigla { background: var(--teal); }
+.mob-home-card[data-disc="Atualidades"] { border-left-color: var(--purple); }
+.mob-home-card[data-disc="Atualidades"] .mob-home-card-sigla { background: var(--purple); }
+
+.mob-home-card-info { flex: 1; }
+.mob-home-card-nome { font-weight: 600; font-size: .88rem; color: var(--text); line-height: 1.2; display: block; }
+.mob-home-card-disc { font-size: .74rem; color: var(--text-muted); margin-top: 1px; display: block; }
+.mob-home-card-arrow { color: var(--text-muted); font-size: .9rem; flex-shrink: 0; }
+
+.mob-home-cal-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 14px;
+  margin-bottom: 24px;
+  background: var(--teal);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  font-family: 'DM Sans', sans-serif;
+  font-size: .88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .13s;
+}
+
+.mob-home-cal-btn:active { background: #0a5c60; }
+
+/* ── Sidebar agrupada por turma ─────────────────────────── */
+.sidebar-turma-grupo { margin-bottom: 3px; }
+
+.sidebar-turma-label {
+  font-size: .68rem; color: #94a3b8;
+  padding: 5px 10px 1px; font-weight: 600; letter-spacing: .05em;
+}
+
+.sidebar-btn-sub { padding-left: 18px; }
+.sidebar-btn-sub .sidebar-btn-label { font-size: .8rem; }
+
+/* ── Bloco editor de conteúdos ──────────────────────────── */
+.bloco-editor { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+
+.bloco-instrucao {
+  font-size: .82rem; color: var(--text-mid);
+  padding: 10px 14px;
+  background: var(--amber-pale);
+  border-left: 3px solid var(--amber);
+  border-radius: 6px; line-height: 1.5;
+}
+
+.bloco-textarea {
+  width: 100%; padding: 12px 14px;
+  font-family: 'DM Mono', 'Fira Mono', monospace;
+  font-size: .83rem; line-height: 1.75;
+  color: var(--text); background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 8px; outline: none; resize: vertical;
+  transition: border-color .13s;
+}
+
+.bloco-textarea:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+}
+
+.bloco-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* Botão outline */
+.btn-outline {
+  background: transparent !important;
+  color: var(--amber) !important;
+  border: 1.5px solid var(--amber) !important;
+}
+.btn-outline:hover { background: var(--amber) !important; color: #fff !important; }
+
+/* ══════════════════════════════════════════════════════════
