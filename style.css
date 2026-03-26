@@ -1804,32 +1804,79 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .row-hoje td:first-child { border-left: 3px solid var(--amber) !important; }
 .row-hoje td:last-child  { border-right: 2px solid var(--amber) !important; }
 
-/* ── AP / AD no cronograma detalhado ────────────────────────── */
-.cont-label-ap,
-.cont-label-ad {
+/* ── AP / AD no cronograma ───────────────────────────────────── */
+/* Linha AP: handle + label + texto alinhados */
+.conteudo-cell {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+.cont-label-ap {
   flex-shrink: 0;
-  font-size: .845rem;   /* mesmo tamanho que o texto ao lado */
+  font-size: .845rem;
   font-weight: 800;
   letter-spacing: .04em;
-  text-transform: uppercase;
-  align-self: center;
+  color: var(--amber);
   line-height: 1.45;
   min-width: 22px;
 }
-.cont-label-ap { color: var(--amber); }
-.cont-label-ad { color: var(--teal); }
-
+/* Bloco AD: empilhado abaixo do AP, mesma indentação */
+.ad-blocos-wrap {
+  margin-top: 3px;
+}
 .conteudo-ad-row {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 5px;
-  margin-top: 4px;
+  margin-top: 3px;
+  /* margem esquerda = drag handle + gap ≈ 18px para alinhar AD com AP */
+  padding-left: 23px;
 }
-.conteudo-ad-row .detalhe-select { flex: 1; font-size: .845rem; }
-
-/* Coluna AD (checkbox) antes de Conteúdos */
-.td-ad-check {
-  text-align: center;
-  vertical-align: middle;
-  padding: 0 6px;
+.cont-label-ad {
+  flex-shrink: 0;
+  font-size: .845rem;
+  font-weight: 800;
+  letter-spacing: .04em;
+  color: var(--teal);
+  line-height: 1.45;
+  min-width: 22px;
+}
+/* Input AD — igual largura do texto AP */
+.detalhe-input {
+  flex: 1;
+  font-size: .845rem;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  min-width: 0;
+}
+.detalhe-input:focus {
+  border-color: var(--teal);
+  outline: none;
+  background: #fff;
+}
+/* Botão + adicionar linha AD */
+.btn-add-detalhe {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--teal);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .12s, border-color .12s;
+}
+.btn-add-detalhe:hover {
+  background: var(--teal-pale);
+  border-color: var(--teal);
 }

@@ -286,12 +286,61 @@ function alternarVisao() {
   renderizarConteudo();
 }
 
-// Salva detalhe selecionado no dropdown de uma linha
-function salvarDetalhe(slotId, valor) {
+// Salva detalhe — detalhes agora é um array (suporta múltiplos)
+function salvarDetalhe(slotId, idx, valor) {
   const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
   if (!estadoAulas[ch]) estadoAulas[ch] = {};
-  estadoAulas[ch].detalhe = valor;
+  // Migração: string → array
+  if (!Array.isArray(estadoAulas[ch].detalhes)) {
+    const old = estadoAulas[ch].detalhe || "";
+    estadoAulas[ch].detalhes = old ? [old] : [""];
+    delete estadoAulas[ch].detalhe;
+  }
+  estadoAulas[ch].detalhes[idx] = valor;
   _salvarCron();
+}
+
+function adicionarDetalhe(slotId) {
+  const ch = chaveSlot(turmaAtiva.id, bimestreAtivo, slotId);
+  if (!estadoAulas[ch]) estadoAulas[ch] = {};
+  if (!Array.isArray(estadoAulas[ch].detalhes)) {
+    const old = estadoAulas[ch].detalhe || "";
+    estadoAulas[ch].detalhes = old ? [old] : [""];
+    delete estadoAulas[ch].detalhe;
+  }
+  estadoAulas[ch].detalhes.push("");
+  _salvarCron();
+  // Re-render only this cell
+  const tdC = document.querySelector(`td.td-conteudo[data-slot="${slotId}"]`);
+  if (tdC) _renderizarBlocoAD(slotId, tdC, estadoAulas[ch].detalhes);
+}
+
+function _renderizarBlocoAD(slotId, tdC, detalhes) {
+  const chaveBase = `${turmaAtiva.serie}_${turmaAtiva.disciplina}_b${bimestreAtivo}`;
+  const lista = RT_CONTEUDOS[chaveBase] || RT_CONTEUDOS[`${turmaAtiva.serie}_${turmaAtiva.disciplina}`] || [];
+  const wrap = tdC.querySelector(".ad-blocos-wrap");
+  if (!wrap) return;
+  wrap.innerHTML = detalhes.map((val, idx) => _mkADRow(slotId, lista, val, idx)).join("");
+}
+
+function _mkADRow(slotId, lista, val, idx) {
+  const opts = lista.map(c =>
+    `<option value="${c.replace(/"/g,'&quot;')}" ${val===c?"selected":""}>${c}</option>`
+  ).join("");
+  return `<div class="conteudo-ad-row">
+    <span class="cont-label-ad">AD</span>
+    <datalist id="dl-${slotId}-${idx}">
+      ${lista.map(c=>`<option value="${c.replace(/"/g,'&quot;')}">`).join("")}
+    </datalist>
+    <input type="text" class="detalhe-input gi"
+      list="dl-${slotId}-${idx}"
+      value="${(val||'').replace(/"/g,'&quot;')}"
+      placeholder="— aula desenvolvida —"
+      onchange="salvarDetalhe('${slotId}',${idx},this.value)"
+      title="Aula desenvolvida — selecione ou digite" />
+    <button type="button" class="btn-add-detalhe" title="Adicionar outra linha AD"
+      onclick="adicionarDetalhe('${slotId}')">+</button>
+  </div>`;
 }
 
 // ── Modal de horários da turma ativa ─────────────────────────
@@ -411,6 +460,20 @@ function renderizarLinhas(slots) {
         <span class="checkmark ${campo==='feita'?'':'checkmark-alt'}"></span>
       </label>`;
 
+    // Migração: detalhe (string) → detalhes (array)
+    const detalhes = Array.isArray(est.detalhes)
+      ? est.detalhes
+      : (est.detalhe ? [est.detalhe] : [""]);
+
+    const chaveBaseAD = `${t.serie}_${t.disciplina}_b${bimestreAtivo}`;
+    const listaAD = RT_CONTEUDOS[chaveBaseAD] || RT_CONTEUDOS[`${t.serie}_${t.disciplina}`] || [];
+
+    const blocoAD = visaoDetalhada
+      ? `<div class="ad-blocos-wrap">
+          ${detalhes.map((val, idx) => _mkADRow(slotId, listaAD, val, idx)).join("")}
+        </div>`
+      : "";
+
     tr.innerHTML = `
       <td class="td-numero">${slot.eventual ? `<span class="tag-eventual" title="Aula eventual">E</span>` : lineNum}</td>
       <td class="td-conteudo" data-slot="${slotId}">
@@ -418,6 +481,7 @@ function renderizarLinhas(slots) {
           <span class="drag-handle-cont ${selecionado?"handle-sel":""}"
             data-slot="${slotId}" draggable="true"
             title="Clique para selecionar · Shift+clique para intervalo · Arrastar para reorganizar">⠿</span>
+          <span class="cont-label-ap">AP</span>
           <span class="conteudo-texto ${editado?"editado":""}"
             data-slot="${slotId}"
             title="${editado?"Editado · clique para editar":"Clique para editar"}"
@@ -425,21 +489,7 @@ function renderizarLinhas(slots) {
           ${editado?'<span class="badge-editado">✎</span>':""}
           ${slot.eventual?`<button class="btn-del-eventual" onclick="removerEventual('${slotId}')" title="Remover esta aula eventual">×</button>`:""}
         </div>
-        ${visaoDetalhada ? (() => {
-          const chaveBase = `${turmaAtiva.serie}_${turmaAtiva.disciplina}_b${bimestreAtivo}`;
-          const lista = RT_CONTEUDOS[chaveBase] || RT_CONTEUDOS[`${turmaAtiva.serie}_${turmaAtiva.disciplina}`] || [];
-          const detalheAtual = est.detalhe || "";
-          const opts = lista.map(c =>
-            `<option value="${c.replace(/"/g,'&quot;')}" ${detalheAtual===c?"selected":""}>${c}</option>`
-          ).join("");
-          return `<select class="detalhe-select"
-            onchange="salvarDetalhe('${slotId}',this.value)"
-            title="Detalhe / sub-item desta aula">
-            <option value="">— detalhe —</option>
-            ${opts}
-          </select>
-          ${detalheAtual ? `<span class="detalhe-exibido">${detalheAtual}</span>` : ""}`;
-        })() : ""}
+        ${blocoAD}
         <input type="text" class="anotacao-input"
           placeholder="Anotação…"
           value="${(est.anotacao||'').replace(/"/g,'&quot;')}"

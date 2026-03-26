@@ -9,7 +9,7 @@ const _SITS_SEMPRE_F  = ["EV"];
 // null = Ativos (matriculados ativos: exceto TR,AB,NC,RM,EV)
 // ""   = TODOS (sem exceção)
 // "AB","TR",… = apenas essa situação
-let _chamadaFiltroSit   = null;
+let _chamadaFiltroSit   = "";  // "" = TODOS por padrão
 let _chamadaOcultarInativos = false; // legado — substituído pelo filtro
 
 // ── Debounce Firestore ─────────────────────────────────────────────────────
