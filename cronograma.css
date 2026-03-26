@@ -1,8 +1,7 @@
 /* ============================================================
-   CRONOGRAMA.CSS — Tabela de cronograma e aulas
+   CRONOGRAMA.CSS — Tabela de Cronograma · Diário de Classe 2026
    Depende das variáveis CSS definidas em style.css (:root)
    ============================================================ */
-
 /* ── Header turma ───────────────────────────────────────── */
 .header-turma {
   display: flex; align-items: center;
@@ -53,6 +52,7 @@
 
 /* ── Tabs bimestre ──────────────────────────────────────── */
 
+/* ── Tabs bimestre ──────────────────────────────────────── */
 .tabs-bimestre { display: flex; gap: 5px; margin-bottom: 12px; flex-wrap: wrap; }
 
 .tab-bim {
@@ -133,6 +133,7 @@
 
 /* ── Tabela ─────────────────────────────────────────────── */
 
+/* ── Tabela ─────────────────────────────────────────────── */
 .tabela-wrapper {
   background: var(--bg-paper);
   border: 1px solid var(--border);
@@ -248,7 +249,7 @@
   margin-top: 5px;
   padding: 3px 7px;
   font-family: 'DM Sans', sans-serif;
-  font-size: .845rem;
+  font-size: .76rem;
   color: var(--text-mid);
   background: transparent;
   border: none;
@@ -451,6 +452,9 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 
 /* ── Modal eventual ─────────────────────────────────────── */
 .modal-overlay {
+
+/* ── Modal eventual ─────────────────────────────────────── */
+.modal-overlay {
   position: fixed; inset: 0; z-index: 500;
   background: rgba(0,0,0,.45);
   display: flex; align-items: center; justify-content: center;
@@ -624,101 +628,3 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 }
 
 /* ── Badges de situação do aluno ────────────────────────────── */
-
-/* ── Barra de progresso do bimestre ─────────────────────────── */
-.bim-prog-wrap { padding: 8px 0 4px; margin-bottom: 4px; }
-.bim-prog-info { display: flex; justify-content: space-between; align-items: center; font-size: .8rem; color: var(--text-mid); margin-bottom: 5px; }
-.bim-prog-frac { font-size: .75rem; color: var(--text-muted); }
-.bim-prog-bar-bg { height: 5px; background: var(--surface2,#1e2530); border-radius: 4px; overflow: hidden; }
-.bim-prog-bar-fill { height: 100%; border-radius: 4px; transition: width .4s ease; }
-/* Chamada Mobile */
-.chamada-mobile-wrap { padding: 4px 0; }
-.chamada-mobile-header { margin-bottom: 12px; }
-.chamada-mob-tabela td, .chamada-mob-tabela th { padding: 10px 8px; }
-
-/* ── Linha do dia presente ───────────────────────────────────── */
-.row-hoje td {
-  background: rgba(201,125,32,.06) !important;
-  border-top: 2px solid var(--amber) !important;
-  border-bottom: 2px solid var(--amber) !important;
-}
-.row-hoje td:first-child { border-left: 3px solid var(--amber) !important; }
-.row-hoje td:last-child  { border-right: 2px solid var(--amber) !important; }
-
-/* ── AP / AD no cronograma ───────────────────────────────────── */
-.conteudo-cell {
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
-}
-.cont-label-ap {
-  flex-shrink: 0;
-  font-size: .845rem;
-  font-weight: 800;
-  letter-spacing: .04em;
-  color: var(--amber);
-  line-height: 1.45;
-  min-width: 22px;
-}
-.ad-blocos-wrap { margin-top: 3px; }
-.conteudo-ad-row {
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
-  margin-top: 3px;
-  padding-left: 23px;
-}
-.cont-label-ad {
-  flex-shrink: 0;
-  font-size: .845rem;
-  font-weight: 800;
-  letter-spacing: .04em;
-  color: var(--teal);
-  line-height: 1.45;
-  min-width: 22px;
-}
-.detalhe-input {
-  flex: 1;
-  font-size: .845rem;
-  padding: 2px 6px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--bg);
-  color: var(--blue, #2563eb);
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 500;
-  min-width: 0;
-}
-.detalhe-input:focus { border-color: var(--teal); outline: none; background: #fff; }
-.btn-add-detalhe {
-  flex-shrink: 0;
-  width: 22px; height: 22px;
-  border: 1.5px solid var(--border);
-  border-radius: 4px;
-  background: transparent;
-  color: var(--teal);
-  font-size: 1rem; font-weight: 700;
-  line-height: 1; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: background .12s, border-color .12s;
-}
-.btn-add-detalhe:hover { background: var(--teal-pale); border-color: var(--teal); }
-.td-ad-check { text-align: center; vertical-align: middle; padding: 0 6px; }
-
-/* ── Botão remover linha AD ──────────────────────────────────── */
-.btn-del-detalhe {
-  flex-shrink: 0;
-  width: 20px; height: 20px;
-  border: 1.5px solid transparent;
-  border-radius: 4px;
-  background: transparent;
-  color: #b0bec9;
-  font-size: .95rem;
-  font-weight: 700;
-  line-height: 1;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  transition: color .12s, border-color .12s;
-  padding: 0;
-}
-.btn-del-detalhe:hover { color: var(--red, #c0392b); border-color: var(--red, #c0392b); }

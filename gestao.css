@@ -1,0 +1,556 @@
+/* ============================================================
+   GESTAO.CSS — Painéis de Gestão · Diário de Classe 2026
+   Depende das variáveis CSS definidas em style.css (:root)
+   ============================================================ */
+/* ══════════════════════════════════════════════════════════
+   PAINEL DE GESTÃO
+   ══════════════════════════════════════════════════════════ */
+.gestao-painel { max-width: 960px; }
+
+.gestao-header {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px; gap: 12px;
+}
+
+.gestao-titulo {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.7rem; color: var(--text);
+}
+
+.btn-voltar {
+  padding: 8px 18px; border-radius: 7px;
+  border: 1.5px solid var(--border);
+  background: transparent; color: var(--text-mid);
+  font-family: 'DM Sans', sans-serif;
+  font-size: .82rem; font-weight: 600;
+  cursor: pointer; transition: all .13s;
+}
+
+.btn-voltar:hover { border-color: var(--amber); color: var(--amber); }
+
+/* Tabs gestão */
+.gestao-tabs { display: flex; gap: 4px; margin-bottom: 20px; }
+
+.gtab {
+  padding: 8px 20px; border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: transparent; color: var(--text-mid);
+  font-family: 'DM Sans', sans-serif;
+  font-size: .83rem; font-weight: 500;
+  cursor: pointer; transition: all .13s;
+}
+
+.gtab:hover { border-color: var(--amber); color: var(--amber); }
+
+.gtab.ativo {
+  background: var(--amber); border-color: var(--amber);
+  color: #fff; font-weight: 600;
+}
+
+.gestao-secao { display: none; }
+.gestao-secao.ativa { display: block; }
+
+.gestao-bloco { padding: 20px 0; }
+
+.gestao-bloco-header {
+  display: flex; align-items: center;
+  justify-content: space-between; margin-bottom: 12px;
+}
+
+.gestao-bloco-header h3 {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.15rem; color: var(--text);
+}
+
+/* Tabela de gestão */
+.tabela-gestao { width: 100%; border-collapse: collapse; font-size: .845rem; border: 1px solid var(--border); }
+.tabela-gestao thead { background: #1e2530; color: #e2e8f0; }
+.tabela-gestao th {
+  padding: 10px 12px; text-align: left;
+  font-size: .63rem; text-transform: uppercase;
+  letter-spacing: .1em; font-weight: 600;
+  border-right: 1px solid rgba(255,255,255,.08);
+}
+.tabela-gestao th:last-child { border-right: none; }
+.tabela-gestao td { padding: 8px 10px; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); vertical-align: middle; }
+.tabela-gestao td:last-child { border-right: none; }
+.tabela-gestao tbody tr:last-child td { border-bottom: none; }
+.tabela-gestao tbody tr:hover { background: var(--blue-pale); }
+
+/* Drag na lista de conteúdos */
+.cont-drag-over { outline: 2px dashed var(--amber); }
+
+/* Inputs de gestão */
+.gi {
+  padding: 5px 8px; border: 1.5px solid var(--border);
+  border-radius: 5px; font-family: 'DM Sans', sans-serif;
+  font-size: .83rem; color: var(--text);
+  background: #fff; outline: none; width: 100%;
+  transition: border-color .12s;
+}
+
+.gi:focus { border-color: var(--blue); }
+.gi-sm  { max-width: 110px; }
+.gi-xs  { max-width: 80px;  }
+.gi-full { width: 100%; }
+
+/* Lista de horários */
+.horarios-lista { display: flex; flex-direction: column; gap: 4px; }
+
+.horario-item { display: flex; gap: 4px; align-items: center; }
+
+/* Botões de gestão */
+.btn-add {
+  padding: 7px 16px; border-radius: 7px;
+  background: var(--amber); color: #fff;
+  border: none; font-family: 'DM Sans', sans-serif;
+  font-size: .8rem; font-weight: 600; cursor: pointer;
+  transition: background .13s;
+}
+
+.btn-add:hover { background: #b56e18; }
+
+.btn-add-small {
+  padding: 3px 10px; border-radius: 5px;
+  background: transparent; border: 1px dashed var(--border);
+  color: var(--text-muted); font-family: 'DM Sans', sans-serif;
+  font-size: .75rem; cursor: pointer; transition: all .12s;
+  margin-top: 3px;
+}
+
+.btn-add-small:hover { border-color: var(--amber); color: var(--amber); }
+
+.btn-icon-del {
+  background: none; border: none;
+  color: #b0bec9; font-size: 1rem;
+  cursor: pointer; padding: 2px 5px;
+  border-radius: 4px; transition: color .12s;
+}
+
+.btn-icon-del:hover { color: var(--red); }
+
+/* Tabs de conteúdo */
+.gtab-cont-bar { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 4px; }
+
+.gtab-cont {
+  padding: 5px 12px; border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: transparent; color: var(--text-mid);
+  font-family: 'DM Sans', sans-serif;
+  font-size: .77rem; font-weight: 500;
+  cursor: pointer; transition: all .12s;
+}
+
+.gtab-cont:hover { border-color: var(--amber); color: var(--amber); }
+
+.gtab-cont.ativo {
+  background: var(--amber); border-color: var(--amber);
+  color: #fff; font-weight: 600;
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   TELAS DE ACESSO (aguardando aprovação, cadastro, etc.)
+   ══════════════════════════════════════════════════════════ */
+.acesso-tela {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 80vh; padding: 20px;
+}
+
+.acesso-box {
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 48px 44px;
+  max-width: 480px; width: 100%;
+  text-align: center;
+  box-shadow: 0 8px 40px rgba(0,0,0,.08);
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  animation: fadeUp .25s ease both;
+}
+
+.acesso-ico { font-size: 3rem; line-height: 1; }
+
+.acesso-titulo {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.6rem; color: var(--text); line-height: 1.2;
+}
+
+.acesso-sub {
+  font-size: .88rem; color: var(--text-mid);
+  line-height: 1.65; max-width: 360px;
+}
+
+.acesso-email {
+  font-size: .8rem; color: var(--text-muted);
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 6px 14px;
+}
+
+.acesso-form {
+  width: 100%; display: flex; flex-direction: column;
+  gap: 10px; text-align: left;
+}
+
+.acesso-form label {
+  display: flex; flex-direction: column;
+  font-size: .8rem; font-weight: 600;
+  color: var(--text-mid); gap: 4px;
+}
+
+.acesso-form input {
+  padding: 8px 10px; border: 1.5px solid var(--border);
+  border-radius: 6px; font-family: 'DM Sans', sans-serif;
+  font-size: .875rem; color: var(--text);
+  outline: none; transition: border-color .13s; width: 100%;
+}
+
+.acesso-form input:focus { border-color: var(--blue); }
+
+.acesso-btn-ok {
+  padding: 10px 28px; border-radius: 8px;
+  background: var(--amber); color: #fff;
+  border: none; font-family: 'DM Sans', sans-serif;
+  font-size: .88rem; font-weight: 600; cursor: pointer;
+  transition: background .13s; width: 100%;
+}
+.acesso-btn-ok:hover { background: #b56e18; }
+
+.acesso-btn-sair {
+  padding: 8px 20px; border-radius: 8px;
+  background: transparent; color: var(--text-muted);
+  border: 1.5px solid var(--border);
+  font-family: 'DM Sans', sans-serif;
+  font-size: .82rem; font-weight: 500; cursor: pointer;
+  transition: all .13s; width: 100%;
+}
+.acesso-btn-sair:hover { border-color: var(--red); color: var(--red); }
+
+/* ── Painel de professores ─────────────────────────────── */
+.perfil-form {
+  display: flex; flex-direction: column; gap: 12px;
+  max-width: 500px; margin-top: 4px;
+}
+
+.perfil-form label {
+  display: flex; flex-direction: column;
+  font-size: .8rem; font-weight: 600;
+  color: var(--text-mid); gap: 4px;
+}
+
+/* ── Seleção de matérias (checkboxes) ───────────────────── */
+.mat-group-label {
+  font-size: .8rem; font-weight: 600; color: var(--text-mid);
+}
+.mat-checks {
+  display: flex; flex-wrap: wrap; gap: 6px 10px;
+  padding: 10px 12px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.mat-check-label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: .82rem; font-weight: 500; color: var(--text);
+  cursor: pointer; padding: 3px 6px;
+  border-radius: 5px; transition: background .12s;
+}
+.mat-check-label:hover { background: var(--amber-pale); }
+.mat-check-label input[type="checkbox"] {
+  accent-color: var(--amber);
+  width: 15px; height: 15px; cursor: pointer; flex-shrink: 0;
+}
+.mat-outro-label {
+  display: flex; flex-direction: column;
+  font-size: .8rem; font-weight: 600; color: var(--text-mid); gap: 4px;
+}
+
+.acesso-form .mat-group-label,
+.acesso-form .mat-outro-label { color: var(--text); }
+.acesso-form .mat-checks {
+  background: rgba(255,255,255,.08);
+  border-color: rgba(255,255,255,.15);
+}
+.acesso-form .mat-check-label { color: var(--text); }
+
+.prof-status {
+  display: inline-block; font-size: .73rem; font-weight: 600;
+  padding: 3px 9px; border-radius: 10px; white-space: nowrap;
+}
+.prof-status-ok   { background: var(--green-pale); color: var(--green); }
+.prof-status-pend { background: #fff5e5; color: var(--amber); }
+.prof-status-rej  { background: #fef2f2; color: var(--red); }
+
+.badge-admin {
+  display: inline-block; font-size: .62rem; font-weight: 700;
+  background: var(--amber); color: #fff;
+  padding: 1px 5px; border-radius: 3px; margin-left: 4px;
+  vertical-align: middle; letter-spacing: .04em;
+}
+
+/* ── Bimestres somente leitura (não-admin) ──────────────── */
+.bim-label-ro {
+  font-size: .85rem; font-weight: 600; color: var(--text);
+}
+
+.bim-data-ro {
+  font-size: .83rem; color: var(--text-mid);
+}
+
+.bim-ro-aviso {
+  font-size: .78rem; color: var(--text-muted);
+  font-style: italic;
+}
+
+/* ── Badges de papel ────────────────────────────────────── */
+.badge-papel {
+  display: inline-block;
+  font-size: .7rem; font-weight: 700; letter-spacing: .04em;
+  padding: 2px 7px; border-radius: 4px;
+  text-transform: uppercase;
+}
+.badge-coord {
+  background: #ede9fe; color: #6d28d9;
+}
+.badge-prof {
+  background: #dbeafe; color: #1d4ed8;
+}
+
+/* ── Painel Disciplinas por Série ─────────────────────────── */
+.disc-areas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  padding: 0 16px 16px;
+}
+.disc-area-bloco {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.disc-area-label {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-muted);
+}
+.disc-textarea {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ── Períodos: preview de horários ─────────────────────── */
+.periodo-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.periodo-preview-item {
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: .78rem;
+  color: var(--text-mid);
+}
+.periodo-preview-item strong {
+  color: var(--text);
+}
+
+/* ── Tabela turmas-base no cadastro ─────────────────────── */
+.tb-linha td {
+  vertical-align: middle;
+  padding: 4px 6px;
+}
+
+.gestao-hint { font-size:.82rem; color:var(--text-muted); margin-bottom:10px; }
+.prof-disc-linha { background:var(--bg-paper); border:1px solid var(--border); border-radius:8px; padding:10px 12px; margin-bottom:8px; }
+
+.periodo-preview-intervalo { background:var(--amber-light,#f0a84a22); border-color:var(--amber,#c97d20); color:var(--amber,#c97d20); font-size:.75rem; }
+
+/* ── Gestão de turmas: níveis / séries / turmas ─────────────── */
+.serie-bloco {
+  border: 1px solid var(--border, #dde3ec);
+  border-radius: 8px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+.serie-bloco-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--bg-paper, #faf8f3);
+  border-bottom: 1px solid var(--border, #dde3ec);
+}
+.serie-bloco-header strong {
+  flex: 1;
+  font-size: .9rem;
+}
+.serie-turmas-wrap {
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.turma-inline-linha {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.turma-inline-label {
+  font-size: .75rem;
+  color: var(--text-muted);
+  min-width: 38px;
+}
+
+/* ── Botão horários no cabeçalho do cronograma ──────────────── */
+.btn-editar-horarios {
+  background: var(--bg-paper);
+  border: 1px solid var(--border, #dde3ec);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: .8rem;
+  color: var(--text-mid);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-editar-horarios:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* ── Seleção em lote nos cabeçalhos ─────────────────────────── */
+.th-lote {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  margin-top: 4px;
+}
+.btn-lote {
+  background: var(--green, #2d7a4f);
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 1px 5px;
+  font-size: .68rem;
+  cursor: pointer;
+  line-height: 1.4;
+}
+.btn-lote:hover { opacity: .85; }
+.btn-lote-off {
+  background: var(--text-muted, #718096);
+}
+
+/* ── Visão detalhada ─────────────────────────────────────────── */
+.btn-visao-det {
+  background: var(--bg-paper);
+  border: 1px solid var(--border, #dde3ec);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: .8rem;
+  color: var(--text-mid);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-visao-det:hover { background: var(--bg); color: var(--text); }
+
+.detalhe-select {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  font-size: .78rem;
+  color: var(--text-mid);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 6px;
+}
+.detalhe-exibido {
+  display: block;
+  margin-top: 3px;
+  font-size: .75rem;
+  color: var(--teal, #0d7478);
+  font-style: italic;
+}
+
+/* ── Abas cronograma / chamada ───────────────────────────────── */
+.tabs-cronograma-aba {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.tab-aba {
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: 6px 6px 0 0;
+  padding: 6px 16px;
+  font-size: .85rem;
+  color: var(--text-mid);
+  cursor: pointer;
+  border-bottom-color: transparent;
+}
+.tab-aba.ativo {
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 600;
+  border-bottom-color: var(--bg);
+}
+
+/* ── Grade de Horários (Painel Professor e ADM) ──────────────────── */
+.grade-wrap   { margin-bottom: 24px; }
+.grade-titulo {
+  font-size: .88rem; font-weight: 700;
+  color: var(--text); margin-bottom: 8px;
+  display: flex; align-items: center; gap: 6px;
+}
+.grade-tabela {
+  border-collapse: collapse; width: 100%;
+  font-size: .8rem; table-layout: fixed;
+}
+.grade-tabela th {
+  background: #1e2530; color: #94a3b8;
+  font-size: .72rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .06em;
+  padding: 8px 6px; text-align: center;
+  border: 1px solid var(--border); white-space: nowrap;
+}
+.grade-th-hora { width: 58px; }
+.grade-periodo {
+  background: #141c27; text-align: center;
+  padding: 6px 4px; border: 1px solid var(--border);
+  vertical-align: middle; white-space: nowrap;
+}
+.grade-aula-num { font-size: .82rem; font-weight: 700; color: #e2e8f0; line-height: 1.2; }
+.grade-aula-hr  { font-size: .65rem; color: var(--text-muted); }
+.grade-cell {
+  border: 1px solid var(--border); text-align: center;
+  vertical-align: middle; padding: 4px; height: 52px;
+  position: relative; min-width: 70px;
+}
+.grade-vazia { cursor: pointer; transition: background .15s; color: #334155; }
+.grade-vazia:hover { background: rgba(13,148,136,.12); }
+.grade-vazio-txt { font-size: .8rem; }
+.grade-ocupada { background: rgba(201,125,32,.1); border-color: rgba(201,125,32,.3); }
+.grade-ocupada-outro { background: rgba(100,116,139,.1); cursor: not-allowed; }
+.grade-ocupada-outro .grade-disc  { color: #64748b; }
+.grade-ocupada-outro .grade-turma { color: #475569; }
+.grade-disc  { font-size: .78rem; font-weight: 700; color: var(--amber); line-height: 1.2; }
+.grade-turma { font-size: .68rem; color: var(--text-muted); line-height: 1.2; }
+.grade-del-btn {
+  display: none; position: absolute; top: 2px; right: 3px;
+  background: transparent; border: none; color: #ef4444;
+  font-size: .85rem; cursor: pointer; line-height: 1; opacity: .7; padding: 0;
+}
+.grade-del-btn:hover { opacity: 1; }
+.grade-ocupada:hover .grade-del-btn { display: block; }
+.grade-intervalo td {
+  background: #0f1620 !important; height: 6px !important;
+  padding: 0 !important; border-color: #0f1620 !important;
+}
+.grade-hint { font-size: .78rem; color: var(--text-muted); margin-bottom: 12px; }
+.grade-hint strong { color: var(--amber); }
+.grade-hint .cinza { color: #64748b; font-weight: 600; }

@@ -1,8 +1,7 @@
 /* ============================================================
-   SIDEBAR.CSS — Navegação lateral e mobile
+   SIDEBAR.CSS — Navegação lateral e mobile · Diário de Classe 2026
    Depende das variáveis CSS definidas em style.css (:root)
    ============================================================ */
-
 /* ── Layout ─────────────────────────────────────────────── */
 .app-layout {
   display: flex;
@@ -129,6 +128,8 @@
 .btn-gestao-sidebar:hover { background: var(--amber); color: #fff; }
 
 
+/* ── Responsivo ─────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────
    HAMBÚRGUER — oculto no desktop, visível no mobile
    ───────────────────────────────────────────────────────────── */
 .btn-hamburger {
@@ -381,6 +382,54 @@
 }
 
 .mob-home-cal-btn:active { background: #0a5c60; }
+
+/* ── Sidebar agrupada por turma ─────────────────────────── */
+.sidebar-turma-grupo { margin-bottom: 3px; }
+
+.sidebar-turma-label {
+  font-size: .68rem; color: #94a3b8;
+  padding: 5px 10px 1px; font-weight: 600; letter-spacing: .05em;
+}
+
+.sidebar-btn-sub { padding-left: 18px; }
+.sidebar-btn-sub .sidebar-btn-label { font-size: .8rem; }
+
+/* ── Bloco editor de conteúdos ──────────────────────────── */
+.bloco-editor { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+
+.bloco-instrucao {
+  font-size: .82rem; color: var(--text-mid);
+  padding: 10px 14px;
+  background: var(--amber-pale);
+  border-left: 3px solid var(--amber);
+  border-radius: 6px; line-height: 1.5;
+}
+
+.bloco-textarea {
+  width: 100%; padding: 12px 14px;
+  font-family: 'DM Mono', 'Fira Mono', monospace;
+  font-size: .83rem; line-height: 1.75;
+  color: var(--text); background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: 8px; outline: none; resize: vertical;
+  transition: border-color .13s;
+}
+
+.bloco-textarea:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+}
+
+.bloco-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+/* Botão outline */
+.btn-outline {
+  background: transparent !important;
+  color: var(--amber) !important;
+  border: 1.5px solid var(--amber) !important;
+}
+.btn-outline:hover { background: var(--amber) !important; color: #fff !important; }
+
 
 /* ── Sidebar agrupada por turma ─────────────────────────── */
 .sidebar-turma-grupo { margin-bottom: 3px; }

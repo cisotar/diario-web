@@ -1,0 +1,21 @@
+/* ============================================================
+   TALA.CSS — Situações de alunos · Diário de Classe 2026
+   Depende das variáveis CSS definidas em style.css (:root)
+   ============================================================ */
+/* ── Badges de situação do aluno ────────────────────────────── */
+.badge-situacao {
+  display: inline-block;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: .75rem;
+  font-weight: 700;
+}
+.badge-sit-ok  { background: #e6f4ea; color: #2d7a4f; }
+.badge-sit-ab  { background: #fce8e8; color: #c0392b; }
+.badge-sit-nc  { background: #fff3cd; color: #856404; }
+.badge-sit-tr  { background: #e8f0fe; color: #1a73e8; }
+.badge-sit-rm  { background: #f3e8fd; color: #7b1fa2; }
+.badge-sit-rc  { background: #fce8f3; color: #c2185b; }
+.badge-sit-ee  { background: #e0f2fe; color: #0369a1; }
+
+.aluno-inativo td { opacity: .55; }
