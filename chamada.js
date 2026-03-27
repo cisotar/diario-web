@@ -7,7 +7,7 @@ const _SITS_SEMPRE_C  = ["EE"];  // Educação Especial — presença sempre C, 
 // ── Oferta de cópia de chamada ────────────────────────────────────────────────
 // true  = modal aparece SEMPRE que a chamada for aberta
 // false = modal aparece apenas quando a chamada do professor estiver vazia para hoje
-const _CHAMADA_OFERTA_SEMPRE = true;
+const _CHAMADA_OFERTA_SEMPRE = false;
 
 let RT_CHAMADAS = {};
 
@@ -266,19 +266,22 @@ async function _renderizarChamadaDesktop() {
     let totalFaltas = 0;
     const isEE = a.situacao === "EE";
     const isEV = a.situacao === "EV";
+    const isInativo = _SITS_INATIVAS.includes(a.situacao);
     for (const s of slotsPassados) {
+      if (isInativo) break; // inativo nunca entra no TF
       if (!_alunoAtivoNaData(a, s.data)) continue;
       totalAulas++;
       const sk = _chaveSlotChamada(s.data, s.aula);
       const exp = (chamadas[sk] || {})[a.num] !== undefined
         ? chamadas[sk][a.num] : (chamadas[s.data] || {})[a.num];
-      const _isHoje = s.data === hoje_str;
-      if (exp !== undefined) {
+      if (isEV) {
+        totalFaltas++; // EV: sempre F
+      } else if (isEE) {
+        // EE: sempre C, nunca conta falta
+      } else if (exp !== undefined) {
         if (exp === "F") totalFaltas++;
-      } else if (!_isHoje) {
-        // passado sem registro: EV=F, EE=C, resto=C
-        if (isEV) totalFaltas++;
       }
+      // ativo comum sem registro: não conta (vazio)
     }
 
     const tds = slotsVisiveis.map(s => {
@@ -286,26 +289,30 @@ async function _renderizarChamadaDesktop() {
       const isPast = d <= hoje_str;
       const ativo  = _alunoAtivoNaData(a, d);
 
-      if (!ativo) {
-        return `<td style="text-align:center;color:var(--text-muted);font-size:.7rem">—</td>`;
-      }
-
       const slotKey = _chaveSlotChamada(d, s.aula);
-      const isHoje = d === hoje_str;
+      const isHoje  = d === hoje_str;
+
+      // Inativo: sempre —
+      if (!ativo) return `<td style="text-align:center;color:var(--text-muted);font-size:.7rem"${isHoje?' class="td-chamada-hoje"':""}>—</td>`;
+
       const explicit = (chamadas[slotKey] || {})[a.num] !== undefined
         ? chamadas[slotKey][a.num]
         : (chamadas[d] || {})[a.num];
+
       let val;
       if (explicit !== undefined) val = explicit;
-      else if (isEE)  val = isHoje ? "" : "C";
-      else if (isEV)  val = isHoje ? "" : "F";
-      else            val = (!isHoje && isPast) ? "C" : "";
-      if (!val) return `<td class="${isHoje ? "td-chamada-hoje" : ""}"></td>`;
+      else if (isEE)  val = "C";   // EE: sempre C, todos os dias
+      else if (isEV)  val = "F";   // EV: sempre F, todos os dias
+      else            val = "";    // Ativo comum: vazio até o prof registrar
+
+      if (!val) return `<td${isHoje ? ' class="td-chamada-hoje"' : ""}></td>`;
       const cls = val === "F" ? "chk-falta" : "chk-comp";
-      const autoHint = isEE ? " title='Ed. Especial (auto C)'" : isEV ? " title='Evadido (auto F)'" : "";
+      const autoHint = isEE ? " title='Ed. Especial (sempre C)'" : isEV ? " title='Evadido (auto F — editável)'" : "";
       return `<td style="text-align:center"${isHoje ? ' class="td-chamada-hoje"' : ""}>
         <button type="button" class="btn-cf ${cls}"${autoHint}
-          onclick="toggleChamadaSlot('${turmaKey}','${slotKey}','${d}',${a.num})"
+          ${isEE
+            ? `disabled style="opacity:.85;cursor:default"`
+            : `onclick="toggleChamadaSlot('${turmaKey}','${slotKey}','${d}',${a.num})"`}
         >${val}</button>
       </td>`;
     }).join("");
@@ -441,6 +448,9 @@ async function toggleChamadaSlot(turmaKey, slotKey, data, numAluno) {
   ]);
   const aluno = alunos.find(a => a.num === numAluno || String(a.num) === String(numAluno));
   if (!aluno) return;
+  // Inativos, EE e EV não podem ser alterados manualmente
+  if (_SITS_INATIVAS.includes(aluno.situacao)) return;
+  if (aluno.situacao === "EE") return;  // EE nunca é alterado
   if (!chamadas[slotKey]) chamadas[slotKey] = {};
   chamadas[slotKey][numAluno] = (chamadas[slotKey][numAluno] === "F") ? "C" : "F";
   await _salvarChamadas(turmaKey);
@@ -454,10 +464,14 @@ async function chamadaTodosData(turmaKey, data, valor) {
   ]);
   if (!chamadas[data]) chamadas[data] = {};
   for (const a of alunos) {
-    if (_alunoAtivoNaData(a, data)) {
-      // EE nunca recebe F
-      chamadas[data][a.num] = (a.situacao === "EE") ? "C" : valor;
-    }
+    // Inativos: nunca recebem valor
+    if (_SITS_INATIVAS.includes(a.situacao)) continue;
+    // EE: sempre C, independente do valor pedido
+    if (a.situacao === "EE") { chamadas[data][a.num] = "C"; continue; }
+    // EV: sempre F, independente do valor pedido
+    if (a.situacao === "EV") { chamadas[data][a.num] = "F"; continue; }
+    // Ativo comum: aplica o valor
+    if (_alunoAtivoNaData(a, data)) chamadas[data][a.num] = valor;
   }
   await _salvarChamadas(turmaKey);
   renderizarChamadaFrequencia();
