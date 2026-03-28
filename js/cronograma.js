@@ -288,7 +288,7 @@ function _atualizarBimInfoCronograma() {
     }
   }
   const pct = totalReg > 0 ? Math.round(feitas / totalReg * 100) : 0;
-  const cor = "var(--amber,#c97d20)";
+  const cor = pct === 100 ? "#4ade80" : pct > 50 ? "var(--amber)" : "var(--teal,#0d9488)";
 
   // Atualiza bimestre-info
   const infoEl = document.getElementById("bimestre-info-cron");
@@ -330,6 +330,8 @@ function _mkADRow(slotId, lista, val, idx, total) {
       list="dl-${slotId}-${idx}"
       value="${(val||'').replace(/"/g,'&quot;')}"
       placeholder="— aula desenvolvida —"
+      onfocus="if(this.value){this._prev=this.value;this.value=''}"
+      onblur="if(!this.value&&this._prev){this.value=this._prev;delete this._prev}"
       oninput="salvarDetalhe('${slotId}',${idx},this.value)"
       title="Selecione ou digite" />
     <button type="button" class="btn-add-detalhe" title="Adicionar linha AD"

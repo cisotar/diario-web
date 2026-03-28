@@ -451,9 +451,7 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 .sem-aulas { padding: 40px; text-align: center; color: var(--text-muted); font-size: .9rem; }
 
 /* ── Modal eventual ─────────────────────────────────────── */
-.modal-overlay {
-
-/* ── Modal eventual ─────────────────────────────────────── */
+/* ── Modal eventual ───────────────────────────────────────────────────────── */
 .modal-overlay {
   position: fixed; inset: 0; z-index: 500;
   background: rgba(0,0,0,.45);
@@ -511,8 +509,6 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 }
 
 .btn-modal-ok:hover { background: #b56e18; }
-
-/* ══════════════════════════════════════════════════════════
 
 /* ── Animações ──────────────────────────────────────────── */
 @keyframes fadeUp {
@@ -628,34 +624,161 @@ tr:hover .drag-handle-cont { color: var(--amber); }
 }
 
 /* ── Badges de situação do aluno ────────────────────────────── */
+/* ── Visão detalhada — bloco AP/AD ──────────────────────────────────────── */
 
+.ad-blocos-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 5px;
+  padding-left: 37px;       /* alinha AD sob AP */
+}
 
-/* ── Barra de progresso do bimestre ─────────────────────────── */
+.conteudo-ad-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cont-label-ap,
+.cont-label-ad {
+  flex-shrink: 0;
+  width: 32px;              /* largura fixa para empilhamento perfeito */
+  font-size: .62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  padding: 1px 4px;
+  border-radius: 3px;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.cont-label-ap {
+  background: #fef3c7;
+  color: #8a4f00;
+}
+
+.cont-label-ad {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.detalhe-input {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 7px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: .845rem;
+  color: var(--text-mid);
+  background: transparent;
+  border: none;
+  border-bottom: 1px dashed var(--border);
+  border-radius: 0;
+  outline: none;
+  transition: border-color .13s, color .13s, font-weight .13s;
+}
+
+.detalhe-input::placeholder { color: #bbc4ce; font-style: italic; }
+
+.detalhe-input:focus {
+  border-bottom-color: var(--blue);
+  color: var(--text);
+}
+
+/* Azul quando preenchido — igual à anotação */
+.detalhe-input:not(:placeholder-shown) {
+  color: #1e3a8a;
+  font-weight: 600;
+  border-bottom-color: rgba(30,58,138,.3);
+}
+
+.anotacao-input:not(:placeholder-shown) {
+  color: #1e3a8a;
+  font-weight: 600;
+  border-bottom-color: rgba(30,58,138,.3);
+}
+
+.btn-add-detalhe,
+.btn-del-detalhe {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  width: 20px; height: 20px;
+  font-size: .8rem; line-height: 1;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .12s;
+  padding: 0;
+}
+
+.btn-add-detalhe { color: var(--teal); border-color: var(--teal); }
+.btn-add-detalhe:hover { background: var(--teal); color: #fff; }
+
+.btn-del-detalhe { color: #b0bec9; }
+.btn-del-detalhe:hover { background: #fef2f2; border-color: var(--red); color: var(--red); }
+
+/* Drag handle — largura fixa, maior */
+.drag-handle-cont {
+  flex-shrink: 0;
+  width: 32px;
+  font-size: 1.1rem;
+  color: #94a3b2;
+  cursor: pointer;
+  user-select: none;
+  padding: 2px 5px;
+  line-height: 1.45;
+  border-radius: 4px;
+  transition: color .13s, background .13s;
+  border: 1.5px solid transparent;
+  text-align: center;
+}
+.drag-handle-cont:active { cursor: grabbing; }
+tr:hover .drag-handle-cont { color: var(--amber); }
+.drag-handle-cont.handle-sel {
+  color: #fff !important;
+  background: var(--amber);
+  border-color: var(--amber);
+}
+
+/* ── Barra de progresso do bimestre ─────────────────────────────────────── */
 .bim-prog-wrap {
-  padding: 8px 12px 6px;
-  margin-bottom: 8px;
+  padding: 8px 12px;
   background: var(--bg-paper);
   border: 1px solid var(--border);
   border-radius: var(--radius);
+  margin-bottom: 8px;
 }
+
 .bim-prog-info {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  font-size: .8rem;
-  color: var(--text-mid);
-  margin-bottom: 6px;
+  font-size: .78rem;
+  color: var(--text-muted);
+  margin-bottom: 5px;
+  flex-wrap: wrap;
+  gap: 4px;
 }
-.bim-prog-frac { font-size: .75rem; color: var(--text-muted); }
+
+.bim-prog-frac {
+  font-weight: 600;
+  color: var(--text-mid);
+}
+
 .bim-prog-bar-bg {
   height: 8px;
   background: #1e2530;
-  border-radius: 99px;
+  border-radius: 4px;
   overflow: hidden;
 }
+
 .bim-prog-bar-fill {
   height: 100%;
-  border-radius: 99px;
-  background: var(--amber, #c97d20);
+  background: var(--amber, #c97d20);   /* sempre âmbar — sem condicional */
+  border-radius: 4px;
   transition: width .4s ease;
 }
+
+/* Tabela: font-size aumentada */
+.tabela-aulas { font-size: .93rem; }
