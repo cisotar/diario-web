@@ -120,6 +120,8 @@ let _dataChamadaSel     = null;
 let _bimestreChamadaSel = null;
 // Mês filtrado na chamada ("YYYY-MM" ou null = todos)
 let _mesChamadaSel      = null;
+// Filtro de situação na chamada: null = ativos, "" = todos, "AB"|"TR"... = específica
+let _chamadaFiltroSit   = null;
 
 function _diasDeAulaNoBimestre(turmaId, bim) {
   // Retorna datas únicas (para seletor de data e cálculo de TF)
@@ -169,6 +171,51 @@ async function _renderizarChamadaDesktop() {
 
   const alunos   = await _carregarAlunos(turmaKey);
   const chamadas = await _carregarChamadas(turmaKey);
+
+  // ── Barra de filtro de situação ──────────────────────────────────────────
+  const _SITS_INAT_CH = ["AB","NC","TR","RM","RC"];
+  const _cntsSit = {
+    total:  alunos.length,
+    ativos: alunos.filter(a => !_SITS_INAT_CH.includes(a.situacao)).length,
+    AB: alunos.filter(a => a.situacao==="AB").length,
+    NC: alunos.filter(a => a.situacao==="NC").length,
+    TR: alunos.filter(a => a.situacao==="TR").length,
+    RM: alunos.filter(a => a.situacao==="RM").length,
+    RC: alunos.filter(a => a.situacao==="RC").length,
+    EE: alunos.filter(a => a.situacao==="EE").length,
+    EV: alunos.filter(a => a.situacao==="EV").length,
+  };
+  const _mkSitC = (cls, sigla, desc, n) => {
+    if (n === 0) return "";
+    const ativo      = _chamadaFiltroSit === sigla;
+    const clearOrSet = sigla === null ? "null" : sigla === "" ? "''" : `'${sigla}'`;
+    const toggle     = ativo ? (sigla === null ? "''" : "null") : clearOrSet;
+    return `<span class="sit-item${ativo?" sit-item-ativo":""}"
+      onclick="_chamadaFiltroSit=${toggle};renderizarChamadaFrequencia()"
+      style="cursor:pointer" title="${ativo?"Remover filtro":"Filtrar: "+desc}">
+      <span class="badge-situacao badge-sit-${cls}">${sigla??'✓'}</span>
+      <span class="sit-desc">${desc} (${n})</span>
+    </span>`;
+  };
+  const _legendaSitChamada = `<div class="sit-legenda">
+    <span class="sit-legenda-titulo">Situação:</span>
+    ${_mkSitC("ok",null,"Ativos",_cntsSit.ativos)}
+    ${_mkSitC("ok","","TODOS",_cntsSit.total)}
+    ${_mkSitC("ab","AB","Abandonou",_cntsSit.AB)}
+    ${_mkSitC("nc","NC","Não comparecimento",_cntsSit.NC)}
+    ${_mkSitC("tr","TR","Transferido",_cntsSit.TR)}
+    ${_mkSitC("rm","RM","Remanejado",_cntsSit.RM)}
+    ${_mkSitC("rc","RC","Reclassificado",_cntsSit.RC)}
+    ${_mkSitC("ee","EE","Ed. Especial",_cntsSit.EE)}
+    ${_mkSitC("ev","EV","Evadido",_cntsSit.EV)}
+  </div>`;
+
+  // Aplica filtro de situação à lista visível (TF/%F continuam sobre todos)
+  const alunosFiltrados = (() => {
+    if (_chamadaFiltroSit === null) return alunos.filter(a => !_SITS_INAT_CH.includes(a.situacao));
+    if (_chamadaFiltroSit === "")   return alunos;
+    return alunos.filter(a => a.situacao === _chamadaFiltroSit);
+  })();
 
   if (!_bimestreChamadaSel) _bimestreChamadaSel = bimestreAtivo;
   const bimObj = RT_BIMESTRES.find(b => b.bimestre === _bimestreChamadaSel) || RT_BIMESTRES[0];
@@ -260,7 +307,7 @@ async function _renderizarChamadaDesktop() {
     "EE":"Educação Especial"
   };
 
-  const rows = alunos.map(a => {
+  const rows = alunosFiltrados.map(a => {
     // TF e %F calculados sobre todas as datas passadas do bimestre
     let totalAulas  = 0;
     let totalFaltas = 0;
@@ -355,7 +402,7 @@ async function _renderizarChamadaDesktop() {
     if (estadoAulas[chaveSlot(turmaAtiva.id, _bimestreChamadaSel, s.slotId)]?.feita) _feitasCham++;
   }
   const _pctCham = _totalRegCham > 0 ? Math.round(_feitasCham/_totalRegCham*100) : 0;
-  const _corCham = "var(--amber,#c97d20)";
+  const _corCham = _pctCham===100 ? "#4ade80" : _pctCham>50 ? "var(--amber)" : "var(--teal,#0d9488)";
   const _bimProgBarChamada = (f, r, bimObj) => `
     <div class="bim-prog-wrap" id="bim-prog-wrap" style="margin-bottom:4px">
       <div class="bim-prog-info">
@@ -370,7 +417,7 @@ async function _renderizarChamadaDesktop() {
   // Abas de bimestre (ao trocar, limpa filtro de mês também)
   const tabsBimChamada = RT_BIMESTRES.map(b =>
     `<button type="button" class="tab-bim ${b.bimestre === _bimestreChamadaSel ? "ativo" : ""}"
-      onclick="_bimestreChamadaSel=${b.bimestre};_dataChamadaSel=null;_mesChamadaSel=null;renderizarChamadaFrequencia()">${b.label}</button>`
+      onclick="_bimestreChamadaSel=${b.bimestre};_dataChamadaSel=null;_mesChamadaSel=null;_chamadaFiltroSit=null;renderizarChamadaFrequencia()">${b.label}</button>`
   ).join("");
 
   // Botões de filtro por mês (só aparece quando o bimestre tem mais de um mês)
@@ -388,6 +435,44 @@ async function _renderizarChamadaDesktop() {
         : ""}
     </div>` : "";
 
+  // ── Rodapé: TF / TC / %F por coluna de dia ─────────────────────────────
+  const _buildTfootRow = (label, cls, vals, tfTotal, pctTotal) => {
+    const cellStyle = `background:#1e2530;color:#e2e8f0;text-align:center;font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:6px 4px;border-top:2px solid #334155;`;
+    const labelCell = `<td colspan="3" style="${cellStyle}text-align:left;padding-left:10px;">${label}</td>`;
+    const dayCells  = vals.map(v => `<td style="${cellStyle}${v===null?'color:#475569':''}">${v===null?'—':v}</td>`).join("");
+    const tfCell    = `<td style="${cellStyle}color:#93c5fd;">${tfTotal}</td>`;
+    const pctCell   = `<td style="${cellStyle}color:#93c5fd;">${pctTotal}</td>`;
+    return `<tr>${labelCell}${dayCells}${tfCell}${pctCell}</tr>`;
+  };
+
+  // Conta F e C por slot visível, sobre os alunos filtrados
+  const _tfPorSlot = slotsVisiveis.map(s => {
+    let f = 0, c = 0;
+    for (const a of alunosFiltrados) {
+      if (!_alunoAtivoNaData(a, s.data)) continue;
+      const sk  = _chaveSlotChamada(s.data, s.aula);
+      const val = (chamadas[sk]||{})[a.num] !== undefined
+        ? (chamadas[sk]||{})[a.num]
+        : (chamadas[s.data]||{})[a.num];
+      if (a.situacao==="EE")     c++;
+      else if (a.situacao==="EV") f++;
+      else if (val==="F")        f++;
+      else if (val==="C")        c++;
+    }
+    return { f, c, total: f+c };
+  });
+
+  const _tfTotalGeral = _tfPorSlot.reduce((s,v) => s+v.f, 0);
+  const _tcTotalGeral = _tfPorSlot.reduce((s,v) => s+v.c, 0);
+  const _totGeral     = _tfTotalGeral + _tcTotalGeral;
+  const _pctFGeral    = _totGeral > 0 ? (_tfTotalGeral/_totGeral*100).toFixed(0)+"%" : "—";
+
+  const _tfootChamada = [
+    _buildTfootRow("TF — Total Faltas",      "tf",  _tfPorSlot.map(v => v.total>0 ? v.f : null),                            _tfTotalGeral, ""),
+    _buildTfootRow("TC — Total Comparec.",   "tc",  _tfPorSlot.map(v => v.total>0 ? v.c : null),                            _tcTotalGeral, ""),
+    _buildTfootRow("%F — % Faltas",          "pct", _tfPorSlot.map(v => v.total>0 ? (v.f/v.total*100).toFixed(0)+"%" : null), "",          _pctFGeral),
+  ].join("");
+
   secao.innerHTML = `
     <div class="gestao-bloco">
       <div class="gestao-bloco-header" style="flex-wrap:wrap;gap:8px">
@@ -402,11 +487,14 @@ async function _renderizarChamadaDesktop() {
             onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','C')">✓ Todos C</button>
           <button type="button" class="btn-add" style="background:var(--text-muted)"
             onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','F')">✗ Todos F</button>
+          <button type="button" class="btn-exportar-js"
+            onclick="_abrirRelatorioFrequencia('${turmaKey}',${_bimestreChamadaSel})">📊 Relatório</button>
         </div>
       </div>
       <div class="tabs-bimestre" style="margin-bottom:4px">${tabsBimChamada}</div>
       ${_bimProgBarChamada(_feitasCham, _totalRegCham, bimObj)}
       ${filtroMeses}
+      ${_legendaSitChamada}
       <div style="overflow-x:auto">
         <table class="tabela-gestao tabela-chamada" style="min-width:0">
           <colgroup>
@@ -431,6 +519,7 @@ async function _renderizarChamadaDesktop() {
             </tr>
           </thead>
           <tbody>${rows || '<tr><td colspan="10" class="td-vazio">Nenhum aluno cadastrado.</td></tr>'}</tbody>
+          <tfoot>${_tfootChamada}</tfoot>
         </table>
       </div>
     </div>`;
@@ -613,6 +702,8 @@ async function _renderizarChamadaMobile() {
             onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','C')">✓ Todos C</button>
           <button type="button" class="btn-add" style="background:var(--text-muted)"
             onclick="chamadaTodosData('${turmaKey}','${_dataChamadaSel}','F')">✗ Todos F</button>
+          <button type="button" class="btn-exportar-js"
+            onclick="_abrirRelatorioFrequencia('${turmaKey}',${_bimestreChamadaSel})">📊 Relatório</button>
         </div>
       </div>
       <table class="tabela-gestao chamada-mob-tabela">
@@ -635,4 +726,139 @@ async function toggleChamadaMobile(turmaKey, data, numAluno, btnEl) {
   btnEl.textContent = novo;
   btnEl.className = `btn-cf-mob ${novo === "F" ? "chk-falta" : "chk-comp"}`;
   await _salvarChamadas(turmaKey);
+}
+
+// ── Modal de Relatório de Frequência ─────────────────────────────────────────
+
+async function _abrirRelatorioFrequencia(turmaKey, bim) {
+  const t       = turmaAtiva;
+  if (!t) return;
+  const alunos  = await _carregarAlunos(turmaKey);
+  const chamadas= await _carregarChamadas(turmaKey);
+  const bimObj  = RT_BIMESTRES.find(b => b.bimestre === bim) || RT_BIMESTRES[0];
+
+  const todosSlots = _slotsDeAulaNoBimestre(t.id, bim)
+    .filter(s => s.data >= bimObj.inicio && s.data <= bimObj.fim && s.data <= hoje());
+
+  // Agrupa por data (cada dia = uma barra)
+  const diasMap = new Map();
+  for (const s of todosSlots) {
+    if (!diasMap.has(s.data)) diasMap.set(s.data, { f:0, c:0, s:0 });
+    const d = diasMap.get(s.data);
+    for (const a of alunos) {
+      if (!_alunoAtivoNaData(a, s.data)) { d.s++; continue; }
+      const sk  = _chaveSlotChamada(s.data, s.aula);
+      const val = (chamadas[sk]||{})[a.num] !== undefined
+        ? (chamadas[sk]||{})[a.num] : (chamadas[s.data]||{})[a.num];
+      if (a.situacao==="EE")     d.c++;
+      else if (a.situacao==="EV") d.f++;
+      else if (val==="F")        d.f++;
+      else if (val==="C")        d.c++;
+    }
+  }
+
+  const dias = [...diasMap.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
+  if (!dias.length) { alert("Nenhum dado de chamada para este bimestre."); return; }
+
+  // ── SVG bar chart ──────────────────────────────────────────────────────────
+  const W = Math.max(480, dias.length * 38 + 80);
+  const H = 220;
+  const PAD = { t:48, r:20, b:50, l:44 };
+  const chartW = W - PAD.l - PAD.r;
+  const chartH = H - PAD.t - PAD.b;
+
+  const maxVal = Math.max(...dias.map(([,v]) => v.f + v.c), 1);
+  const barW   = Math.floor(chartW / dias.length) - 4;
+  const xOff   = (chartW / dias.length - barW) / 2;
+
+  // Y gridlines
+  const yStep = maxVal <= 10 ? 2 : maxVal <= 20 ? 5 : 10;
+  let gridLines = "";
+  for (let y = 0; y <= maxVal; y += yStep) {
+    const yy = PAD.t + chartH - (y / maxVal) * chartH;
+    gridLines += `<line x1="${PAD.l}" y1="${yy}" x2="${PAD.l+chartW}" y2="${yy}"
+      stroke="#2d3748" stroke-width="1" stroke-dasharray="3,3"/>
+    <text x="${PAD.l-6}" y="${yy+4}" text-anchor="end" font-size="10" fill="#64748b">${y}</text>`;
+  }
+
+  // Bars
+  let bars = "";
+  dias.forEach(([data, v], i) => {
+    const x   = PAD.l + i * (chartW / dias.length) + xOff;
+    const tot = v.f + v.c;
+    const hC  = tot > 0 ? (v.c / maxVal) * chartH : 0;
+    const hF  = tot > 0 ? (v.f / maxVal) * chartH : 0;
+    const yC  = PAD.t + chartH - hC - hF;
+    const yF  = PAD.t + chartH - hF;
+    const dia = data.split("-")[2];
+    bars += `
+      <rect x="${x}" y="${yC}" width="${barW}" height="${hC}" fill="#4ade80" rx="2"/>
+      <rect x="${x}" y="${yF}" width="${barW}" height="${hF}" fill="#f87171" rx="2"/>
+      <text x="${x+barW/2}" y="${H-PAD.b+14}" text-anchor="middle" font-size="10" fill="#94a3b8">${dia}</text>`;
+    if (v.f > 0)
+      bars += `<text x="${x+barW/2}" y="${yF-3}" text-anchor="middle" font-size="9" fill="#fca5a5">${v.f}</text>`;
+  });
+
+  // Axis
+  const axis = `
+    <line x1="${PAD.l}" y1="${PAD.t}" x2="${PAD.l}" y2="${PAD.t+chartH}" stroke="#475569" stroke-width="1"/>
+    <line x1="${PAD.l}" y1="${PAD.t+chartH}" x2="${PAD.l+chartW}" y2="${PAD.t+chartH}" stroke="#475569" stroke-width="1"/>`;
+
+  // Header SVG (mesmo estilo da tabela de notas)
+  const header = `
+    <rect x="0" y="0" width="${W}" height="${PAD.t-4}" fill="#1e2530"/>
+    <text x="${PAD.l}" y="18" font-size="11" font-weight="700" fill="#e2e8f0"
+      text-transform="uppercase" letter-spacing="1">
+      FREQUÊNCIA — ${t.serie}ª ${t.turma} · ${t.disciplina}
+    </text>
+    <text x="${PAD.l}" y="33" font-size="10" fill="#64748b">${bimObj.label}: ${fmtData(bimObj.inicio)} → ${fmtData(bimObj.fim)}</text>
+    <rect x="${W-120}" y="8" width="10" height="10" fill="#4ade80" rx="2"/>
+    <text x="${W-107}" y="18" font-size="10" fill="#94a3b8">Comparecimento</text>
+    <rect x="${W-120}" y="24" width="10" height="10" fill="#f87171" rx="2"/>
+    <text x="${W-107}" y="34" font-size="10" fill="#94a3b8">Falta</text>`;
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"
+    style="background:#0f172a;border-radius:8px;display:block">
+    ${header}${gridLines}${bars}${axis}
+  </svg>`;
+
+  // ── Modal ──────────────────────────────────────────────────────────────────
+  let modal = document.getElementById("modal-relatorio-chamada");
+  if (modal) modal.remove();
+  modal = document.createElement("div");
+  modal.id = "modal-relatorio-chamada";
+  modal.style.cssText = [
+    "position:fixed","inset:0","z-index:9999",
+    "background:rgba(0,0,0,.6)",
+    "display:flex","align-items:center","justify-content:center",
+    "padding:20px","overflow:auto"
+  ].join(";");
+
+  const totalF = dias.reduce((s,[,v])=>s+v.f,0);
+  const totalC = dias.reduce((s,[,v])=>s+v.c,0);
+  const totAl  = totalF+totalC;
+  const pctF   = totAl>0 ? (totalF/totAl*100).toFixed(1)+"%" : "—";
+
+  modal.innerHTML = `
+    <div style="background:#1e293b;border-radius:14px;padding:24px;max-width:${W+48}px;width:100%;
+      box-shadow:0 20px 60px rgba(0,0,0,.6);position:relative">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="display:flex;gap:20px;font-size:.82rem;color:#94a3b8">
+          <span>✅ <strong style="color:#4ade80">${totalC}</strong> comparecimentos</span>
+          <span>❌ <strong style="color:#f87171">${totalF}</strong> faltas</span>
+          <span>📊 <strong style="color:#fbbf24">${pctF}</strong> de faltas</span>
+        </div>
+        <button id="btn-fechar-relatorio" style="
+          background:transparent;border:1px solid #334155;border-radius:6px;
+          color:#64748b;font-size:1.1rem;width:32px;height:32px;cursor:pointer;
+          display:flex;align-items:center;justify-content:center;
+          transition:all .13s;flex-shrink:0" title="Fechar">✕</button>
+      </div>
+      <div style="overflow-x:auto">${svg}</div>
+    </div>`;
+
+  document.body.appendChild(modal);
+
+  modal.querySelector("#btn-fechar-relatorio").addEventListener("click", () => modal.remove());
+  modal.addEventListener("click", e => { if (e.target === modal) modal.remove(); });
 }
