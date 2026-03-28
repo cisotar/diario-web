@@ -162,3 +162,46 @@ body {
   border: 1.5px solid var(--amber) !important;
 }
 .btn-outline:hover { background: var(--amber) !important; color: #fff !important; }
+
+/* ── Barra de filtro de situação (tala, chamada e notas) ────── */
+.sit-legenda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  margin-bottom: 8px;
+  font-size: .78rem;
+}
+.sit-legenda-titulo {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--text-muted);
+}
+.sit-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px 3px 4px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-paper);
+  color: var(--text-mid);
+  font-size: .75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color .13s, background .13s;
+}
+.sit-item:hover {
+  border-color: var(--amber);
+  background: var(--amber-pale);
+}
+.sit-item-ativo {
+  border-color: var(--amber);
+  background: var(--amber-pale);
+  color: var(--amber);
+  font-weight: 700;
+}
+.sit-desc { white-space: nowrap; }

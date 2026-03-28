@@ -355,7 +355,7 @@ async function _renderizarChamadaDesktop() {
     if (estadoAulas[chaveSlot(turmaAtiva.id, _bimestreChamadaSel, s.slotId)]?.feita) _feitasCham++;
   }
   const _pctCham = _totalRegCham > 0 ? Math.round(_feitasCham/_totalRegCham*100) : 0;
-  const _corCham = _pctCham===100 ? "#4ade80" : _pctCham>50 ? "var(--amber)" : "var(--teal,#0d9488)";
+  const _corCham = "var(--amber,#c97d20)";
   const _bimProgBarChamada = (f, r, bimObj) => `
     <div class="bim-prog-wrap" id="bim-prog-wrap" style="margin-bottom:4px">
       <div class="bim-prog-info">

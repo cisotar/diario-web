@@ -64,7 +64,7 @@ function renderizarConteudo() {
   // Helper: gera barra de progresso do bimestre ativo
   const _bimProgBar = (f, r, label, inicio, fim) => {
     const p   = r > 0 ? Math.round(f/r*100) : 0;
-    const cor = p === 100 ? "#4ade80" : p > 50 ? "var(--amber)" : "var(--teal,#0d9488)";
+    const cor = "var(--amber,#c97d20)";
     return `
     <div class="bim-prog-wrap" id="bim-prog-wrap">
       <div class="bim-prog-info">
@@ -263,7 +263,7 @@ function _atualizarBimProgBar() {
     if (!s.eventual) { totalReg++; if (estadoAulas[chaveSlot(t.id,bimestreAtivo,s.slotId)]?.feita) feitas++; }
   }
   const p   = totalReg > 0 ? Math.round(feitas/totalReg*100) : 0;
-  const cor = p === 100 ? "#4ade80" : p > 50 ? "var(--amber)" : "var(--teal,#0d9488)";
+  const cor = "var(--amber,#c97d20)";
   wrap.innerHTML = `
     <div class="bim-prog-info">
       <span>📅 ${bimObj.label}: ${fmtData(bimObj.inicio)} → ${fmtData(bimObj.fim)}</span>
@@ -288,7 +288,7 @@ function _atualizarBimInfoCronograma() {
     }
   }
   const pct = totalReg > 0 ? Math.round(feitas / totalReg * 100) : 0;
-  const cor = pct === 100 ? "#4ade80" : pct > 50 ? "var(--amber)" : "var(--teal,#0d9488)";
+  const cor = "var(--amber,#c97d20)";
 
   // Atualiza bimestre-info
   const infoEl = document.getElementById("bimestre-info-cron");

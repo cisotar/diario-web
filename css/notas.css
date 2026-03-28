@@ -1,0 +1,251 @@
+/* ============================================================
+   NOTAS.CSS — Tabela de Notas · Diário de Classe 2026
+   Depende das variáveis em style.css (:root)
+   ============================================================ */
+
+/* ── Tabela de Notas ──────────────────────────────────────── */
+.tabela-notas { border: 1px solid var(--border); }
+
+.tabela-notas .th-nota {
+  text-align: center;
+  font-size: .78rem;
+  font-weight: 700;
+  padding: 5px 6px;
+  white-space: nowrap;
+  min-width: 58px;
+  vertical-align: middle;
+  border-right: none;          /* sem grade vertical no cabeçalho */
+  background: #1e2530;         /* cabeçalho uniforme */
+  color: #e2e8f0;
+}
+
+/* Cores distintas por tipo de coluna calculada — só o texto, fundo igual */
+.tabela-notas .th-mt  { color: #93c5fd; }
+.tabela-notas .th-rec { color: #fbbf24; }
+.tabela-notas .th-mb  { color: #4ade80; }
+.tabela-notas .th-tf  { color: #94a3b8; }
+.tabela-notas .th-pct { color: #94a3b8; }
+.tabela-notas .th-mf  { color: #86efac; }
+
+.th-bim-grupo {
+  text-align: center;
+  font-size: .72rem;
+  font-weight: 700;
+  background: #1e2530;         /* mesmo fundo do restante */
+  color: #7dd3fc;
+  padding: 4px 6px;
+  border-bottom: 1px solid rgba(255,255,255,.08);
+  border-right: none;
+}
+
+/* Sem grade vertical nas células */
+.tabela-notas .td-nota { border-right: none; }
+.tabela-notas td       { border-right: none; }
+
+/* Linha de pesos */
+.tabela-notas .tr-pesos td { background: #141c27; border-right: none; }
+
+/* Separação de bimestres: mantém só a borda horizontal entre grupos */
+.tabela-notas .td-bim-sep { border-right: none; }
+
+/* Linhas alternadas nos nomes */
+.tabela-notas tbody tr:nth-child(even) td { background: #f4f1eb; }  /* tom levemente quente */
+.tabela-notas tbody tr:nth-child(odd)  td { background: #faf8f3; }
+.tabela-notas tbody tr:hover           td { background: var(--blue-pale) !important; }
+
+/* Sobrescreve zebra para linhas em recuperação e reprovadas */
+.row-em-rec    td { background: rgba(245,158,11,.09) !important; }
+.row-reprovado td { background: rgba(239,68,68,.09)  !important; }
+.row-em-rec:hover    td { background: rgba(245,158,11,.16) !important; }
+.row-reprovado:hover td { background: rgba(239,68,68,.16)  !important; }
+
+/* ── Inputs de nota ──────────────────────────────────────── */
+.td-nota {
+  text-align: center;
+  padding: 3px 4px;
+  vertical-align: middle;
+}
+
+.input-nota {
+  width: 56px;
+  text-align: center;          /* números centralizados */
+  font-size: .85rem;
+  font-weight: 700;
+  background: transparent;     /* sem fundo próprio — herda a zebra */
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  color: #1e293b;
+  padding: 3px 4px;
+  display: block;
+  margin: 0 auto;
+  transition: border-color .15s, box-shadow .15s;
+}
+.input-nota:focus {
+  border-color: #0d9488;
+  box-shadow: 0 0 0 2px rgba(13,148,136,.15);
+  outline: none;
+  background: #fff;
+}
+.input-nota[readonly],
+.input-nota-inativo {
+  background: #e2e8f0;
+  color: #94a3b8;
+  cursor: default;
+  border-style: dashed;
+  border-color: #cbd5e1;
+}
+
+/* Nota < 5 → fundo vermelho claro + texto vermelho */
+.nota-input-low {
+  background: #fff0f0 !important;
+  border-color: #fca5a5 !important;
+  color: #dc2626 !important;
+}
+
+/* Nota ≥ 5 → sem fundo (herda zebra), texto azul escuro */
+.nota-input-ok {
+  background: transparent !important;
+  border-color: #93c5fd !important;
+  color: #1e3a8a !important;
+}
+
+/* Campo de recuperação */
+.input-rec {
+  border-color: #f59e0b;
+  background: #fffbeb;
+  color: #92400e;
+}
+.input-rec:focus {
+  border-color: #fbbf24;
+  box-shadow: 0 0 0 2px rgba(251,191,36,.15);
+  background: #fff;
+}
+
+/* ── Input de peso ───────────────────────────────────────── */
+.input-peso {
+  width: 52px;
+  text-align: center;
+  font-size: .75rem;
+  font-weight: 600;
+  background: #f1f5f9;
+  border: 1px dashed #94a3b8;
+  border-radius: 4px;
+  color: #334155;
+  padding: 2px 4px;
+  display: block;
+  margin: 0 auto;
+}
+.input-peso:focus { border-color: #0d9488; outline: none; background: #fff; }
+
+/* ── Células calculadas ──────────────────────────────────── */
+.td-mt, .td-mb, .td-mf, .td-rec,
+.td-tf, .td-tf-total, .td-pct-faltas {
+  text-align: center;
+  font-size: .88rem;
+  font-weight: 700;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+.nota-ok        { color: #1e3a8a; }   /* azul escuro — ≥ 5 */
+.nota-em-rec    { color: #d97706; }   /* âmbar — em recuperação */
+.nota-reprovado { color: #dc2626; }   /* vermelho — < 5 após rec */
+.nota-vazia     { color: var(--text-muted); text-align: center; }
+
+/* ── Barra de progresso do bimestre ─────────────────────── */
+
+
+/* ── Chamada Mobile ──────────────────────────────────────── */
+.chamada-mobile-wrap { padding: 4px 0; }
+.chamada-mobile-header { margin-bottom: 12px; }
+.chamada-mob-tabela td, .chamada-mob-tabela th { padding: 10px 8px; }
+.btn-cf-mob { width: 48px; height: 36px; border: none; border-radius: 6px; font-size: .9rem; font-weight: 700; cursor: pointer; }
+
+/* ── Drag & drop de colunas ──────────────────────────────── */
+.th-col-drag {
+  cursor: grab;
+  user-select: none;
+  transition: background .15s;
+  position: relative;
+}
+.th-col-drag:active { cursor: grabbing; }
+.th-col-dragging    { opacity: .4; }
+.th-col-drag-over   { background: rgba(13,148,136,.25) !important; }
+
+/* Input de sigla editável no cabeçalho */
+.input-col-sigla {
+  width: 48px;
+  text-align: center;
+  font-size: .8rem;
+  font-weight: 800;
+  background: rgba(255,255,255,.08);
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: #e2e8f0;
+  padding: 2px 3px;
+  display: block;
+  margin: 0 auto 2px;
+}
+.input-col-sigla:hover { border-color: rgba(255,255,255,.2); }
+.input-col-sigla:focus { border-color: #0d9488; outline: none; background: rgba(255,255,255,.12); }
+
+.th-col-sigla-fixed {
+  font-size: .8rem;
+  font-weight: 800;
+  color: #e2e8f0;
+  display: block;
+  text-align: center;
+}
+
+/* Botão remover coluna */
+.btn-del-col {
+  background: transparent;
+  border: none;
+  color: #ef4444;
+  font-size: .8rem;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  opacity: .55;
+  vertical-align: middle;
+}
+.btn-del-col:hover { opacity: 1; }
+
+/* ── Legenda ─────────────────────────────────────────────── */
+.notas-legenda {
+  font-size: .72rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.notas-legenda strong { color: #94a3b8; }
+
+.bim-prog-wrap {
+  padding: 8px 12px 6px;      /* espaço lateral para não colar nas margens */
+  margin-bottom: 8px;
+  background: var(--bg-paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.bim-prog-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: .8rem;
+  color: var(--text-mid);
+  margin-bottom: 6px;
+}
+.bim-prog-frac { font-size: .75rem; color: var(--text-muted); }
+.bim-prog-bar-bg {
+  height: 8px;                 /* mais espessa */
+  background: #1e2530;         /* trilho escuro uniforme */
+  border-radius: 99px;
+  overflow: hidden;
+}
+.bim-prog-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--amber, #c97d20);   /* sempre âmbar */
+  transition: width .4s ease;
+}

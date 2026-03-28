@@ -1,0 +1,52 @@
+/* ============================================================
+   TALA.CSS — Lista de Alunos · Diário de Classe 2026
+   Depende das variáveis em style.css (:root)
+   ============================================================ */
+
+/* ── Badges de situação ──────────────────────────────────── */
+.badge-situacao {
+  display: inline-block;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: .75rem;
+  font-weight: 700;
+}
+.badge-sit-ok  { background: #e6f4ea; color: #2d7a4f; }
+.badge-sit-ab  { background: #fce8e8; color: #c0392b; }
+.badge-sit-nc  { background: #fff3cd; color: #856404; }
+.badge-sit-tr  { background: #e8f0fe; color: #1a73e8; }
+.badge-sit-rm  { background: #f3e8fd; color: #7b1fa2; }
+.badge-sit-rc  { background: #fce8f3; color: #c2185b; }
+.badge-sit-ee  { background: #e0f2fe; color: #0369a1; }
+.badge-sit-ev  { background: #fef3c7; color: #92400e; }
+
+/* ── Visual da tabela — mesmo padrão das notas ───────────── */
+
+/* Remove todas as bordas verticais de grade */
+#secao-tala .tabela-gestao {
+  border: 1px solid var(--border);
+}
+#secao-tala .tabela-gestao th {
+  border-right: none;
+}
+#secao-tala .tabela-gestao td {
+  border-right: none;
+  border-bottom: none;           /* sem linhas horizontais entre linhas */
+}
+
+/* Cabeçalho uniforme — mesmo background, sem distinções */
+#secao-tala .tabela-gestao thead {
+  background: #1e2530;
+  color: #e2e8f0;
+}
+
+/* Linhas alternadas — mesma paleta das notas */
+#secao-tala .tabela-gestao tbody tr:nth-child(odd)  td { background: #faf8f3; }
+#secao-tala .tabela-gestao tbody tr:nth-child(even) td { background: #f4f1eb; }
+#secao-tala .tabela-gestao tbody tr:hover           td { background: var(--blue-pale) !important; }
+
+/* Aluno inativo: opacidade reduzida, mantém a zebra */
+#secao-tala .tabela-gestao tr.aluno-inativo td {
+  opacity: .55;
+}
+
